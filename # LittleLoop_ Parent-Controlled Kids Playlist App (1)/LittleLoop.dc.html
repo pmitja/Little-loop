@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3EDE3;font-family:Nunito,system-ui,sans-serif}
+a{color:#5BAEF7;text-decoration:none}
+a:hover{color:#3E93E0}
+@keyframes llpulse{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+</style>
+</helmet>
+
+<!-- ============ INTRO / RATIONALE ============ -->
+<section style="padding:44px 48px 36px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="max-width:980px;background:#FFFFFF;border-radius:24px;padding:32px 36px;box-shadow:0 4px 16px rgba(23,32,51,.06)">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <div style="width:44px;height:44px;border-radius:16px;background:linear-gradient(145deg,#6FBBFB,#4A9FF0);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(91,174,247,.35)">
+        <div style="width:24px;height:24px;border-radius:50%;border:3px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:8px solid #FFFFFF;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:2px"></div></div>
+      </div>
+      <div>
+        <div style="font:900 22px Nunito,sans-serif;color:#172033">LittleLoop — full app UI/UX</div>
+        <div style="font:600 13px Nunito,sans-serif;color:#667085">Parent-approved videos only · iOS-first · 23 hi-fi screens</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;font:600 13px/1.55 Nunito,sans-serif;color:#3D4A63">
+      <div>
+        <div style="font:800 12px Nunito,sans-serif;color:#98A2B3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Expert-panel consensus</div>
+        Two visually distinct worlds in one system: <b>Parent Mode</b> — cream background, white cards, dashboard density, sky-blue CTAs; <b>Child Mode</b> — same palette but warmer, one-column oversized cards, zero chrome, coral accents. Every exit from Child Mode passes a PIN gate. The child never sees search, tabs, links, or settings. Paywall is calm, benefit-led, yearly-anchored.
+      </div>
+      <div>
+        <div style="font:800 12px Nunito,sans-serif;color:#98A2B3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Assumptions</div>
+        Nunito stands in for SF Pro Rounded. Video thumbnails are neutral placeholders — no platform branding. Sample child “Emma”, bear avatar (both tweakable). Screens are numbered <a href="#s01">s01</a>–<a href="#s20">s20</a> — reference them by number in chat.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ F · MULTIPLE CHILDREN (new) ============ -->
+<section style="padding:44px 48px 40px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">F</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">Multiple children — start-up profile picker, add another child</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- s21 PROFILE PICKER ON START -->
+    <div id="s21" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s21" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">21</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Start — who&rsquo;s watching?</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;align-items:center;padding:84px 28px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="width:56px;height:56px;border-radius:20px;background:linear-gradient(145deg,#6FBBFB,#4A9FF0);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(91,174,247,.35);margin-bottom:18px">
+            <div style="width:30px;height:30px;border-radius:50%;border:3.5px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:10px solid #FFFFFF;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:2px"></div></div>
+          </div>
+          <div style="font:900 27px Nunito,sans-serif;color:#172033">Who&rsquo;s watching?</div>
+          <div style="font:600 14px Nunito,sans-serif;color:#667085;margin:6px 0 26px">Pick a profile to start Child Mode</div>
+          <div style="width:100%;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="background:#FFFFFF;border-radius:26px;padding:24px 12px 18px;box-shadow:0 8px 24px rgba(23,32,51,.07);display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div style="position:relative;width:76px;height:76px"><div style="position:absolute;top:-5px;left:4px;width:22px;height:22px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-5px;right:4px;width:22px;height:22px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px"><div style="display:flex;gap:13px"><div style="width:6px;height:6px;border-radius:50%;background:#172033"></div><div style="width:6px;height:6px;border-radius:50%;background:#172033"></div></div><div style="width:19px;height:9px;border-bottom:3px solid #172033;border-radius:0 0 16px 16px"></div></div></div>
+              <div style="font:900 18px Nunito,sans-serif;color:#172033">{{ childName }}</div>
+              <div style="font:800 11.5px Nunito,sans-serif;color:#2E7FD1;background:#EAF4FE;border-radius:11px;padding:5px 11px">8 videos</div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border-radius:21px;background:linear-gradient(120deg,#FF9A8B,#FF8A7A);color:#FFFFFF;font:800 13.5px Nunito,sans-serif;box-shadow:0 6px 16px rgba(255,138,122,.35)"><div style="width:0;height:0;border-left:9px solid #FFFFFF;border-top:5.5px solid transparent;border-bottom:5.5px solid transparent"></div>Watch</div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:26px;padding:24px 12px 18px;box-shadow:0 8px 24px rgba(23,32,51,.07);display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div style="position:relative;width:76px;height:76px"><div style="position:absolute;top:-6px;left:5px;width:21px;height:21px;background:#F7B990;transform:rotate(45deg);border-radius:5px"></div><div style="position:absolute;top:-6px;right:5px;width:21px;height:21px;background:#F7B990;transform:rotate(45deg);border-radius:5px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#FFD9C4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px"><div style="display:flex;gap:13px"><div style="width:6px;height:6px;border-radius:50%;background:#172033"></div><div style="width:6px;height:6px;border-radius:50%;background:#172033"></div></div><div style="width:19px;height:9px;border-bottom:3px solid #172033;border-radius:0 0 16px 16px"></div></div></div>
+              <div style="font:900 18px Nunito,sans-serif;color:#172033">{{ childName2 }}</div>
+              <div style="font:800 11.5px Nunito,sans-serif;color:#2E7FD1;background:#EAF4FE;border-radius:11px;padding:5px 11px">5 videos</div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border-radius:21px;background:linear-gradient(120deg,#FF9A8B,#FF8A7A);color:#FFFFFF;font:800 13.5px Nunito,sans-serif;box-shadow:0 6px 16px rgba(255,138,122,.35)"><div style="width:0;height:0;border-left:9px solid #FFFFFF;border-top:5.5px solid transparent;border-bottom:5.5px solid transparent"></div>Watch</div>
+            </div>
+          </div>
+          <div style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;height:56px;border-radius:22px;border:2.5px dashed #BFD9F4;background:#F6FAFF;margin-top:14px">
+            <div style="width:26px;height:26px;border-radius:50%;background:#EAF4FE;display:flex;align-items:center;justify-content:center;font:800 16px Nunito,sans-serif;color:#5BAEF7">+</div>
+            <div style="font:800 14px Nunito,sans-serif;color:#5BAEF7">Add a child</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:9px;background:#FFFFFF;border-radius:26px;padding:14px 26px;box-shadow:0 3px 12px rgba(23,32,51,.07)">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:6px;border:2px solid #667085;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:#667085"></div></div>
+            <div style="font:800 15px Nunito,sans-serif;color:#172033">I&rsquo;m a parent</div>
+          </div>
+          <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:10px">Parent PIN required</div>
+        </div>
+      </x-import>
+      <div style="font:600 12px/1.5 Nunito,sans-serif;color:#667085;max-width:380px">Shown on launch when more than one child exists. Tapping a card goes straight into that child&rsquo;s Child Mode (<a href="#s13">13</a>); &ldquo;I&rsquo;m a parent&rdquo; opens the PIN gate to the dashboard (<a href="#s10">10</a>).</div>
+    </div>
+
+    <!-- s21b START — NO CHILDREN YET -->
+    <div id="s21b" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s21b" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">21b</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Start — no children yet</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;align-items:center;padding:84px 28px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="width:56px;height:56px;border-radius:20px;background:linear-gradient(145deg,#6FBBFB,#4A9FF0);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(91,174,247,.35);margin-bottom:18px">
+            <div style="width:30px;height:30px;border-radius:50%;border:3.5px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:10px solid #FFFFFF;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:2px"></div></div>
+          </div>
+          <div style="font:900 27px Nunito,sans-serif;color:#172033">Welcome to LittleLoop</div>
+          <div style="font:600 14px Nunito,sans-serif;color:#667085;margin:6px 0 26px">Set up a profile for your child to begin</div>
+          <div style="flex:1;display:flex;align-items:center;width:100%">
+            <div style="width:100%;background:#FFFFFF;border-radius:28px;padding:34px 28px;box-shadow:0 10px 30px rgba(23,32,51,.07);display:flex;flex-direction:column;align-items:center;text-align:center">
+              <div style="display:flex;align-items:flex-end;gap:-8px;margin-bottom:20px">
+                <div style="position:relative;width:64px;height:64px;opacity:.45"><div style="position:absolute;top:-4px;left:3px;width:18px;height:18px;border-radius:50%;background:#E7EBF1"></div><div style="position:absolute;top:-4px;right:3px;width:18px;height:18px;border-radius:50%;background:#E7EBF1"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F0F2F6"></div></div>
+                <div style="width:76px;height:76px;border-radius:50%;border:2.5px dashed #BFD9F4;background:#F6FAFF;display:flex;align-items:center;justify-content:center;margin:0 -6px;position:relative;z-index:1"><div style="width:34px;height:34px;border-radius:50%;background:#EAF4FE;display:flex;align-items:center;justify-content:center;font:800 20px Nunito,sans-serif;color:#5BAEF7">+</div></div>
+                <div style="position:relative;width:64px;height:64px;opacity:.45"><div style="position:absolute;top:-5px;left:5px;width:17px;height:17px;background:#E7EBF1;transform:rotate(45deg);border-radius:4px"></div><div style="position:absolute;top:-5px;right:5px;width:17px;height:17px;background:#E7EBF1;transform:rotate(45deg);border-radius:4px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F0F2F6"></div></div>
+              </div>
+              <div style="font:900 21px Nunito,sans-serif;color:#172033;text-wrap:pretty">Add your first child</div>
+              <div style="font:600 14px/1.55 Nunito,sans-serif;color:#667085;margin:10px 0 24px;text-wrap:pretty">Just a nickname and an avatar — no personal data. Then build their playlist of approved videos.</div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;height:54px;border-radius:27px;background:#5BAEF7;color:#FFFFFF;font:800 16px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Add a Child</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:9px;background:#FFFFFF;border-radius:26px;padding:14px 26px;box-shadow:0 3px 12px rgba(23,32,51,.07)">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:6px;border:2px solid #667085;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:#667085"></div></div>
+            <div style="font:800 15px Nunito,sans-serif;color:#172033">I&rsquo;m a parent</div>
+          </div>
+          <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:10px">Settings &amp; playlists live behind the PIN</div>
+        </div>
+      </x-import>
+      <div style="font:600 12px/1.5 Nunito,sans-serif;color:#667085;max-width:380px">Empty state of <a href="#s21">21</a>: first launch after onboarding + PIN (<a href="#s05">05</a>), or when all profiles were removed. &ldquo;Add a Child&rdquo; opens profile creation (<a href="#s06">06</a>).</div>
+    </div>
+
+    <!-- s22 ADD ANOTHER CHILD -->
+    <div id="s22" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s22" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">22</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Add another child</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:80px 24px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 8px rgba(23,32,51,.08);display:flex;align-items:center;justify-content:center"><div style="width:9px;height:9px;border-left:2.5px solid #667085;border-bottom:2.5px solid #667085;transform:rotate(45deg);margin-left:3px"></div></div>
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">Add another child</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:12px 14px;box-shadow:0 3px 10px rgba(23,32,51,.05);margin-bottom:20px">
+            <div style="position:relative;width:36px;height:36px"><div style="position:absolute;top:-3px;left:2px;width:11px;height:11px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-3px;right:2px;width:11px;height:11px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><div style="display:flex;gap:6px"><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div></div><div style="width:9px;height:4px;border-bottom:2px solid #172033;border-radius:0 0 8px 8px"></div></div></div>
+            <div style="flex:1"><div style="font:800 14px Nunito,sans-serif;color:#172033">{{ childName }}</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3">Existing profile · 8 videos</div></div>
+            <div style="width:22px;height:22px;border-radius:50%;background:#F1FBF6;display:flex;align-items:center;justify-content:center"><div style="width:7px;height:4px;border-left:2px solid #6DD6A0;border-bottom:2px solid #6DD6A0;transform:rotate(-45deg);margin-top:-1px"></div></div>
+          </div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Name or nickname</div>
+          <div style="display:flex;align-items:center;background:#FFFFFF;border:2px solid #5BAEF7;border-radius:18px;padding:15px 18px;font:800 16px Nunito,sans-serif;color:#172033;box-shadow:0 3px 10px rgba(91,174,247,.12)">{{ childName2 }}<div style="width:2px;height:18px;background:#5BAEF7;margin-left:2px"></div></div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 8px">Age range</div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#EAF4FE;border:2px solid #5BAEF7;font:800 15px Nunito,sans-serif;color:#2E7FD1">2&ndash;4</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#FFFFFF;border:2px solid #E7EBF1;font:800 15px Nunito,sans-serif;color:#667085">5&ndash;7</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#FFFFFF;border:2px solid #E7EBF1;font:800 15px Nunito,sans-serif;color:#667085">8&ndash;10</div>
+          </div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px">Choose an avatar</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#EAF4FE;border:2px solid #5BAEF7;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-3px;left:3px;width:13px;height:13px;background:#F7B990;transform:rotate(45deg);border-radius:3px"></div><div style="position:absolute;top:-3px;right:3px;width:13px;height:13px;background:#F7B990;transform:rotate(45deg);border-radius:3px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#FFD9C4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#2E7FD1">Fox</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-10px;left:9px;width:9px;height:20px;border-radius:5px;background:#E3D0F0"></div><div style="position:absolute;top:-10px;right:9px;width:9px;height:20px;border-radius:5px;background:#E3D0F0"></div><div style="position:absolute;inset:0;border-radius:50%;background:#EFE1F8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Bunny</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-5px;left:11px;width:9px;height:9px;background:#9BDDB9;transform:rotate(45deg);border-radius:2px"></div><div style="position:absolute;top:-7px;left:22px;width:10px;height:10px;background:#9BDDB9;transform:rotate(45deg);border-radius:2px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#CDEEDC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Dino</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#EAF4FE;border-radius:18px;padding:13px 16px;margin-top:20px">
+            <div style="width:26px;height:26px;border-radius:9px;background:#5BAEF7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;color:#FFE9A8">★</div>
+            <div style="font:700 12.5px/1.45 Nunito,sans-serif;color:#2E7FD1">Each child gets their own playlist and time limit. Included with Premium.</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Create Profile</div>
+        </div>
+      </x-import>
+      <div style="font:600 12px/1.5 Nunito,sans-serif;color:#667085;max-width:380px">Reached from Settings &rsaquo; Child profiles (<a href="#s18">18</a>) or the &ldquo;Add a child&rdquo; card on <a href="#s21">21</a>. Free plan allows 1 profile &mdash; the second triggers the paywall (<a href="#s19">19</a>).</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ A · FIRST RUN ============ -->
+<section style="padding:44px 48px 40px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">A</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">First run — splash, onboarding, PIN, child profile</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- s01 SPLASH -->
+    <div id="s01" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s01" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">01</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Splash</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:Nunito,system-ui,sans-serif;position:relative">
+          <div style="width:96px;height:96px;border-radius:34px;background:linear-gradient(145deg,#6FBBFB,#4A9FF0);display:flex;align-items:center;justify-content:center;box-shadow:0 14px 34px rgba(91,174,247,.4)">
+            <div style="width:52px;height:52px;border-radius:50%;border:5px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:16px solid #FFFFFF;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="font:900 34px Nunito,sans-serif;color:#172033;letter-spacing:-.01em">LittleLoop</div>
+            <div style="font:700 15px Nunito,sans-serif;color:#667085">Parent-approved videos only</div>
+          </div>
+          <div style="position:absolute;bottom:90px;display:flex;gap:8px">
+            <div style="width:9px;height:9px;border-radius:50%;background:#5BAEF7;animation:llpulse 1.2s infinite"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#5BAEF7;animation:llpulse 1.2s .2s infinite"></div>
+            <div style="width:9px;height:9px;border-radius:50%;background:#5BAEF7;animation:llpulse 1.2s .4s infinite"></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s02 ONBOARDING 1 -->
+    <div id="s02" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s02" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">02</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Onboarding · Value</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:70px 24px 48px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;justify-content:flex-end"><div style="font:800 14px Nunito,sans-serif;color:#98A2B3;padding:10px 6px">Skip</div></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center">
+            <div style="width:270px;background:#FFFFFF;border-radius:28px;padding:22px 20px;box-shadow:0 14px 36px rgba(23,32,51,.09);position:relative">
+              <div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:16px;background:#6DD6A0;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(109,214,160,.4)"><div style="width:14px;height:8px;border-left:3.5px solid #FFFFFF;border-bottom:3.5px solid #FFFFFF;transform:rotate(-45deg);margin-top:-4px"></div></div>
+              <div style="font:800 13px Nunito,sans-serif;color:#667085;text-align:center;margin:6px 0 14px">Emma’s playlist</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:10px;background:#F6FAFF;border-radius:14px;padding:8px"><div style="width:52px;height:36px;border-radius:9px;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 6px,#EDF6FF 6px,#EDF6FF 12px)"></div><div style="flex:1"><div style="height:8px;border-radius:4px;background:#DCE4EF;width:80%"></div><div style="height:7px;border-radius:4px;background:#EBF0F7;width:50%;margin-top:5px"></div></div><div style="width:18px;height:18px;border-radius:50%;background:#6DD6A0;display:flex;align-items:center;justify-content:center"><div style="width:6px;height:3.5px;border-left:2px solid #FFFFFF;border-bottom:2px solid #FFFFFF;transform:rotate(-45deg);margin-top:-1px"></div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;background:#FFF7F1;border-radius:14px;padding:8px"><div style="width:52px;height:36px;border-radius:9px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 6px,#FFF1EC 6px,#FFF1EC 12px)"></div><div style="flex:1"><div style="height:8px;border-radius:4px;background:#DCE4EF;width:70%"></div><div style="height:7px;border-radius:4px;background:#EBF0F7;width:45%;margin-top:5px"></div></div><div style="width:18px;height:18px;border-radius:50%;background:#6DD6A0;display:flex;align-items:center;justify-content:center"><div style="width:6px;height:3.5px;border-left:2px solid #FFFFFF;border-bottom:2px solid #FFFFFF;transform:rotate(-45deg);margin-top:-1px"></div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;background:#F3FBF6;border-radius:14px;padding:8px;border:2px dashed #B9E8CE"><div style="width:52px;height:36px;border-radius:9px;background:#E8F7EF;display:flex;align-items:center;justify-content:center;font:800 20px Nunito,sans-serif;color:#6DD6A0">+</div><div style="font:800 13px Nunito,sans-serif;color:#4CBE87">Add a video</div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;text-align:center;padding:0 6px">
+            <div style="font:900 28px/1.2 Nunito,sans-serif;color:#172033;text-wrap:pretty">Parent-approved videos only</div>
+            <div style="font:600 15px/1.5 Nunito,sans-serif;color:#667085;text-wrap:pretty">Create a playlist your child can watch safely — without search, recommendations, or endless scrolling.</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:7px;margin:22px 0">
+            <div style="width:22px;height:8px;border-radius:4px;background:#5BAEF7"></div><div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div><div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Get Started</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s03 ONBOARDING 2 -->
+    <div id="s03" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s03" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">03</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Onboarding · No browsing</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:70px 24px 48px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;justify-content:flex-end"><div style="font:800 14px Nunito,sans-serif;color:#98A2B3;padding:10px 6px">Skip</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+            <div style="width:280px;display:flex;align-items:center;gap:10px;background:#EEF1F5;border-radius:18px;padding:14px 16px;position:relative">
+              <div style="width:16px;height:16px;border-radius:50%;border:3px solid #B4BCC9"></div>
+              <div style="height:9px;border-radius:5px;background:#D5DBE4;width:130px"></div>
+              <div style="position:absolute;right:-10px;top:-12px;display:flex;flex-direction:column;align-items:center;background:#172033;border-radius:12px;padding:8px 9px;box-shadow:0 6px 16px rgba(23,32,51,.3)">
+                <div style="width:11px;height:8px;border:2.5px solid #FFCC66;border-bottom:none;border-radius:6px 6px 0 0"></div>
+                <div style="width:18px;height:13px;border-radius:4px;background:#FFCC66"></div>
+              </div>
+              <div style="position:absolute;left:14px;right:14px;top:50%;height:3px;border-radius:2px;background:#EF6F6C;transform:rotate(-4deg)"></div>
+            </div>
+            <div style="display:flex;gap:12px;opacity:.85">
+              <div style="width:132px;background:#F1F3F6;border-radius:18px;padding:10px;filter:grayscale(1);position:relative">
+                <div style="height:64px;border-radius:12px;background:repeating-linear-gradient(45deg,#DFE3E9,#DFE3E9 7px,#EBEEF2 7px,#EBEEF2 14px)"></div>
+                <div style="height:8px;border-radius:4px;background:#D5DBE4;width:85%;margin-top:9px"></div>
+                <div style="height:7px;border-radius:4px;background:#E3E8EF;width:55%;margin-top:5px"></div>
+                <div style="position:absolute;inset:0;border-radius:18px;background:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center"><div style="display:flex;flex-direction:column;align-items:center;background:#FFFFFF;border-radius:50%;width:40px;height:40px;justify-content:center;box-shadow:0 4px 12px rgba(23,32,51,.14)"><div style="width:9px;height:7px;border:2.5px solid #98A2B3;border-bottom:none;border-radius:5px 5px 0 0"></div><div style="width:15px;height:11px;border-radius:3.5px;background:#98A2B3"></div></div></div>
+              </div>
+              <div style="width:132px;background:#F1F3F6;border-radius:18px;padding:10px;filter:grayscale(1);position:relative">
+                <div style="height:64px;border-radius:12px;background:repeating-linear-gradient(45deg,#DFE3E9,#DFE3E9 7px,#EBEEF2 7px,#EBEEF2 14px)"></div>
+                <div style="height:8px;border-radius:4px;background:#D5DBE4;width:75%;margin-top:9px"></div>
+                <div style="height:7px;border-radius:4px;background:#E3E8EF;width:60%;margin-top:5px"></div>
+                <div style="position:absolute;inset:0;border-radius:18px;background:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center"><div style="display:flex;flex-direction:column;align-items:center;background:#FFFFFF;border-radius:50%;width:40px;height:40px;justify-content:center;box-shadow:0 4px 12px rgba(23,32,51,.14)"><div style="width:9px;height:7px;border:2.5px solid #98A2B3;border-bottom:none;border-radius:5px 5px 0 0"></div><div style="width:15px;height:11px;border-radius:3.5px;background:#98A2B3"></div></div></div>
+              </div>
+            </div>
+            <div style="font:700 11px ui-monospace,Menlo,monospace;color:#98A2B3;letter-spacing:.05em">SEARCH &amp; RECOMMENDATIONS — LOCKED</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;text-align:center;padding:0 6px">
+            <div style="font:900 28px/1.2 Nunito,sans-serif;color:#172033;text-wrap:pretty">No browsing. No surprises.</div>
+            <div style="font:600 15px/1.5 Nunito,sans-serif;color:#667085;text-wrap:pretty">Children can only watch videos you add. They cannot open related videos, channels, or search results.</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:7px;margin:22px 0">
+            <div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div><div style="width:22px;height:8px;border-radius:4px;background:#5BAEF7"></div><div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Continue</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s04 ONBOARDING 3 -->
+    <div id="s04" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s04" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">04</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Onboarding · Child mode</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:70px 24px 48px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;justify-content:flex-end"><div style="font:800 14px Nunito,sans-serif;color:#98A2B3;padding:10px 6px">Skip</div></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center">
+            <div style="width:230px;background:linear-gradient(180deg,#FFF4E4,#FFEEDC);border-radius:30px;padding:20px 16px;box-shadow:0 14px 36px rgba(23,32,51,.1)">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+                <div style="position:relative;width:32px;height:32px"><div style="position:absolute;top:-3px;left:1px;width:10px;height:10px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-3px;right:1px;width:10px;height:10px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><div style="display:flex;gap:6px"><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div></div><div style="width:9px;height:4px;border-bottom:2px solid #172033;border-radius:0 0 8px 8px"></div></div></div>
+                <div style="font:900 16px Nunito,sans-serif;color:#172033">Emma’s Videos</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="background:#FFFFFF;border-radius:16px;padding:8px;box-shadow:0 4px 12px rgba(23,32,51,.06)"><div style="position:relative;height:74px;border-radius:11px;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 7px,#EDF6FF 7px,#EDF6FF 14px);display:flex;align-items:center;justify-content:center"><div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(23,32,51,.14)"><div style="width:0;height:0;border-left:10px solid #5BAEF7;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:3px"></div></div></div><div style="height:8px;border-radius:4px;background:#DCE4EF;width:75%;margin:8px 4px 4px"></div></div>
+                <div style="background:#FFFFFF;border-radius:16px;padding:8px;box-shadow:0 4px 12px rgba(23,32,51,.06)"><div style="position:relative;height:74px;border-radius:11px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 7px,#FFF1EC 7px,#FFF1EC 14px);display:flex;align-items:center;justify-content:center"><div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(23,32,51,.14)"><div style="width:0;height:0;border-left:10px solid #FF8A7A;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:3px"></div></div></div><div style="height:8px;border-radius:4px;background:#DCE4EF;width:60%;margin:8px 4px 4px"></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;text-align:center;padding:0 6px">
+            <div style="font:900 28px/1.2 Nunito,sans-serif;color:#172033;text-wrap:pretty">Simple child mode</div>
+            <div style="font:600 15px/1.5 Nunito,sans-serif;color:#667085;text-wrap:pretty">A calm, distraction-free player designed for young children.</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:7px;margin:22px 0">
+            <div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div><div style="width:8px;height:8px;border-radius:4px;background:#D0D5DD"></div><div style="width:22px;height:8px;border-radius:4px;background:#5BAEF7"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Create Parent PIN</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s05 PIN SETUP -->
+    <div id="s05" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s05" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">05</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Parent PIN setup</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;align-items:center;padding:84px 28px 48px;font-family:Nunito,system-ui,sans-serif">
+          <div style="width:60px;height:60px;border-radius:22px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;margin-bottom:18px">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:14px;height:10px;border:3px solid #5BAEF7;border-bottom:none;border-radius:8px 8px 0 0"></div><div style="width:24px;height:17px;border-radius:6px;background:#5BAEF7"></div></div>
+          </div>
+          <div style="font:900 26px Nunito,sans-serif;color:#172033;margin-bottom:8px">Create your Parent PIN</div>
+          <div style="font:600 14.5px/1.5 Nunito,sans-serif;color:#667085;text-align:center;text-wrap:pretty">This keeps settings protected from children.</div>
+          <div style="display:flex;gap:16px;margin:34px 0 38px">
+            <div style="width:16px;height:16px;border-radius:50%;background:#5BAEF7"></div>
+            <div style="width:16px;height:16px;border-radius:50%;background:#5BAEF7"></div>
+            <div style="width:16px;height:16px;border-radius:50%;border:2.5px solid #D0D5DD;box-sizing:border-box"></div>
+            <div style="width:16px;height:16px;border-radius:50%;border:2.5px solid #D0D5DD;box-sizing:border-box"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,76px);gap:16px;justify-content:center">
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">1</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">2</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">3</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">4</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">5</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">6</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">7</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">8</div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">9</div>
+            <div></div>
+            <div style="width:76px;height:76px;border-radius:50%;background:#FFFFFF;box-shadow:0 3px 10px rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;font:800 27px Nunito,sans-serif;color:#172033">0</div>
+            <div style="width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 20px Nunito,sans-serif;color:#98A2B3">⌫</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="font:700 14px Nunito,sans-serif;color:#5BAEF7">Enable Face ID on the next step</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s06 CHILD PROFILE -->
+    <div id="s06" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s06" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">06</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Child profile creation</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:80px 24px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="font:900 27px Nunito,sans-serif;color:#172033">Add your child</div>
+          <div style="font:600 14px Nunito,sans-serif;color:#667085;margin:6px 0 22px">Only a nickname is needed — no personal data.</div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Name or nickname</div>
+          <div style="display:flex;align-items:center;background:#FFFFFF;border:2px solid #5BAEF7;border-radius:18px;padding:15px 18px;font:800 16px Nunito,sans-serif;color:#172033;box-shadow:0 3px 10px rgba(91,174,247,.12)">{{ childName }}<div style="width:2px;height:18px;background:#5BAEF7;margin-left:2px"></div></div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 8px">Age range</div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#FFFFFF;border:2px solid #E7EBF1;font:800 15px Nunito,sans-serif;color:#667085">2–4</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#EAF4FE;border:2px solid #5BAEF7;font:800 15px Nunito,sans-serif;color:#2E7FD1">5–7</div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:16px;background:#FFFFFF;border:2px solid #E7EBF1;font:800 15px Nunito,sans-serif;color:#667085">8–10</div>
+          </div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px">Choose an avatar</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#EAF4FE;border:2px solid #5BAEF7;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-4px;left:2px;width:14px;height:14px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-4px;right:2px;width:14px;height:14px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#2E7FD1">Bear</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-3px;left:3px;width:13px;height:13px;background:#F7B990;transform:rotate(45deg);border-radius:3px"></div><div style="position:absolute;top:-3px;right:3px;width:13px;height:13px;background:#F7B990;transform:rotate(45deg);border-radius:3px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#FFD9C4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Fox</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-10px;left:9px;width:9px;height:20px;border-radius:5px;background:#E3D0F0"></div><div style="position:absolute;top:-10px;right:9px;width:9px;height:20px;border-radius:5px;background:#E3D0F0"></div><div style="position:absolute;inset:0;border-radius:50%;background:#EFE1F8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Bunny</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="position:relative;width:48px;height:48px"><div style="position:absolute;top:-5px;left:11px;width:9px;height:9px;background:#9BDDB9;transform:rotate(45deg);border-radius:2px"></div><div style="position:absolute;top:-7px;left:22px;width:10px;height:10px;background:#9BDDB9;transform:rotate(45deg);border-radius:2px"></div><div style="position:absolute;inset:0;border-radius:50%;background:#CDEEDC;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:8px"><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div><div style="width:4px;height:4px;border-radius:50%;background:#172033"></div></div><div style="width:12px;height:6px;border-bottom:2.5px solid #172033;border-radius:0 0 10px 10px"></div></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Dino</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="width:48px;height:48px;border-radius:50%;background:#FFF3D2;display:flex;align-items:center;justify-content:center;font-size:24px;color:#FFB84D">★</div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Star</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:12px 0 9px">
+              <div style="width:48px;height:48px;border-radius:50%;background:#DCEBFD;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="width:0;height:0;border-bottom:10px solid #5BAEF7;border-left:8px solid transparent;border-right:8px solid transparent"></div><div style="width:16px;height:14px;border-radius:0 0 8px 8px;background:#5BAEF7"></div></div>
+              <div style="font:800 12px Nunito,sans-serif;color:#667085">Rocket</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 0;background:#FFFFFF;border-radius:18px;padding:14px 16px;box-shadow:0 3px 10px rgba(23,32,51,.05)">
+            <div>
+              <div style="font:800 14.5px Nunito,sans-serif;color:#172033">Daily watch limit</div>
+              <div style="font:600 12px Nunito,sans-serif;color:#667085">Optional — you can change it anytime</div>
+            </div>
+            <div style="font:800 15px Nunito,sans-serif;color:#5BAEF7">45 min ›</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Create Profile</div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ B · BUILDING THE PLAYLIST ============ -->
+<section style="padding:44px 48px 40px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">B</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">Building the playlist — empty state, add video, approval</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- s07 EMPTY PLAYLIST -->
+    <div id="s07" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s07" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">07</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Empty first playlist</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:80px 24px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <div style="position:relative;width:40px;height:40px"><div style="position:absolute;top:-3px;left:2px;width:12px;height:12px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-3px;right:2px;width:12px;height:12px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><div style="display:flex;gap:7px"><div style="width:3.5px;height:3.5px;border-radius:50%;background:#172033"></div><div style="width:3.5px;height:3.5px;border-radius:50%;background:#172033"></div></div><div style="width:10px;height:5px;border-bottom:2px solid #172033;border-radius:0 0 9px 9px"></div></div></div>
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">{{ childPoss }} playlist</div>
+          </div>
+          <div style="font:600 13.5px Nunito,sans-serif;color:#667085">0 approved videos</div>
+          <div style="flex:1;display:flex;align-items:center">
+            <div style="width:100%;background:#FFFFFF;border-radius:28px;padding:36px 28px;box-shadow:0 10px 30px rgba(23,32,51,.07);display:flex;flex-direction:column;align-items:center;text-align:center">
+              <div style="width:120px;height:80px;border-radius:18px;border:2.5px dashed #BFD9F4;background:#F6FAFF;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+                <div style="width:40px;height:40px;border-radius:50%;background:#EAF4FE;display:flex;align-items:center;justify-content:center;font:800 24px Nunito,sans-serif;color:#5BAEF7">+</div>
+              </div>
+              <div style="font:900 21px Nunito,sans-serif;color:#172033;text-wrap:pretty">Start with your first approved video</div>
+              <div style="font:600 14px/1.55 Nunito,sans-serif;color:#667085;margin:10px 0 24px;text-wrap:pretty">Add videos manually. Your child will only be able to watch what you choose.</div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;height:54px;border-radius:27px;background:#5BAEF7;color:#FFFFFF;font:800 16px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Add Video</div>
+              <div style="font:800 14px Nunito,sans-serif;color:#98A2B3;margin-top:16px">Skip for now</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;font:600 12.5px Nunito,sans-serif;color:#98A2B3">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:6px;border:2px solid #B9C2D0;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:#B9C2D0"></div></div>
+            Only you can add or remove videos
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s08 ADD VIDEO -->
+    <div id="s08" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s08" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">08</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Add video link</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" keyboard="true" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:80px 24px 20px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 8px rgba(23,32,51,.08);display:flex;align-items:center;justify-content:center"><div style="width:9px;height:9px;border-left:2.5px solid #667085;border-bottom:2.5px solid #667085;transform:rotate(45deg);margin-left:3px"></div></div>
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">Add Video</div>
+          </div>
+          <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Paste video link</div>
+          <div style="display:flex;align-items:center;gap:10px;background:#FFFFFF;border:2px solid #5BAEF7;border-radius:18px;padding:15px 16px;box-shadow:0 3px 10px rgba(91,174,247,.12)">
+            <div style="width:20px;height:20px;border-radius:6px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:0;height:0;border-left:7px solid #5BAEF7;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;margin-left:1px"></div></div>
+            <div style="font:700 14px ui-monospace,Menlo,monospace;color:#172033;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">https://video.example/watch?v=oceananimals</div>
+          </div>
+          <div style="font:600 13px/1.5 Nunito,sans-serif;color:#667085;margin:10px 4px 0;text-wrap:pretty">Add one video at a time to keep the playlist fully parent-approved.</div>
+          <div style="margin-top:22px;display:flex;align-items:center;justify-content:center;height:54px;border-radius:27px;background:#5BAEF7;color:#FFFFFF;font:800 16px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Preview Video</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s09 PREVIEW / APPROVE -->
+    <div id="s09" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s09" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">09</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Video preview &amp; approval</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:80px 24px 44px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 8px rgba(23,32,51,.08);display:flex;align-items:center;justify-content:center"><div style="width:9px;height:9px;border-left:2.5px solid #667085;border-bottom:2.5px solid #667085;transform:rotate(45deg);margin-left:3px"></div></div>
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">Review video</div>
+          </div>
+          <div style="background:#FFFFFF;border-radius:24px;padding:14px;box-shadow:0 8px 24px rgba(23,32,51,.07)">
+            <div style="position:relative;height:186px;border-radius:16px;overflow:hidden;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 12px,#EDF6FF 12px,#EDF6FF 24px);display:flex;align-items:center;justify-content:center">
+              <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(23,32,51,.15)"><div style="width:0;height:0;border-left:17px solid #5BAEF7;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px"></div></div>
+              <span style="position:absolute;bottom:8px;left:12px;font:700 10px ui-monospace,Menlo,monospace;color:#7E96B4">video thumbnail</span>
+              <span style="position:absolute;bottom:8px;right:10px;font:800 11.5px Nunito,sans-serif;color:#FFFFFF;background:rgba(23,32,51,.75);border-radius:7px;padding:3px 8px">8:24</span>
+            </div>
+            <div style="padding:14px 6px 6px">
+              <div style="font:800 17px/1.35 Nunito,sans-serif;color:#172033;text-wrap:pretty">Ocean Animals for Kids — Learn Sea Creatures</div>
+              <div style="font:600 13.5px Nunito,sans-serif;color:#667085;margin-top:6px">Happy Learning TV · 8 min 24 sec</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#F1FBF6;border:2px solid #6DD6A0;border-radius:18px;padding:14px 16px;margin-top:18px">
+            <div style="width:26px;height:26px;border-radius:9px;background:#6DD6A0;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:9px;height:5.5px;border-left:2.5px solid #FFFFFF;border-bottom:2.5px solid #FFFFFF;transform:rotate(-45deg);margin-top:-2px"></div></div>
+            <div style="font:800 14.5px/1.4 Nunito,sans-serif;color:#1E7A4E">I approve this video for my child.</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Add to Playlist</div>
+          <div style="text-align:center;font:800 14px Nunito,sans-serif;color:#98A2B3;margin-top:14px">Cancel</div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s11 PLAYLIST MANAGEMENT -->
+    <div id="s11" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s11" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">11</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Playlist management</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;font-family:Nunito,system-ui,sans-serif">
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:80px 24px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font:900 24px Nunito,sans-serif;color:#172033">{{ childPoss }} Playlist</div>
+              <div style="width:40px;height:40px;border-radius:50%;background:#5BAEF7;display:flex;align-items:center;justify-content:center;font:800 22px Nunito,sans-serif;color:#FFFFFF;box-shadow:0 6px 14px rgba(91,174,247,.35)">+</div>
+            </div>
+            <div style="font:600 13.5px Nunito,sans-serif;color:#667085;margin-bottom:16px">8 approved videos · drag to reorder</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:10px 14px 10px 12px;box-shadow:0 3px 10px rgba(23,32,51,.05)">
+                <div style="display:flex;flex-direction:column;gap:3.5px;flex-shrink:0"><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div></div>
+                <div style="position:relative;width:86px;height:56px;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 8px,#EDF6FF 8px,#EDF6FF 16px);flex-shrink:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:11px solid rgba(91,174,247,.85);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div>
+                <div style="flex:1;min-width:0"><div style="font:800 13.5px/1.3 Nunito,sans-serif;color:#172033">Ocean Animals for Kids</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3;margin-top:3px">8:24 · Added Jun 30</div></div>
+                <div style="width:30px;height:30px;border-radius:50%;background:#FFF0EF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:11px;height:2.5px;border-radius:2px;background:#EF6F6C"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:10px 14px 10px 12px;box-shadow:0 3px 10px rgba(23,32,51,.05)">
+                <div style="display:flex;flex-direction:column;gap:3.5px;flex-shrink:0"><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div></div>
+                <div style="position:relative;width:86px;height:56px;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 8px,#FFF1EC 8px,#FFF1EC 16px);flex-shrink:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:11px solid rgba(255,138,122,.9);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div>
+                <div style="flex:1;min-width:0"><div style="font:800 13.5px/1.3 Nunito,sans-serif;color:#172033">Counting Songs 1–20</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3;margin-top:3px">12:05 · Added Jun 28</div></div>
+                <div style="width:30px;height:30px;border-radius:50%;background:#FFF0EF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:11px;height:2.5px;border-radius:2px;background:#EF6F6C"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:10px 14px 10px 12px;box-shadow:0 8px 22px rgba(91,174,247,.22);border:2px solid #5BAEF7;transform:rotate(-.6deg)">
+                <div style="display:flex;flex-direction:column;gap:3.5px;flex-shrink:0"><div style="width:14px;height:2.5px;border-radius:2px;background:#5BAEF7"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#5BAEF7"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#5BAEF7"></div></div>
+                <div style="position:relative;width:86px;height:56px;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(45deg,#E2F7EC,#E2F7EC 8px,#F1FBF6 8px,#F1FBF6 16px);flex-shrink:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:11px solid rgba(109,214,160,.9);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div>
+                <div style="flex:1;min-width:0"><div style="font:800 13.5px/1.3 Nunito,sans-serif;color:#172033">Bedtime Stories: The Sleepy Bear</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3;margin-top:3px">10:42 · Added Jun 25 · dragging…</div></div>
+                <div style="width:30px;height:30px;border-radius:50%;background:#FFF0EF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:11px;height:2.5px;border-radius:2px;background:#EF6F6C"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:10px 14px 10px 12px;box-shadow:0 3px 10px rgba(23,32,51,.05)">
+                <div style="display:flex;flex-direction:column;gap:3.5px;flex-shrink:0"><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div><div style="width:14px;height:2.5px;border-radius:2px;background:#C6CDD8"></div></div>
+                <div style="position:relative;width:86px;height:56px;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(45deg,#FFF3D9,#FFF3D9 8px,#FFF9EC 8px,#FFF9EC 16px);flex-shrink:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:11px solid rgba(255,184,77,.9);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div>
+                <div style="flex:1;min-width:0"><div style="font:800 13.5px/1.3 Nunito,sans-serif;color:#172033">How Crayons Are Made</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3;margin-top:3px">6:18 · Added Jun 22</div></div>
+                <div style="width:30px;height:30px;border-radius:50%;background:#FFF0EF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:11px;height:2.5px;border-radius:2px;background:#EF6F6C"></div></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:24px;border:2px solid #5BAEF7;color:#5BAEF7;font:800 15px Nunito,sans-serif;margin-top:16px;background:#FFFFFF">Preview Child Mode</div>
+          </div>
+          <div style="display:flex;background:#FFFFFF;border-top:1px solid rgba(23,32,51,.07);padding:10px 12px 28px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:17px;height:17px;border-radius:6px;border:2.5px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Home</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;flex-direction:column;gap:3px;padding-top:2px"><div style="width:17px;height:3px;border-radius:2px;background:#5BAEF7"></div><div style="width:17px;height:3px;border-radius:2px;background:#5BAEF7"></div><div style="width:17px;height:3px;border-radius:2px;background:#5BAEF7"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#5BAEF7">Playlist</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2.5px;height:17px"><div style="width:4px;height:8px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:14px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:11px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Activity</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:15px;height:15px;border-radius:50%;border:3px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Settings</div></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ C · PARENT MODE ============ -->
+<section style="padding:44px 48px 40px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">C</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">Parent mode — dashboard, child-mode gate, activity, settings, paywall</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- s10 DASHBOARD -->
+    <div id="s10" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s10" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">10</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Parent dashboard</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;font-family:Nunito,system-ui,sans-serif">
+          <div style="flex:1;overflow:hidden;padding:80px 24px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font:600 14px Nunito,sans-serif;color:#667085">Good evening</div>
+                <div style="font:900 26px Nunito,sans-serif;color:#172033">Your family</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border-radius:22px;padding:6px 12px 6px 6px;box-shadow:0 3px 10px rgba(23,32,51,.06)">
+                <div style="position:relative;width:30px;height:30px"><div style="position:absolute;top:-2px;left:1px;width:9px;height:9px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-2px;right:1px;width:9px;height:9px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5px"><div style="display:flex;gap:5px"><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div><div style="width:3px;height:3px;border-radius:50%;background:#172033"></div></div><div style="width:8px;height:4px;border-bottom:2px solid #172033;border-radius:0 0 7px 7px"></div></div></div>
+                <div style="font:800 14px Nunito,sans-serif;color:#172033">{{ childName }}</div>
+                <div style="width:7px;height:7px;border-right:2.5px solid #98A2B3;border-bottom:2.5px solid #98A2B3;transform:rotate(45deg);margin-top:-3px"></div>
+              </div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:24px;padding:18px 20px;box-shadow:0 6px 20px rgba(23,32,51,.06);margin-top:18px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="font:800 16px Nunito,sans-serif;color:#172033">{{ childName }} has 8 approved videos</div>
+                <div style="width:24px;height:24px;border-radius:50%;background:#F1FBF6;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:5px;border-left:2.5px solid #6DD6A0;border-bottom:2.5px solid #6DD6A0;transform:rotate(-45deg);margin-top:-2px"></div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                <div style="flex:1;height:8px;border-radius:4px;background:#EEF1F5;overflow:hidden"><div style="width:56%;height:100%;border-radius:4px;background:linear-gradient(90deg,#6DD6A0,#5BAEF7)"></div></div>
+                <div style="font:800 13px Nunito,sans-serif;color:#667085">25 min left today</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+              <div style="background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="width:40px;height:40px;border-radius:14px;background:#EAF4FE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin-bottom:12px"><div style="width:16px;height:3px;border-radius:2px;background:#5BAEF7"></div><div style="width:16px;height:3px;border-radius:2px;background:#5BAEF7"></div><div style="width:16px;height:3px;border-radius:2px;background:#5BAEF7"></div></div>
+                <div style="font:800 15px Nunito,sans-serif;color:#172033">Manage Playlist</div>
+                <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:2px">8 videos</div>
+              </div>
+              <div style="background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="width:40px;height:40px;border-radius:14px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font:800 24px Nunito,sans-serif;color:#5BAEF7">+</div>
+                <div style="font:800 15px Nunito,sans-serif;color:#172033">Add Video</div>
+                <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:2px">Paste a link</div>
+              </div>
+              <div style="grid-column:1 / -1;background:linear-gradient(120deg,#FF9A8B,#FF8A7A);border-radius:22px;padding:18px;box-shadow:0 10px 24px rgba(255,138,122,.35);display:flex;align-items:center;gap:14px">
+                <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:16px solid #FFFFFF;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px"></div></div>
+                <div style="flex:1">
+                  <div style="font:900 17px Nunito,sans-serif;color:#FFFFFF">Start Child Mode</div>
+                  <div style="font:600 12.5px Nunito,sans-serif;color:rgba(255,255,255,.85)">Hand the phone to {{ childName }} safely</div>
+                </div>
+                <div style="width:8px;height:8px;border-right:3px solid rgba(255,255,255,.9);border-top:3px solid rgba(255,255,255,.9);transform:rotate(45deg)"></div>
+              </div>
+              <div style="background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="width:40px;height:40px;border-radius:14px;background:#FFF3D9;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><div style="width:20px;height:20px;border-radius:50%;border:2.5px solid #E8A93D;position:relative"><div style="position:absolute;top:4px;left:8px;width:2.5px;height:6px;background:#E8A93D;border-radius:2px"></div><div style="position:absolute;top:8.5px;left:8px;width:6px;height:2.5px;background:#E8A93D;border-radius:2px"></div></div></div>
+                <div style="font:800 15px Nunito,sans-serif;color:#172033">Time Limits</div>
+                <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:2px">45 min daily</div>
+              </div>
+              <div style="background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="width:40px;height:40px;border-radius:14px;background:#F1FBF6;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding-bottom:10px;box-sizing:border-box;margin-bottom:12px"><div style="width:5px;height:9px;border-radius:2px;background:#6DD6A0"></div><div style="width:5px;height:16px;border-radius:2px;background:#6DD6A0"></div><div style="width:5px;height:12px;border-radius:2px;background:#6DD6A0"></div></div>
+                <div style="font:800 15px Nunito,sans-serif;color:#172033">Activity</div>
+                <div style="font:600 12px Nunito,sans-serif;color:#98A2B3;margin-top:2px">38 min today</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;background:#FFFFFF;border-top:1px solid rgba(23,32,51,.07);padding:10px 12px 28px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:17px;height:17px;border-radius:6px;border:2.5px solid #5BAEF7;background:#EAF4FE"></div><div style="font:800 10.5px Nunito,sans-serif;color:#5BAEF7">Home</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;flex-direction:column;gap:3px;padding-top:2px"><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Playlist</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2.5px;height:17px"><div style="width:4px;height:8px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:14px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:11px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Activity</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:15px;height:15px;border-radius:50%;border:3px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Settings</div></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s12 CHILD MODE ENTRY -->
+    <div id="s12" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s12" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">12</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Child mode entry gate</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;align-items:center;padding:84px 28px 48px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:10px;align-self:flex-start;margin-bottom:8px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 8px rgba(23,32,51,.08);display:flex;align-items:center;justify-content:center"><div style="width:9px;height:9px;border-left:2.5px solid #667085;border-bottom:2.5px solid #667085;transform:rotate(45deg);margin-left:3px"></div></div>
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">Child Mode</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;width:100%">
+            <div style="background:#FFFFFF;border-radius:28px;padding:32px 26px;box-shadow:0 12px 32px rgba(23,32,51,.08);display:flex;flex-direction:column;align-items:center;text-align:center">
+              <div style="position:relative;width:88px;height:88px;margin-bottom:14px"><div style="position:absolute;top:-6px;left:4px;width:26px;height:26px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-6px;right:4px;width:26px;height:26px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px"><div style="display:flex;gap:15px"><div style="width:7px;height:7px;border-radius:50%;background:#172033"></div><div style="width:7px;height:7px;border-radius:50%;background:#172033"></div></div><div style="width:22px;height:11px;border-bottom:3.5px solid #172033;border-radius:0 0 18px 18px"></div></div></div>
+              <div style="font:900 24px Nunito,sans-serif;color:#172033">{{ childName }}</div>
+              <div style="display:flex;gap:8px;margin:14px 0 24px">
+                <div style="font:800 12.5px Nunito,sans-serif;color:#2E7FD1;background:#EAF4FE;border-radius:12px;padding:6px 12px">8 approved videos</div>
+                <div style="font:800 12.5px Nunito,sans-serif;color:#B27B1E;background:#FFF3D9;border-radius:12px;padding:6px 12px">45 min limit</div>
+              </div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:28px;background:linear-gradient(120deg,#FF9A8B,#FF8A7A);color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 10px 24px rgba(255,138,122,.4)">
+                <div style="width:0;height:0;border-left:13px solid #FFFFFF;border-top:8px solid transparent;border-bottom:8px solid transparent"></div>
+                Start Child Mode
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font:700 13px Nunito,sans-serif;color:#98A2B3">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:6px;border:2px solid #B9C2D0;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:#B9C2D0"></div></div>
+              Parent PIN required to exit.
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s17 ACTIVITY -->
+    <div id="s17" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s17" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">17</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Activity</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;font-family:Nunito,system-ui,sans-serif">
+          <div style="flex:1;overflow:hidden;padding:80px 24px 0">
+            <div style="font:900 24px Nunito,sans-serif;color:#172033">Activity</div>
+            <div style="font:600 13.5px Nunito,sans-serif;color:#667085;margin-bottom:16px">{{ childName }} · stored only on this device</div>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1;background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="font:600 12.5px Nunito,sans-serif;color:#98A2B3">Today</div>
+                <div style="font:900 26px Nunito,sans-serif;color:#172033;margin-top:2px">38 <span style="font:800 14px Nunito,sans-serif;color:#667085">min</span></div>
+                <div style="font:700 11.5px Nunito,sans-serif;color:#4CBE87;margin-top:4px">Under the 45 min limit</div>
+              </div>
+              <div style="flex:1;background:#FFFFFF;border-radius:22px;padding:16px;box-shadow:0 3px 12px rgba(23,32,51,.05)">
+                <div style="font:600 12.5px Nunito,sans-serif;color:#98A2B3">This week</div>
+                <div style="display:flex;align-items:flex-end;gap:5px;height:38px;margin-top:10px">
+                  <div style="flex:1;height:40%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:65%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:30%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:80%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:55%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:45%;border-radius:3px;background:#DCEBFD"></div>
+                  <div style="flex:1;height:85%;border-radius:3px;background:#5BAEF7"></div>
+                </div>
+              </div>
+            </div>
+            <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px">Most watched</div>
+            <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border-radius:20px;padding:12px;box-shadow:0 3px 10px rgba(23,32,51,.05)">
+              <div style="width:86px;height:56px;border-radius:12px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 8px,#FFF1EC 8px,#FFF1EC 16px);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:0;height:0;border-left:11px solid rgba(255,138,122,.9);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div>
+              <div style="flex:1"><div style="font:800 13.5px Nunito,sans-serif;color:#172033">Counting Songs 1–20</div><div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3;margin-top:3px">Watched 6 times this week</div></div>
+            </div>
+            <div style="font:800 12.5px Nunito,sans-serif;color:#667085;text-transform:uppercase;letter-spacing:.06em;margin:20px 0 10px">Sessions</div>
+            <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 3px 10px rgba(23,32,51,.05);overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #F0F2F6"><div style="font:700 13.5px Nunito,sans-serif;color:#172033">Today, 4:10 PM</div><div style="font:700 13px Nunito,sans-serif;color:#667085">22 min · 3 videos</div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #F0F2F6"><div style="font:700 13.5px Nunito,sans-serif;color:#172033">Today, 8:05 AM</div><div style="font:700 13px Nunito,sans-serif;color:#667085">16 min · 2 videos</div></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px"><div style="font:700 13.5px Nunito,sans-serif;color:#172033">Yesterday, 5:30 PM</div><div style="font:700 13px Nunito,sans-serif;color:#667085">40 min · 5 videos</div></div>
+            </div>
+          </div>
+          <div style="display:flex;background:#FFFFFF;border-top:1px solid rgba(23,32,51,.07);padding:10px 12px 28px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:17px;height:17px;border-radius:6px;border:2.5px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Home</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;flex-direction:column;gap:3px;padding-top:2px"><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Playlist</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2.5px;height:17px"><div style="width:4px;height:8px;border-radius:2px;background:#5BAEF7"></div><div style="width:4px;height:14px;border-radius:2px;background:#5BAEF7"></div><div style="width:4px;height:11px;border-radius:2px;background:#5BAEF7"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#5BAEF7">Activity</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:15px;height:15px;border-radius:50%;border:3px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Settings</div></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s18 SETTINGS -->
+    <div id="s18" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s18" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">18</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Settings</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;font-family:Nunito,system-ui,sans-serif">
+          <div style="flex:1;overflow:hidden;padding:80px 24px 0">
+            <div style="font:900 24px Nunito,sans-serif;color:#172033;margin-bottom:16px">Settings</div>
+            <div style="background:linear-gradient(120deg,#6FBBFB,#4A9FF0);border-radius:22px;padding:16px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 22px rgba(91,174,247,.3);margin-bottom:18px">
+              <div style="width:38px;height:38px;border-radius:13px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:19px;color:#FFE9A8">★</div>
+              <div style="flex:1"><div style="font:900 15px Nunito,sans-serif;color:#FFFFFF">LittleLoop Premium</div><div style="font:600 12px Nunito,sans-serif;color:rgba(255,255,255,.85)">More profiles, playlists &amp; sync</div></div>
+              <div style="font:800 12.5px Nunito,sans-serif;color:#2E7FD1;background:#FFFFFF;border-radius:14px;padding:7px 13px">Upgrade</div>
+            </div>
+            <div style="font:800 12px Nunito,sans-serif;color:#98A2B3;text-transform:uppercase;letter-spacing:.07em;margin:0 4px 8px">Family</div>
+            <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 3px 10px rgba(23,32,51,.05);overflow:hidden;margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F0F2F6"><div style="width:30px;height:30px;border-radius:10px;background:#EAF4FE;display:flex;align-items:center;justify-content:center"><div style="width:12px;height:12px;border-radius:50%;background:#5BAEF7"></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Child profiles</div><div style="font:700 13px Nunito,sans-serif;color:#98A2B3;margin-right:6px">1 of 1</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px"><div style="width:30px;height:30px;border-radius:10px;background:#FFF3D9;display:flex;align-items:center;justify-content:center"><div style="width:14px;height:14px;border-radius:50%;border:2.5px solid #E8A93D"></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Time limits</div><div style="font:700 13px Nunito,sans-serif;color:#98A2B3;margin-right:6px">45 min</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+            </div>
+            <div style="font:800 12px Nunito,sans-serif;color:#98A2B3;text-transform:uppercase;letter-spacing:.07em;margin:0 4px 8px">Security</div>
+            <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 3px 10px rgba(23,32,51,.05);overflow:hidden;margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F0F2F6"><div style="width:30px;height:30px;border-radius:10px;background:#EAF4FE;display:flex;align-items:center;justify-content:center"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:7px;height:5px;border:2px solid #5BAEF7;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:12px;height:8px;border-radius:3px;background:#5BAEF7"></div></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Parent PIN</div><div style="font:700 13px Nunito,sans-serif;color:#98A2B3;margin-right:6px">Change</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px"><div style="width:30px;height:30px;border-radius:10px;background:#F1FBF6;display:flex;align-items:center;justify-content:center"><div style="width:13px;height:13px;border-radius:5px;border:2.5px solid #6DD6A0"></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Face ID unlock</div><div style="width:44px;height:26px;border-radius:13px;background:#6DD6A0;position:relative"><div style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 4px rgba(23,32,51,.2)"></div></div></div>
+            </div>
+            <div style="font:800 12px Nunito,sans-serif;color:#98A2B3;text-transform:uppercase;letter-spacing:.07em;margin:0 4px 8px">More</div>
+            <div style="background:#FFFFFF;border-radius:20px;box-shadow:0 3px 10px rgba(23,32,51,.05);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F0F2F6"><div style="width:30px;height:30px;border-radius:10px;background:#FFF0EF;display:flex;align-items:center;justify-content:center"><div style="display:flex;flex-direction:column;gap:2.5px"><div style="width:12px;height:2.5px;border-radius:2px;background:#FF8A7A"></div><div style="width:12px;height:2.5px;border-radius:2px;background:#FF8A7A"></div><div style="width:12px;height:2.5px;border-radius:2px;background:#FF8A7A"></div></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Playlist settings</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F0F2F6"><div style="width:30px;height:30px;border-radius:10px;background:#EFE1F8;display:flex;align-items:center;justify-content:center"><div style="width:12px;height:12px;border-radius:50%;border:2.5px solid #A97BD1"></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Privacy</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #F0F2F6"><div style="width:30px;height:30px;border-radius:10px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;font:800 15px Nunito,sans-serif;color:#5BAEF7">?</div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Help &amp; contact support</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 16px"><div style="width:30px;height:30px;border-radius:10px;background:#F0F2F6;display:flex;align-items:center;justify-content:center"><div style="width:11px;height:13px;border-radius:3px;border:2.5px solid #98A2B3"></div></div><div style="flex:1;font:700 14.5px Nunito,sans-serif;color:#172033">Terms of use</div><div style="width:7px;height:7px;border-top:2.5px solid #C6CDD8;border-right:2.5px solid #C6CDD8;transform:rotate(45deg)"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;background:#FFFFFF;border-top:1px solid rgba(23,32,51,.07);padding:10px 12px 28px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:17px;height:17px;border-radius:6px;border:2.5px solid #98A2B3"></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Home</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;flex-direction:column;gap:3px;padding-top:2px"><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div><div style="width:17px;height:3px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Playlist</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2.5px;height:17px"><div style="width:4px;height:8px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:14px;border-radius:2px;background:#98A2B3"></div><div style="width:4px;height:11px;border-radius:2px;background:#98A2B3"></div></div><div style="font:800 10.5px Nunito,sans-serif;color:#98A2B3">Activity</div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:15px;height:15px;border-radius:50%;border:3px solid #5BAEF7"></div><div style="font:800 10.5px Nunito,sans-serif;color:#5BAEF7">Settings</div></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s19 PAYWALL -->
+    <div id="s19" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s19" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">19</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Paywall</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#FFF9F1;display:flex;flex-direction:column;padding:74px 24px 30px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;justify-content:flex-end"><div style="width:32px;height:32px;border-radius:50%;background:#F0F2F6;display:flex;align-items:center;justify-content:center;font:800 14px Nunito,sans-serif;color:#98A2B3">✕</div></div>
+          <div style="display:flex;justify-content:center;margin:2px 0 14px">
+            <div style="width:64px;height:64px;border-radius:24px;background:linear-gradient(145deg,#6FBBFB,#4A9FF0);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 26px rgba(91,174,247,.4)"><div style="width:34px;height:34px;border-radius:50%;border:3.5px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-left:11px solid #FFFFFF;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px"></div></div></div>
+          </div>
+          <div style="font:900 25px Nunito,sans-serif;color:#172033;text-align:center;text-wrap:pretty">More control for your family</div>
+          <div style="font:600 14px/1.5 Nunito,sans-serif;color:#667085;text-align:center;margin:8px 0 18px;text-wrap:pretty">Create multiple child profiles, organize playlists, and keep settings synced across devices.</div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#E2F7EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:7px;height:4px;border-left:2px solid #3FA872;border-bottom:2px solid #3FA872;transform:rotate(-45deg);margin-top:-1px"></div></div><div style="font:700 14px Nunito,sans-serif;color:#3D4A63">Multiple child profiles</div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#E2F7EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:7px;height:4px;border-left:2px solid #3FA872;border-bottom:2px solid #3FA872;transform:rotate(-45deg);margin-top:-1px"></div></div><div style="font:700 14px Nunito,sans-serif;color:#3D4A63">Unlimited approved videos &amp; playlists</div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#E2F7EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:7px;height:4px;border-left:2px solid #3FA872;border-bottom:2px solid #3FA872;transform:rotate(-45deg);margin-top:-1px"></div></div><div style="font:700 14px Nunito,sans-serif;color:#3D4A63">Time schedules &amp; activity insights</div></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:20px;height:20px;border-radius:50%;background:#E2F7EC;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:7px;height:4px;border-left:2px solid #3FA872;border-bottom:2px solid #3FA872;transform:rotate(-45deg);margin-top:-1px"></div></div><div style="font:700 14px Nunito,sans-serif;color:#3D4A63">Cloud sync &amp; playlist backup</div></div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1;background:#FFFFFF;border:2px solid #E7EBF1;border-radius:20px;padding:16px 14px">
+              <div style="font:800 14px Nunito,sans-serif;color:#172033">Monthly</div>
+              <div style="font:900 20px Nunito,sans-serif;color:#172033;margin-top:6px">$4.99</div>
+              <div style="font:600 11.5px Nunito,sans-serif;color:#98A2B3">per month</div>
+            </div>
+            <div style="flex:1;background:#EAF4FE;border:2.5px solid #5BAEF7;border-radius:20px;padding:16px 14px;position:relative">
+              <div style="position:absolute;top:-11px;right:12px;font:800 10.5px Nunito,sans-serif;color:#FFFFFF;background:#FF8A7A;border-radius:9px;padding:3px 9px;box-shadow:0 4px 10px rgba(255,138,122,.4)">BEST VALUE</div>
+              <div style="font:800 14px Nunito,sans-serif;color:#2E7FD1">Yearly</div>
+              <div style="font:900 20px Nunito,sans-serif;color:#172033;margin-top:6px">$34.99</div>
+              <div style="font:600 11.5px Nunito,sans-serif;color:#667085">$2.92/mo · save 42%</div>
+            </div>
+          </div>
+          <div style="margin-top:18px;display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;background:#5BAEF7;color:#FFFFFF;font:800 17px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">Start Free Trial</div>
+          <div style="text-align:center;font:800 13.5px Nunito,sans-serif;color:#5BAEF7;margin-top:13px">Restore Purchases</div>
+          <div style="flex:1"></div>
+          <div style="text-align:center;font:600 11px/1.5 Nunito,sans-serif;color:#98A2B3;text-wrap:pretty">7-day free trial, then $34.99/year. Cancel anytime in App Store settings before renewal. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.</div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ D · CHILD MODE ============ -->
+<section style="padding:44px 48px 40px;border-bottom:1px solid rgba(23,32,51,.08)">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">D</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">Child mode — home, player, locked state, time's up</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- s13 CHILD HOME -->
+    <div id="s13" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s13" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">13</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Child mode home</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:linear-gradient(180deg,#FFF4E2,#FFF9F1 40%);display:flex;flex-direction:column;padding:74px 24px 30px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="position:relative;width:52px;height:52px"><div style="position:absolute;top:-4px;left:2px;width:15px;height:15px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-4px;right:2px;width:15px;height:15px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="display:flex;gap:9px"><div style="width:4.5px;height:4.5px;border-radius:50%;background:#172033"></div><div style="width:4.5px;height:4.5px;border-radius:50%;background:#172033"></div></div><div style="width:13px;height:7px;border-bottom:2.5px solid #172033;border-radius:0 0 11px 11px"></div></div></div>
+              <div style="font:900 28px Nunito,sans-serif;color:#172033">{{ childPoss }} Videos</div>
+            </div>
+            <div style="width:34px;height:34px;border-radius:50%;background:rgba(23,32,51,.06);display:flex;align-items:center;justify-content:center;opacity:.7"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:7px;height:5px;border:2px solid #98A2B3;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:11px;height:8px;border-radius:2.5px;background:#98A2B3"></div></div></div>
+          </div>
+          <div style="display:inline-flex;align-self:flex-start;align-items:center;gap:7px;background:#FFFFFF;border-radius:16px;padding:7px 14px;box-shadow:0 3px 10px rgba(23,32,51,.06);margin-bottom:16px">
+            <div style="width:14px;height:14px;border-radius:50%;border:2.5px solid #FFB84D;position:relative;box-sizing:border-box"><div style="position:absolute;top:1.5px;left:4px;width:2px;height:4px;background:#FFB84D;border-radius:1px"></div></div>
+            <div style="font:800 13.5px Nunito,sans-serif;color:#B27B1E">{{ minutesLabel }}</div>
+          </div>
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:16px">
+            <div style="background:#FFFFFF;border-radius:24px;padding:10px;box-shadow:0 6px 20px rgba(23,32,51,.07)">
+              <div style="position:relative;height:170px;border-radius:17px;overflow:hidden;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 12px,#EDF6FF 12px,#EDF6FF 24px);display:flex;align-items:center;justify-content:center">
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(23,32,51,.16)"><div style="width:0;height:0;border-left:21px solid #5BAEF7;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:6px"></div></div>
+                <span style="position:absolute;bottom:9px;right:10px;font:800 12px Nunito,sans-serif;color:#FFFFFF;background:rgba(23,32,51,.75);border-radius:8px;padding:3px 9px">8:24</span>
+              </div>
+              <div style="font:800 17px Nunito,sans-serif;color:#172033;padding:11px 8px 6px">Ocean Animals for Kids</div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:24px;padding:10px;box-shadow:0 6px 20px rgba(23,32,51,.07)">
+              <div style="position:relative;height:170px;border-radius:17px;overflow:hidden;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 12px,#FFF1EC 12px,#FFF1EC 24px);display:flex;align-items:center;justify-content:center">
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(23,32,51,.16)"><div style="width:0;height:0;border-left:21px solid #FF8A7A;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:6px"></div></div>
+                <span style="position:absolute;bottom:9px;right:10px;font:800 12px Nunito,sans-serif;color:#FFFFFF;background:rgba(23,32,51,.75);border-radius:8px;padding:3px 9px">12:05</span>
+              </div>
+              <div style="font:800 17px Nunito,sans-serif;color:#172033;padding:11px 8px 6px">Counting Songs 1–20</div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:24px;padding:10px;box-shadow:0 6px 20px rgba(23,32,51,.07)">
+              <div style="position:relative;height:110px;border-radius:17px;overflow:hidden;background:repeating-linear-gradient(45deg,#E2F7EC,#E2F7EC 12px,#F1FBF6 12px,#F1FBF6 24px);display:flex;align-items:center;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(23,32,51,.16)"><div style="width:0;height:0;border-left:18px solid #6DD6A0;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s14 CHILD PLAYER -->
+    <div id="s14" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s14" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">14</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Child video player</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="true" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:#111B31;display:flex;flex-direction:column;padding:74px 24px 40px;font-family:Nunito,system-ui,sans-serif">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:18px;padding:9px 16px">
+              <div style="width:8px;height:8px;border-left:2.5px solid rgba(255,255,255,.85);border-bottom:2.5px solid rgba(255,255,255,.85);transform:rotate(45deg);margin-left:2px"></div>
+              <div style="font:800 14px Nunito,sans-serif;color:rgba(255,255,255,.9)">My videos</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;background:rgba(255,204,102,.15);border-radius:16px;padding:8px 14px">
+              <div style="width:13px;height:13px;border-radius:50%;border:2.5px solid #FFCC66;position:relative;box-sizing:border-box"><div style="position:absolute;top:1px;left:3.5px;width:2px;height:4px;background:#FFCC66;border-radius:1px"></div></div>
+              <div style="font:800 13px Nunito,sans-serif;color:#FFCC66">{{ minutesLabel }}</div>
+            </div>
+          </div>
+          <div style="position:relative;height:200px;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#1D2C4D,#2A3C63);display:flex;align-items:center;justify-content:center">
+            <span style="position:absolute;top:10px;left:12px;font:700 10px ui-monospace,Menlo,monospace;color:rgba(255,255,255,.35)">embedded player — approved source only</span>
+            <div style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center"><div style="display:flex;gap:5px"><div style="width:6px;height:20px;border-radius:3px;background:#FFFFFF"></div><div style="width:6px;height:20px;border-radius:3px;background:#FFFFFF"></div></div></div>
+            <div style="position:absolute;bottom:10px;right:10px;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center">
+              <div style="position:relative;width:16px;height:16px">
+                <div style="position:absolute;top:0;left:0;width:5px;height:5px;border-top:2.5px solid #FFFFFF;border-left:2.5px solid #FFFFFF;border-radius:2px 0 0 0"></div>
+                <div style="position:absolute;top:0;right:0;width:5px;height:5px;border-top:2.5px solid #FFFFFF;border-right:2.5px solid #FFFFFF;border-radius:0 2px 0 0"></div>
+                <div style="position:absolute;bottom:0;left:0;width:5px;height:5px;border-bottom:2.5px solid #FFFFFF;border-left:2.5px solid #FFFFFF;border-radius:0 0 0 2px"></div>
+                <div style="position:absolute;bottom:0;right:0;width:5px;height:5px;border-bottom:2.5px solid #FFFFFF;border-right:2.5px solid #FFFFFF;border-radius:0 0 2px 0"></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:18px">
+            <div style="font:800 18px Nunito,sans-serif;color:#FFFFFF">Ocean Animals for Kids</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+              <div style="font:700 12px Nunito,sans-serif;color:rgba(255,255,255,.6)">3:21</div>
+              <div style="flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden"><div style="width:40%;height:100%;border-radius:4px;background:#5BAEF7"></div></div>
+              <div style="font:700 12px Nunito,sans-serif;color:rgba(255,255,255,.6)">8:24</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:26px;margin-top:26px">
+            <div style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center"><div style="display:flex;align-items:center;gap:1px"><div style="width:3px;height:14px;border-radius:2px;background:rgba(255,255,255,.85)"></div><div style="width:0;height:0;border-right:11px solid rgba(255,255,255,.85);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div></div>
+            <div style="width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#FF9A8B,#FF8A7A);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(255,138,122,.4)"><div style="display:flex;gap:6px"><div style="width:7px;height:26px;border-radius:3px;background:#FFFFFF"></div><div style="width:7px;height:26px;border-radius:3px;background:#FFFFFF"></div></div></div>
+            <div style="width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center"><div style="display:flex;align-items:center;gap:1px"><div style="width:0;height:0;border-left:11px solid rgba(255,255,255,.85);border-top:7px solid transparent;border-bottom:7px solid transparent"></div><div style="width:3px;height:14px;border-radius:2px;background:rgba(255,255,255,.85)"></div></div></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="font:800 12px Nunito,sans-serif;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Up next in {{ childPoss }} playlist</div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border-radius:18px;padding:10px">
+            <div style="width:78px;height:50px;border-radius:11px;background:repeating-linear-gradient(45deg,rgba(255,138,122,.35),rgba(255,138,122,.35) 8px,rgba(255,138,122,.2) 8px,rgba(255,138,122,.2) 16px);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:0;height:0;border-left:10px solid rgba(255,255,255,.9);border-top:6.5px solid transparent;border-bottom:6.5px solid transparent"></div></div>
+            <div><div style="font:800 13.5px Nunito,sans-serif;color:#FFFFFF">Counting Songs 1–20</div><div style="font:600 11.5px Nunito,sans-serif;color:rgba(255,255,255,.5);margin-top:2px">12:05 · parent-approved</div></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s14b FULLSCREEN PLAYER -->
+    <div id="s14b" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s14b" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">14b</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Fullscreen player (landscape)</span></div>
+      <div style="width:874px;height:402px;border-radius:48px;overflow:hidden;position:relative;background:#000000;box-shadow:0 40px 80px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.12);font-family:Nunito,system-ui,sans-serif">
+        <div style="position:absolute;left:11px;top:50%;transform:translateY(-50%);width:37px;height:126px;border-radius:24px;background:#000000;z-index:50"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1D2C4D,#2A3C63)">
+          <span style="position:absolute;top:16px;left:50%;transform:translateX(-50%);font:700 10px ui-monospace,Menlo,monospace;color:rgba(255,255,255,.3)">embedded player — approved source only, fullscreen</span>
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,14,26,.45) 0%,rgba(9,14,26,0) 30%,rgba(9,14,26,0) 60%,rgba(9,14,26,.55) 100%)"></div>
+        <div style="position:absolute;top:22px;left:76px;right:36px;display:flex;align-items:center;justify-content:space-between;z-index:10">
+          <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:18px;padding:9px 16px;backdrop-filter:blur(8px)">
+            <div style="width:8px;height:8px;border-left:2.5px solid rgba(255,255,255,.85);border-bottom:2.5px solid rgba(255,255,255,.85);transform:rotate(45deg);margin-left:2px"></div>
+            <div style="font:800 13.5px Nunito,sans-serif;color:rgba(255,255,255,.9)">My videos</div>
+          </div>
+          <div style="font:800 15px Nunito,sans-serif;color:rgba(255,255,255,.9)">Ocean Animals for Kids</div>
+          <div style="display:flex;align-items:center;gap:7px;background:rgba(255,204,102,.18);border-radius:16px;padding:8px 14px;backdrop-filter:blur(8px)">
+            <div style="width:13px;height:13px;border-radius:50%;border:2.5px solid #FFCC66;position:relative;box-sizing:border-box"><div style="position:absolute;top:1px;left:3.5px;width:2px;height:4px;background:#FFCC66;border-radius:1px"></div></div>
+            <div style="font:800 13px Nunito,sans-serif;color:#FFCC66">{{ minutesLabel }}</div>
+          </div>
+        </div>
+        <div style="position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;gap:36px;z-index:10">
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><div style="display:flex;align-items:center;gap:1px"><div style="width:3px;height:14px;border-radius:2px;background:rgba(255,255,255,.85)"></div><div style="width:0;height:0;border-right:11px solid rgba(255,255,255,.85);border-top:7px solid transparent;border-bottom:7px solid transparent"></div></div></div>
+          <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#FF9A8B,#FF8A7A);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 28px rgba(255,138,122,.4)"><div style="display:flex;gap:6px"><div style="width:7px;height:26px;border-radius:3px;background:#FFFFFF"></div><div style="width:7px;height:26px;border-radius:3px;background:#FFFFFF"></div></div></div>
+          <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><div style="display:flex;align-items:center;gap:1px"><div style="width:0;height:0;border-left:11px solid rgba(255,255,255,.85);border-top:7px solid transparent;border-bottom:7px solid transparent"></div><div style="width:3px;height:14px;border-radius:2px;background:rgba(255,255,255,.85)"></div></div></div>
+        </div>
+        <div style="position:absolute;bottom:26px;left:76px;right:36px;display:flex;align-items:center;gap:14px;z-index:10">
+          <div style="font:700 12px Nunito,sans-serif;color:rgba(255,255,255,.7)">3:21</div>
+          <div style="flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.16);overflow:hidden"><div style="width:40%;height:100%;border-radius:4px;background:#5BAEF7"></div></div>
+          <div style="font:700 12px Nunito,sans-serif;color:rgba(255,255,255,.7)">8:24</div>
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center">
+            <div style="position:relative;width:16px;height:16px">
+              <div style="position:absolute;top:2px;left:2px;width:5px;height:5px;border-bottom:2.5px solid #FFFFFF;border-right:2.5px solid #FFFFFF;border-radius:0 0 2px 0"></div>
+              <div style="position:absolute;bottom:2px;right:2px;width:5px;height:5px;border-top:2.5px solid #FFFFFF;border-left:2.5px solid #FFFFFF;border-radius:2px 0 0 0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font:600 12px/1.5 Nunito,sans-serif;color:#667085;max-width:560px">Rotate or tap the corners icon on <a href="#s14">14</a> to enter. Same rules apply: only prev/next within the approved playlist, timer stays visible, no external taps — anything else shows the <a href="#s15">15</a> lock.</div>
+    </div>
+
+    <!-- s15 LOCKED MODAL -->
+    <div id="s15" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s15" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">15</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Locked action modal</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:linear-gradient(180deg,#FFF4E2,#FFF9F1 40%);display:flex;flex-direction:column;padding:74px 24px 30px;font-family:Nunito,system-ui,sans-serif;position:relative">
+          <div style="opacity:.35;filter:blur(2px);display:flex;flex-direction:column;gap:16px">
+            <div style="font:900 28px Nunito,sans-serif;color:#172033">{{ childPoss }} Videos</div>
+            <div style="background:#FFFFFF;border-radius:24px;padding:10px;box-shadow:0 6px 20px rgba(23,32,51,.07)">
+              <div style="height:170px;border-radius:17px;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 12px,#EDF6FF 12px,#EDF6FF 24px)"></div>
+              <div style="font:800 17px Nunito,sans-serif;color:#172033;padding:11px 8px 6px">Ocean Animals for Kids</div>
+            </div>
+            <div style="background:#FFFFFF;border-radius:24px;padding:10px;box-shadow:0 6px 20px rgba(23,32,51,.07)">
+              <div style="height:170px;border-radius:17px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 12px,#FFF1EC 12px,#FFF1EC 24px)"></div>
+            </div>
+          </div>
+          <div style="position:absolute;inset:0;background:rgba(23,32,51,.35);display:flex;align-items:center;justify-content:center;padding:32px">
+            <div style="width:100%;background:#FFFFFF;border-radius:28px;padding:30px 26px;box-shadow:0 24px 60px rgba(23,32,51,.3);display:flex;flex-direction:column;align-items:center;text-align:center">
+              <div style="width:64px;height:64px;border-radius:24px;background:#EAF4FE;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+                <div style="display:flex;flex-direction:column;align-items:center"><div style="width:15px;height:11px;border:3px solid #5BAEF7;border-bottom:none;border-radius:8px 8px 0 0"></div><div style="width:26px;height:18px;border-radius:6px;background:#5BAEF7"></div></div>
+              </div>
+              <div style="font:900 23px Nunito,sans-serif;color:#172033">Ask a parent</div>
+              <div style="font:600 14.5px Nunito,sans-serif;color:#667085;margin:8px 0 22px">This area is protected.</div>
+              <div style="width:100%;display:flex;align-items:center;justify-content:center;height:52px;border-radius:26px;background:#5BAEF7;color:#FFFFFF;font:800 16px Nunito,sans-serif;box-shadow:0 8px 20px rgba(91,174,247,.35)">OK</div>
+              <div style="font:800 13.5px Nunito,sans-serif;color:#98A2B3;margin-top:15px">Parent unlock</div>
+            </div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <!-- s16 TIME FOR A BREAK -->
+    <div id="s16" style="flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+      <div style="display:flex;align-items:baseline;gap:8px"><a href="#s16" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">16</a><span style="font:800 13px Nunito,sans-serif;color:#172033">Session end — time for a break</span></div>
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="true" hint-size="402px,874px">
+        <div style="height:100%;box-sizing:border-box;background:linear-gradient(180deg,#1C2B4E 0%,#33456F 70%,#43567F 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 36px;font-family:Nunito,system-ui,sans-serif;position:relative;overflow:hidden">
+            <div style="position:absolute;top:140px;left:60px;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6)"></div>
+            <div style="position:absolute;top:190px;right:70px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.45)"></div>
+            <div style="position:absolute;top:110px;right:120px;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)"></div>
+            <div style="position:absolute;top:240px;left:110px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.4)"></div>
+            <div style="position:absolute;top:320px;right:52px;font-size:13px;color:rgba(255,233,168,.7)">★</div>
+            <div style="position:absolute;top:90px;left:130px;font-size:10px;color:rgba(255,233,168,.5)">★</div>
+            <div style="width:92px;height:92px;border-radius:50%;overflow:hidden;position:relative;margin-bottom:30px">
+              <div style="position:absolute;inset:0;border-radius:50%;background:#FFE9B8;box-shadow:0 0 60px rgba(255,233,184,.4)"></div>
+              <div style="position:absolute;top:-14px;left:-22px;width:80px;height:80px;border-radius:50%;background:#26355B"></div>
+            </div>
+            <div style="font:900 30px Nunito,sans-serif;color:#FFFFFF;text-align:center">Time for a break</div>
+            <div style="font:600 15.5px/1.55 Nunito,sans-serif;color:rgba(255,255,255,.72);text-align:center;margin:12px 0 36px;text-wrap:pretty">Great watching! Ask a parent if you need more time.</div>
+            <div style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);border-radius:26px;padding:14px 26px">
+              <div style="display:flex;flex-direction:column;align-items:center"><div style="width:8px;height:6px;border:2px solid rgba(255,255,255,.85);border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:rgba(255,255,255,.85)"></div></div>
+              <div style="font:800 15.5px Nunito,sans-serif;color:#FFFFFF">Parent unlock</div>
+            </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ E · APP STORE PREVIEW ============ -->
+<section style="padding:44px 48px 60px">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:24px">
+    <span style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#172033;color:#FFFFFF;border-radius:5px">E</span>
+    <span style="font:800 15px Nunito,sans-serif;color:#172033">App Store preview screens</span>
+    <span id="s20" style="scroll-margin-top:16px"><a href="#s20" style="font:800 11px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,32,51,.08);color:#172033;border-radius:5px">20</a></span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+    <div style="width:300px;border-radius:28px;background:linear-gradient(160deg,#5BAEF7,#3E93E0);padding:28px 24px 0;display:flex;flex-direction:column;align-items:center;overflow:hidden">
+      <div style="font:900 23px/1.25 Nunito,sans-serif;color:#FFFFFF;text-align:center;text-wrap:pretty">You choose what they watch.</div>
+      <div style="font:600 13px Nunito,sans-serif;color:rgba(255,255,255,.85);text-align:center;margin:8px 0 22px">Parent-approved playlists only</div>
+      <div style="width:216px;height:300px;border-radius:32px 32px 0 0;background:#FFF9F1;box-shadow:0 -10px 40px rgba(23,32,51,.25);padding:18px 14px 0;box-sizing:border-box">
+        <div style="font:900 15px Nunito,sans-serif;color:#172033;margin-bottom:10px">Emma’s playlist</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border-radius:13px;padding:7px;box-shadow:0 2px 8px rgba(23,32,51,.06)"><div style="width:46px;height:32px;border-radius:8px;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 6px,#EDF6FF 6px,#EDF6FF 12px)"></div><div style="flex:1"><div style="height:7px;border-radius:4px;background:#DCE4EF;width:85%"></div><div style="height:6px;border-radius:4px;background:#EBF0F7;width:50%;margin-top:4px"></div></div><div style="width:15px;height:15px;border-radius:50%;background:#6DD6A0"></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border-radius:13px;padding:7px;box-shadow:0 2px 8px rgba(23,32,51,.06)"><div style="width:46px;height:32px;border-radius:8px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 6px,#FFF1EC 6px,#FFF1EC 12px)"></div><div style="flex:1"><div style="height:7px;border-radius:4px;background:#DCE4EF;width:70%"></div><div style="height:6px;border-radius:4px;background:#EBF0F7;width:45%;margin-top:4px"></div></div><div style="width:15px;height:15px;border-radius:50%;background:#6DD6A0"></div></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#FFFFFF;border-radius:13px;padding:7px;box-shadow:0 2px 8px rgba(23,32,51,.06)"><div style="width:46px;height:32px;border-radius:8px;background:repeating-linear-gradient(45deg,#E2F7EC,#E2F7EC 6px,#F1FBF6 6px,#F1FBF6 12px)"></div><div style="flex:1"><div style="height:7px;border-radius:4px;background:#DCE4EF;width:78%"></div><div style="height:6px;border-radius:4px;background:#EBF0F7;width:55%;margin-top:4px"></div></div><div style="width:15px;height:15px;border-radius:50%;background:#6DD6A0"></div></div>
+          <div style="display:flex;align-items:center;justify-content:center;height:38px;border-radius:19px;background:#5BAEF7;color:#FFFFFF;font:800 12.5px Nunito,sans-serif">Add Video</div>
+        </div>
+      </div>
+    </div>
+    <div style="width:300px;border-radius:28px;background:linear-gradient(160deg,#FFF3E0,#FFE8D6);padding:28px 24px 0;display:flex;flex-direction:column;align-items:center;overflow:hidden">
+      <div style="font:900 23px/1.25 Nunito,sans-serif;color:#172033;text-align:center;text-wrap:pretty">No search. No recommendations.</div>
+      <div style="font:600 13px Nunito,sans-serif;color:#8A6A45;text-align:center;margin:8px 0 22px">No endless scrolling</div>
+      <div style="width:216px;height:300px;border-radius:32px 32px 0 0;background:#FFFFFF;box-shadow:0 -10px 40px rgba(23,32,51,.18);padding:20px 16px 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center">
+        <div style="width:100%;display:flex;align-items:center;gap:8px;background:#EEF1F5;border-radius:13px;padding:10px 12px;position:relative">
+          <div style="width:12px;height:12px;border-radius:50%;border:2.5px solid #B4BCC9"></div>
+          <div style="height:7px;border-radius:4px;background:#D5DBE4;width:90px"></div>
+          <div style="position:absolute;right:-7px;top:-9px;display:flex;flex-direction:column;align-items:center;background:#172033;border-radius:9px;padding:6px 7px"><div style="width:8px;height:6px;border:2px solid #FFCC66;border-bottom:none;border-radius:4px 4px 0 0"></div><div style="width:13px;height:9px;border-radius:3px;background:#FFCC66"></div></div>
+          <div style="position:absolute;left:10px;right:10px;top:50%;height:2.5px;border-radius:2px;background:#EF6F6C;transform:rotate(-3deg)"></div>
+        </div>
+        <div style="width:100%;display:flex;gap:8px;margin-top:12px;filter:grayscale(1);opacity:.7">
+          <div style="flex:1;background:#F1F3F6;border-radius:13px;padding:7px"><div style="height:44px;border-radius:9px;background:repeating-linear-gradient(45deg,#DFE3E9,#DFE3E9 6px,#EBEEF2 6px,#EBEEF2 12px)"></div><div style="height:6px;border-radius:4px;background:#D5DBE4;width:85%;margin-top:6px"></div></div>
+          <div style="flex:1;background:#F1F3F6;border-radius:13px;padding:7px"><div style="height:44px;border-radius:9px;background:repeating-linear-gradient(45deg,#DFE3E9,#DFE3E9 6px,#EBEEF2 6px,#EBEEF2 12px)"></div><div style="height:6px;border-radius:4px;background:#D5DBE4;width:70%;margin-top:6px"></div></div>
+        </div>
+        <div style="font:700 9.5px ui-monospace,Menlo,monospace;color:#98A2B3;letter-spacing:.05em;margin-top:12px">LOCKED FOR CHILDREN</div>
+        <div style="margin-top:16px;width:56px;height:56px;border-radius:50%;background:#FFF0EF;display:flex;align-items:center;justify-content:center"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:12px;height:9px;border:2.5px solid #EF6F6C;border-bottom:none;border-radius:6px 6px 0 0"></div><div style="width:21px;height:15px;border-radius:5px;background:#EF6F6C"></div></div></div>
+      </div>
+    </div>
+    <div style="width:300px;border-radius:28px;background:linear-gradient(160deg,#FF9A8B,#FF8A7A);padding:28px 24px 0;display:flex;flex-direction:column;align-items:center;overflow:hidden">
+      <div style="font:900 23px/1.25 Nunito,sans-serif;color:#FFFFFF;text-align:center;text-wrap:pretty">A calm child mode.</div>
+      <div style="font:600 13px Nunito,sans-serif;color:rgba(255,255,255,.9);text-align:center;margin:8px 0 22px">Big cards. Big play buttons. Nothing else.</div>
+      <div style="width:216px;height:300px;border-radius:32px 32px 0 0;background:linear-gradient(180deg,#FFF4E2,#FFF9F1 45%);box-shadow:0 -10px 40px rgba(23,32,51,.25);padding:18px 14px 0;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="position:relative;width:26px;height:26px"><div style="position:absolute;top:-2px;left:1px;width:8px;height:8px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;top:-2px;right:1px;width:8px;height:8px;border-radius:50%;background:#E8BE93"></div><div style="position:absolute;inset:0;border-radius:50%;background:#F4D8B8"></div></div>
+          <div style="font:900 14px Nunito,sans-serif;color:#172033">Emma’s Videos</div>
+        </div>
+        <div style="background:#FFFFFF;border-radius:16px;padding:7px;box-shadow:0 4px 12px rgba(23,32,51,.07)">
+          <div style="height:92px;border-radius:11px;background:repeating-linear-gradient(45deg,#DDEEFE,#DDEEFE 8px,#EDF6FF 8px,#EDF6FF 16px);display:flex;align-items:center;justify-content:center"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(23,32,51,.14)"><div style="width:0;height:0;border-left:12px solid #5BAEF7;border-top:7.5px solid transparent;border-bottom:7.5px solid transparent;margin-left:3px"></div></div></div>
+          <div style="height:8px;border-radius:4px;background:#DCE4EF;width:70%;margin:8px 4px 5px"></div>
+        </div>
+        <div style="background:#FFFFFF;border-radius:16px;padding:7px;box-shadow:0 4px 12px rgba(23,32,51,.07);margin-top:10px">
+          <div style="height:92px;border-radius:11px;background:repeating-linear-gradient(45deg,#FFE4DD,#FFE4DD 8px,#FFF1EC 8px,#FFF1EC 16px);display:flex;align-items:center;justify-content:center"><div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(23,32,51,.14)"><div style="width:0;height:0;border-left:12px solid #FF8A7A;border-top:7.5px solid transparent;border-bottom:7.5px solid transparent;margin-left:3px"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:26px;max-width:900px;font:600 13px/1.6 Nunito,sans-serif;color:#667085">
+    Next steps I'd suggest: an interactive prototype of the child-mode flow (tap video → player → lock → PIN → exit), the add-video success state, and the remove-video confirmation sheet. Reference any screen by number (e.g. <a href="#s13">13</a>) to iterate.
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;childName&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;Emma&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Sample data&quot;},
+  &quot;childName2&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;Noah&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Sample data&quot;},
+  &quot;minutesLeft&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 12, &quot;min&quot;: 0, &quot;max&quot;: 60, &quot;unit&quot;: &quot;min&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Sample data&quot;}
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const name = this.props.childName ?? 'Emma';
+    const mins = this.props.minutesLeft ?? 12;
+    const name2 = this.props.childName2 ?? 'Noah';
+    return {
+      childName: name,
+      childName2: name2,
+      childPoss2: name2 + '\u2019s',
+      childPoss: name + '\u2019s',
+      minutesLabel: mins + ' min left',
+    };
+  }
+}
+</script>
+</body>
+</html>

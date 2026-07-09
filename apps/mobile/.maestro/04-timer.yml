@@ -1,0 +1,29 @@
+appId: app.littleloop.mobile
+name: Timer — limit runs out → times-up → parent unlock
+---
+- launchApp
+# Set the smallest limit (release checklist: 5 min of real playback follows)
+- tapOn: 'Time Limits'
+- tapOn: '15 minutes'
+- tapOn: 'Time Limits'
+- tapOn:
+    text: '5 minutes'
+    optional: true
+- tapOn: 'Start Child Mode'
+- tapOn: 'Start Child Mode'
+# Play the first video and wait out the limit
+- tapOn: '.*Videos'
+- tapOn:
+    index: 0
+    text: '.*'
+- extendedWaitUntil:
+    visible: 'Time for a break'
+    timeout: 400000
+- assertVisible: 'Parent unlock'
+- tapOn: 'Parent unlock'
+- assertVisible: 'Parents only'
+- tapOn: '1'
+- tapOn: '2'
+- tapOn: '3'
+- tapOn: '4'
+- assertVisible: 'Your family'

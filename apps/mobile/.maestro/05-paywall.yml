@@ -1,0 +1,22 @@
+appId: app.littleloop.mobile
+name: Paywall — 11th video hits the gate → simulated purchase unlocks
+---
+- launchApp
+- assertVisible: 'Your family'
+# Assumes a full free playlist (10 videos); adding one more opens s19
+- tapOn: 'Add Video'
+- tapOn: 'https://youtube.com/.*'
+- inputText: 'https://www.youtube.com/watch?v=jNQXAC9IVRw'
+- tapOn: 'Preview Video'
+- tapOn: 'I approve this video for my child.'
+- tapOn: 'Add to Playlist'
+# s19
+- assertVisible: 'More control for your family'
+- assertVisible: 'BEST VALUE'
+- tapOn: 'Start Free Trial'
+# Dev build simulates the purchase and dismisses
+- assertNotVisible: 'More control for your family'
+# Retry the add — the cap is lifted
+- tapOn: 'Add to Playlist'
+- assertVisible: 'Playlist'
+- assertVisible: '.*11 videos.*'

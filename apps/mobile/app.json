@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "LittleLoop",
+    "slug": "littleloop",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "littleloop",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.littleloop.mobile",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "LittleLoop uses Face ID so parents can unlock child mode quickly."
+      }
+    },
+    "android": {
+      "package": "app.littleloop.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF9F1",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF9F1",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
+        }
+      ],
+      "@sentry/react-native"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -1,0 +1,17 @@
+appId: app.littleloop.mobile
+name: Add video — paste link → preview → approve → playlist
+---
+- launchApp
+- assertVisible: 'Your family'
+- tapOn: 'Add Video'
+# s08 paste link
+- tapOn: 'https://youtube.com/.*'
+- inputText: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+- tapOn: 'Preview Video'
+# s09 preview & approval
+- assertVisible: 'Review video'
+- tapOn: 'I approve this video for my child.'
+- tapOn: 'Add to Playlist'
+# s11 populated playlist
+- assertVisible: 'Playlist'
+- assertVisible: '.*1 video.*'

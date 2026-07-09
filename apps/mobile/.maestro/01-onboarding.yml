@@ -1,0 +1,30 @@
+appId: app.littleloop.mobile
+name: First-install onboarding → PIN → profile → empty playlist
+---
+- clearState
+- launchApp
+# s01 splash → s02–s04 pager
+- assertVisible: 'LittleLoop'
+- assertVisible: 'You choose what they watch.*'
+- tapOn: 'Next'
+- tapOn: 'Next'
+- tapOn: 'Get Started'
+# Dev bypass skips Clerk → s05 PIN setup (enter + confirm 1234)
+- assertVisible: 'Create your Parent PIN'
+- repeat:
+    times: 4
+    commands:
+      - tapOn: '1'
+      - tapOn: '2'
+      - tapOn: '3'
+      - tapOn: '4'
+# s06 child profile
+- assertVisible: 'Who will be watching?.*'
+- tapOn:
+    id: 'nickname-input'
+    optional: true
+- inputText: 'Mila'
+- tapOn: '2–4'
+- tapOn: 'Create Profile'
+# s07 empty playlist
+- assertVisible: '.*playlist is empty.*'

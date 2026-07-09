@@ -1,0 +1,37 @@
+appId: app.littleloop.mobile
+name: Child mode — gate → home → back is locked → PIN exit
+---
+- launchApp
+- assertVisible: 'Your family'
+- tapOn: 'Start Child Mode'
+# s12 gate
+- assertVisible: 'Child Mode'
+- assertVisible: 'Parent PIN required to exit.'
+- tapOn: 'Start Child Mode'
+# s13 child home
+- assertVisible: '.*Videos'
+- assertVisible: '.*minutes left.*'
+# Android hardware back must raise the s15 lock, not exit
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+      - assertVisible: 'Ask a parent'
+      - tapOn: 'OK'
+# Padlock → PIN unlock; wrong PIN first
+- tapOn:
+    id: 'child-padlock'
+    optional: true
+- assertVisible: 'Parents only'
+- repeat:
+    times: 4
+    commands:
+      - tapOn: '9'
+- assertVisible: 'Wrong PIN.*'
+# Correct PIN exits to the dashboard
+- tapOn: '1'
+- tapOn: '2'
+- tapOn: '3'
+- tapOn: '4'
+- assertVisible: 'Your family'
