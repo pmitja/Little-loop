@@ -11,11 +11,30 @@ interface AppState {
    * (server truth moves to TanStack Query once /child-profiles is live in Phase 0/2).
    */
   childProfiles: ChildProfile[];
+  childRules: Record<string, ChildRules>;
   setOnboardingComplete: (done: boolean) => void;
   addChildProfile: (profile: ChildProfile) => void;
   updateChildProfile: (id: string, patch: Partial<ChildProfile>) => void;
+  removeChildProfile: (id: string) => void;
   setActiveChildProfileId: (id: string | null) => void;
+  updateChildRules: (id: string, patch: Partial<ChildRules>) => void;
 }
+
+export interface ChildRules {
+  weekendBonus: boolean;
+  bedtimeEnabled: boolean;
+  bedtime: string;
+  warningEnabled: boolean;
+  kidProofExit: boolean;
+}
+
+export const DEFAULT_CHILD_RULES: ChildRules = {
+  weekendBonus: true,
+  bedtimeEnabled: true,
+  bedtime: '7:30 PM',
+  warningEnabled: true,
+  kidProofExit: true,
+};
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -23,6 +42,7 @@ export const useAppStore = create<AppState>()(
       onboardingComplete: false,
       activeChildProfileId: null,
       childProfiles: [],
+      childRules: {},
       setOnboardingComplete: (done) => set({ onboardingComplete: done }),
       addChildProfile: (profile) =>
         set((s) => ({
@@ -33,7 +53,22 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           childProfiles: s.childProfiles.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
+      removeChildProfile: (id) =>
+        set((s) => {
+          const childProfiles = s.childProfiles.filter((p) => p.id !== id);
+          const { [id]: _removed, ...childRules } = s.childRules;
+          return {
+            childProfiles,
+            childRules,
+            activeChildProfileId:
+              s.activeChildProfileId === id
+                ? (childProfiles[0]?.id ?? null)
+                : s.activeChildProfileId,
+          };
+        }),
       setActiveChildProfileId: (id) => set({ activeChildProfileId: id }),
+      updateChildRules: (id, patch) =>
+        set((s) => ({ childRules: { ...s.childRules, [id]: { ...(s.childRules[id] ?? DEFAULT_CHILD_RULES), ...patch } } })),
     }),
     {
       name: 'app-store',

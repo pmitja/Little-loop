@@ -41,6 +41,8 @@ interface TimerState {
    * Its counted seconds were persisted with every tick, so nothing is lost.
    */
   reconcile: () => void;
+  /** Drop counts and history for a child (profile deleted). */
+  removeChildData: (childProfileId: string) => void;
 }
 
 /** Roll persisted counts across the local-midnight boundary. */
@@ -122,6 +124,18 @@ export const useTimerStore = create<TimerState>()(
             activeSessionId: null,
           };
         }),
+      removeChildData: (childProfileId) =>
+        set((s) => {
+          const { [childProfileId]: _seconds, ...secondsByChild } = s.secondsByChild;
+          const sessions = s.sessions.filter((sess) => sess.childProfileId !== childProfileId);
+          return {
+            secondsByChild,
+            sessions,
+            activeSessionId: sessions.some((sess) => sess.id === s.activeSessionId)
+              ? s.activeSessionId
+              : null,
+          };
+        }),
     }),
     {
       name: 'timer-store',
@@ -132,6 +146,43 @@ export const useTimerStore = create<TimerState>()(
     },
   ),
 );
+
+/** Local-date key for an ISO timestamp (same format as todayKey). */
+export function localDayKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Last 7 local days (oldest first), each with total minutes watched by the child. */
+export function weeklyMinutes(
+  sessions: WatchSession[],
+  childProfileId: string | null,
+): { key: string; minutes: number }[] {
+  const days: { key: string; minutes: number }[] = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    days.push({ key: localDayKey(d.toISOString()), minutes: 0 });
+  }
+  for (const s of sessions) {
+    if (childProfileId && s.childProfileId !== childProfileId) continue;
+    const day = days.find((d) => d.key === localDayKey(s.startedAt));
+    if (day) day.minutes += s.seconds / 60;
+  }
+  return days;
+}
+
+/** Distinct providerVideoIds the child played today (session order). */
+export function videosWatchedToday(sessions: WatchSession[], childProfileId: string | null): string[] {
+  const ids: string[] = [];
+  const today = todayKey();
+  for (const s of sessions) {
+    if (childProfileId && s.childProfileId !== childProfileId) continue;
+    if (localDayKey(s.startedAt) !== today) continue;
+    for (const id of s.videoIds) if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
 
 /** Seconds this child has watched today (0 once the local day rolls over). */
 export function useSecondsWatchedToday(childProfileId: string | null): number {

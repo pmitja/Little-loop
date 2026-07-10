@@ -16,6 +16,7 @@ import {
 } from '@expo-google-fonts/nunito';
 import { CLERK_PUBLISHABLE_KEY, clerkEnabled } from '@/lib/auth';
 import { setTokenGetter } from '@/lib/api';
+import { syncCurrentUser } from '@/lib/userSync';
 import { configurePurchases } from '@/lib/purchases';
 import { initMonitoring } from '@/lib/monitoring';
 import { queryClient } from '@/lib/query';
@@ -34,6 +35,12 @@ function ApiTokenBridge() {
     setTokenGetter(() => getToken());
   }, [getToken]);
   useEffect(() => {
+    if (!userId) return;
+    syncCurrentUser().catch((error) => {
+      console.warn('Failed to sync signed-in user with the API', error);
+    });
+  }, [userId]);
+  useEffect(() => {
     // logIn ties the RevenueCat app-user-id to our Clerk user (PLAN §12).
     configurePurchases(userId).catch(() => {});
   }, [userId]);
@@ -49,8 +56,10 @@ function AppStack() {
       <StatusBar style={childModeActive ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFF9F1' } }}>
         <Stack.Screen name="index" />
+        {/* The profile picker is part of the kid-safe flow, so it remains
+            reachable while child mode keeps every parent route unmounted. */}
+        <Stack.Screen name="whos-watching" options={{ gestureEnabled: false }} />
         <Stack.Protected guard={!childModeActive}>
-          <Stack.Screen name="whos-watching" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(parent)" />

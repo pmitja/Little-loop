@@ -9,7 +9,7 @@ import {
   ChildAvatar,
   EmptyState,
   ParentHeader,
-  PINDots,
+  PINBoxes,
   PINKeypad,
   ScreenContainer,
   SectionLabel,
@@ -62,9 +62,9 @@ export default function Gallery() {
         ))}
       </View>
 
-      <SectionLabel style={styles.label}>PIN keypad + dots</SectionLabel>
+      <SectionLabel style={styles.label}>PIN keypad + boxes</SectionLabel>
       <View style={{ alignItems: 'center', gap: 24 }}>
-        <PINDots filled={pin.length} />
+        <PINBoxes filled={pin.length} />
         <PINKeypad
           onDigit={(d) => setPin((p) => (p.length < 4 ? p + d : p))}
           onDelete={() => setPin((p) => p.slice(0, -1))}

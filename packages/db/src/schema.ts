@@ -81,6 +81,33 @@ export const videoMetadata = pgTable(
   (t) => [uniqueIndex('uq_video_provider').on(t.provider, t.providerVideoId)],
 );
 
+// Shared cache of search results — one row per normalized query across all
+// users. search.list costs 100 quota units, so cache hits are what make the
+// feature viable at scale.
+export const searchCache = pgTable(
+  'search_cache',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: text('provider').notNull().default('youtube'),
+    query: text('query').notNull(),
+    results: jsonb('results')
+      .$type<
+        {
+          providerVideoId: string;
+          title: string;
+          channelTitle: string;
+          durationSeconds: number;
+          thumbnailUrl: string;
+        }[]
+      >()
+      .notNull()
+      .default([]),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('uq_search_cache_query').on(t.provider, t.query)],
+);
+
 export const playlistVideos = pgTable(
   'playlist_videos',
   {

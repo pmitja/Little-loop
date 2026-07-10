@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "5e831811-a8b4-47c3-8604-7fdc5c8bd4ff"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.mitjapak.littleloop",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

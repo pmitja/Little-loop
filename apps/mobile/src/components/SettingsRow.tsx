@@ -1,25 +1,30 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, radii, shadows } from '@/theme/tokens';
+import { colors, controls, radii, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 interface SettingsRowProps {
   icon: ReactNode;
   iconBg: string;
-  label: string;
+  label?: string;
+  title?: string;
   value?: string;
   chevron?: boolean;
   toggle?: { value: boolean; onChange: (next: boolean) => void };
   onPress?: () => void;
+  /** Tints the title (e.g. colors.red for destructive rows). */
+  titleColor?: string;
 }
 
-export function SettingsRow({ icon, iconBg, label, value, chevron, toggle, onPress }: SettingsRowProps) {
+export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle, onPress, titleColor }: SettingsRowProps) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={styles.row}>
-      <View style={[styles.iconBox, { backgroundColor: iconBg }]}>{icon}</View>
-      <Txt weight="extrabold" size={15} style={{ flex: 1 }}>
-        {label}
+      <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+        {typeof icon === 'string' ? <Txt size={15}>{icon}</Txt> : icon}
+      </View>
+      <Txt weight="extrabold" size={15} color={titleColor} numberOfLines={1} ellipsizeMode="tail" style={styles.title}>
+        {title ?? label}
       </Txt>
       {value ? (
         <Txt weight="bold" size={14} color={colors.muted}>
@@ -30,7 +35,7 @@ export function SettingsRow({ icon, iconBg, label, value, chevron, toggle, onPre
         <Switch
           value={toggle.value}
           onValueChange={toggle.onChange}
-          trackColor={{ true: colors.primary, false: colors.border }}
+          trackColor={{ true: colors.child.grass, false: colors.border }}
           thumbColor="#FFFFFF"
         />
       ) : null}
@@ -69,10 +74,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: controls.iconSlot,
+    height: controls.iconSlot,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  title: { flex: 1, minWidth: 0 },
 });

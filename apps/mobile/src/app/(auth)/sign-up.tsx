@@ -7,6 +7,7 @@ import { Logo } from '@/components/Logo';
 import { colors } from '@/theme/tokens';
 import { clerkEnabled } from '@/lib/auth';
 import { Field } from '@/features/auth/Field';
+import { useAppStore } from '@/stores/appStore';
 
 /** Clerk sign-up themed to the design; email + password, then email code verify. */
 export default function SignUp() {
@@ -44,6 +45,7 @@ function ClerkSignUp() {
   const [verifying, setVerifying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const onboardingComplete = useAppStore((s) => s.onboardingComplete);
 
   const submit = async () => {
     if (!isLoaded) return;
@@ -69,7 +71,9 @@ function ClerkSignUp() {
       const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace('/(onboarding)/pin-setup');
+        router.replace(
+          onboardingComplete ? '/(onboarding)/pin-setup' : '/(onboarding)/welcome',
+        );
       } else {
         setError('Verification incomplete — try again.');
       }

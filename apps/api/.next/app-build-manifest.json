@@ -1,0 +1,39 @@
+{
+  "pages": {
+    "/api/v1/settings/pin/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/settings/pin/route.js"
+    ],
+    "/api/v1/child-profiles/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/child-profiles/route.js"
+    ],
+    "/api/v1/videos/search/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/videos/search/route.js"
+    ],
+    "/api/v1/videos/preview/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/videos/preview/route.js"
+    ],
+    "/api/v1/users/sync/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/users/sync/route.js"
+    ],
+    "/api/v1/child-profiles/[id]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/child-profiles/[id]/route.js"
+    ],
+    "/api/v1/health/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/v1/health/route.js"
+    ]
+  }
+}

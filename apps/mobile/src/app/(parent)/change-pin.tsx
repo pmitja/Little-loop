@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ParentHeader, PINDots, PINKeypad, ScreenContainer, Txt } from '@/components';
+import { ParentHeader, PINBoxes, PINKeypad, ScreenContainer, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { savePin, verifyPin } from '@/lib/pin';
 
@@ -87,7 +87,7 @@ export default function ChangePin() {
           {COPY[step].body}
         </Txt>
         <View style={styles.dots}>
-          <PINDots
+          <PINBoxes
             length={PIN_LENGTH}
             filled={errorFlash ? PIN_LENGTH : pin.length}
             error={errorFlash}

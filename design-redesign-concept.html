@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LittleLoop — Redesign Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Report identity (same system as the research report) */
+    --tangerine: #FF7A3D;
+    --tangerine-soft: #FFE7D8;
+    --teal: #12938A;
+    --teal-soft: #D4EEEA;
+    --berry: #B23A6B;
+
+    --ground: #FCF8F4;
+    --surface: #FFFFFF;
+    --surface-2: #F5EDE3;
+    --ink: #26202B;
+    --ink-2: #6B6070;
+    --line: #EADFD2;
+    --shadow: 24px 32px 60px -32px rgba(60, 40, 30, 0.35);
+
+    /* LittleLoop product palette (used inside the phone mockups) */
+    --ll-sky: #4EC3E0;
+    --ll-sky-deep: #1E93B5;
+    --ll-sun: #FFC93E;
+    --ll-coral: #FF6B57;
+    --ll-grass: #6BCB77;
+    --ll-plum: #7C5CBF;
+    --ll-cream: #FFF8EC;
+    --ll-night: #2A3B5C;
+
+    --maxw: 1180px;
+    --radius: 20px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #17151C; --surface: #211E28; --surface-2: #2A2632;
+      --ink: #F3EEE9; --ink-2: #ABA1B2; --line: #332E3D;
+      --tangerine-soft: #3A2A22; --teal-soft: #16302E;
+      --shadow: 24px 32px 60px -30px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #17151C; --surface: #211E28; --surface-2: #2A2632;
+    --ink: #F3EEE9; --ink-2: #ABA1B2; --line: #332E3D;
+    --tangerine-soft: #3A2A22; --teal-soft: #16302E;
+    --shadow: 24px 32px 60px -30px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --ground: #FCF8F4; --surface: #FFFFFF; --surface-2: #F5EDE3;
+    --ink: #26202B; --ink-2: #6B6070; --line: #EADFD2;
+    --tangerine-soft: #FFE7D8; --teal-soft: #D4EEEA;
+    --shadow: 24px 32px 60px -32px rgba(60, 40, 30, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: var(--ground); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--ground) 86%, transparent);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
+  }
+  .topbar .row {
+    max-width: var(--maxw); margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Fredoka"; font-weight: 600; font-size: 19px; }
+  .brand .dot { width: 26px; height: 26px; border-radius: 9px; background: linear-gradient(135deg, var(--tangerine), var(--berry)); box-shadow: 0 4px 10px -3px var(--tangerine); }
+  .navlinks { display: flex; gap: 4px; flex-wrap: wrap; }
+  .navlinks a { font-size: 13px; color: var(--ink-2); text-decoration: none; padding: 7px 12px; border-radius: 999px; transition: background .15s, color .15s; }
+  .navlinks a:hover { background: var(--surface-2); color: var(--ink); }
+  .navlinks a:focus-visible { outline: 2px solid var(--tangerine); outline-offset: 2px; }
+  @media (max-width: 900px) { .navlinks { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 84px 0 64px; position: relative; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(60% 60% at 82% 8%, color-mix(in srgb, var(--tangerine) 22%, transparent), transparent 70%),
+      radial-gradient(50% 50% at 6% 40%, color-mix(in srgb, var(--teal) 16%, transparent), transparent 70%);
+  }
+  .eyebrow { font-family: "IBM Plex Mono"; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--tangerine); font-weight: 600; margin-bottom: 20px; }
+  h1 { font-family: "Fredoka"; font-weight: 600; letter-spacing: -0.01em; font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 1.02; text-wrap: balance; max-width: 16ch; }
+  h1 .hl { color: var(--tangerine); }
+  .lede { margin-top: 24px; max-width: 62ch; font-size: clamp(1.05rem, 1.6vw, 1.28rem); color: var(--ink-2); }
+
+  /* Design-system swatches */
+  .dsys { margin-top: 44px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 28px; box-shadow: var(--shadow); }
+  .dsys h4 { font-size: 12px; font-family: "IBM Plex Mono"; text-transform: uppercase; letter-spacing: .14em; color: var(--teal); margin-bottom: 18px; font-weight: 600; }
+  .dsys .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 24px; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sw { width: 46px; height: 46px; border-radius: 14px; position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .sw span { position: absolute; top: 52px; left: 0; font-family: "IBM Plex Mono"; font-size: 9px; color: var(--ink-2); white-space: nowrap; }
+  .swatches { padding-bottom: 22px; }
+  .dsys .label { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+  .dsys .typo-demo b { font-family: "Fredoka"; font-size: 1.5rem; font-weight: 600; display: block; line-height: 1.15; }
+  .dsys .typo-demo span { font-size: .9rem; color: var(--ink-2); }
+  .dsys .rule { font-size: .88rem; color: var(--ink-2); }
+  .dsys .rule b { color: var(--ink); }
+
+  /* ---------- Section ---------- */
+  section.block { padding: 64px 0; border-top: 1px solid var(--line); }
+  .sec-head { margin-bottom: 36px; max-width: 720px; }
+  .sec-num { font-family: "IBM Plex Mono"; font-size: 13px; color: var(--tangerine); font-weight: 600; letter-spacing: .1em; }
+  .sec-title { font-family: "Fredoka"; font-weight: 600; font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.08; margin-top: 8px; letter-spacing: -0.01em; text-wrap: balance; }
+  .sec-intro { color: var(--ink-2); margin-top: 14px; font-size: 1.02rem; max-width: 58ch; }
+  .section-tag { display: inline-flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono"; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; margin-bottom: 20px; }
+  .section-tag .pill { width: 8px; height: 8px; border-radius: 50%; background: var(--tangerine); }
+  .section-tag.parent .pill { background: var(--teal); }
+
+  /* mockup + annotations layout */
+  .duo { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: start; }
+  @media (min-width: 960px) { .duo { grid-template-columns: auto 1fr; gap: 64px; } }
+  .phones { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+
+  /* annotations */
+  .annos { display: flex; flex-direction: column; gap: 16px; }
+  .anno { display: flex; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+  .anno .n { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--tangerine); color: #fff; font-family: "Fredoka"; font-weight: 600; font-size: 14px; display: grid; place-items: center; margin-top: 2px; }
+  .anno.teal .n { background: var(--teal); }
+  .anno b { font-weight: 600; }
+  .anno p { font-size: .93rem; color: var(--ink-2); }
+  .anno .from { display: inline-block; margin-top: 6px; font-family: "IBM Plex Mono"; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); background: var(--teal-soft); padding: 3px 8px; border-radius: 6px; }
+
+  /* ============================================================
+     PHONE MOCKUPS
+     ============================================================ */
+  .phone {
+    width: 270px; flex: 0 0 auto;
+    border-radius: 34px; border: 7px solid #2A2430;
+    box-shadow: var(--shadow); overflow: hidden; position: relative;
+    aspect-ratio: 9 / 19; background: var(--ll-cream);
+    font-family: "Fredoka", sans-serif;
+  }
+  .phone .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 74px; height: 18px; background: #2A2430; border-radius: 999px; z-index: 10; }
+  .phone-label { text-align: center; margin-top: 14px; font-family: "IBM Plex Mono"; font-size: 11px; color: var(--ink-2); letter-spacing: .06em; }
+  .phone-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* pin marker inside phones */
+  .pin {
+    position: absolute; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--tangerine); color: #fff; font-family: "Fredoka"; font-weight: 600;
+    font-size: 12px; display: grid; place-items: center; z-index: 20;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tangerine) 30%, transparent);
+  }
+  .pin.teal { background: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 30%, transparent); }
+
+  /* ---- shared phone internals ---- */
+  .scr { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 34px 14px 14px; }
+
+  /* CHILD HOME */
+  .scr.child-home { background: linear-gradient(180deg, var(--ll-sky) 0%, #7FD4E8 55%, var(--ll-cream) 55.1%); }
+  .ch-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 10px; }
+  .ch-hello { color: #fff; }
+  .ch-hello b { font-size: 17px; font-weight: 600; display: block; line-height: 1.1; }
+  .ch-hello span { font-size: 11px; opacity: .9; font-weight: 400; }
+  .ch-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ll-sun); display: grid; place-items: center; font-size: 20px; border: 3px solid #fff; }
+  .ch-timer { margin: 2px 4px 12px; background: rgba(255,255,255,.92); border-radius: 999px; padding: 7px 12px; display: flex; align-items: center; gap: 8px; }
+  .ch-timer .bar { flex: 1; height: 8px; border-radius: 99px; background: #E8E0D0; overflow: hidden; }
+  .ch-timer .bar i { display: block; height: 100%; width: 62%; border-radius: 99px; background: linear-gradient(90deg, var(--ll-grass), var(--ll-sun)); }
+  .ch-timer span { font-size: 10px; font-weight: 500; color: var(--ll-night); white-space: nowrap; }
+  .ch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 2px; flex: 1; align-content: start; }
+  .vid { border-radius: 16px; aspect-ratio: 16/11.5; position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 4px 12px -4px rgba(42,59,92,.25); }
+  .vid .emoji { font-size: 34px; }
+  .vid .play { position: absolute; bottom: 6px; right: 6px; width: 20px; height: 20px; background: rgba(255,255,255,.95); border-radius: 50%; display: grid; place-items: center; font-size: 8px; color: var(--ll-coral); }
+  .vid.a { background: linear-gradient(135deg, #FFD98E, #FFB74D); }
+  .vid.b { background: linear-gradient(135deg, #A8E6CF, #6BCB77); }
+  .vid.c { background: linear-gradient(135deg, #C6B5F0, #9B7EDE); }
+  .vid.d { background: linear-gradient(135deg, #FFB3A7, #FF8A7A); }
+  .vid.e { background: linear-gradient(135deg, #9EDDF0, #5EC3DE); }
+  .vid.f { background: linear-gradient(135deg, #FFD3E0, #F999B7); }
+  .vid-title { position: absolute; left: 8px; bottom: 5px; font-size: 8.5px; font-weight: 500; color: #4A3A20; background: rgba(255,255,255,.75); padding: 2px 6px; border-radius: 99px; }
+  .ch-bottom { display: flex; justify-content: center; padding-top: 10px; }
+  .grownup { font-size: 9px; color: #9A8FA5; display: flex; align-items: center; gap: 4px; background: #F1EAE0; border-radius: 99px; padding: 5px 10px; font-family: "IBM Plex Sans"; }
+
+  /* PROFILE PICKER */
+  .scr.picker { background: linear-gradient(180deg, var(--ll-plum), #5A3F96); align-items: center; justify-content: center; text-align: center; gap: 18px; }
+  .picker h5 { color: #fff; font-size: 20px; font-weight: 600; }
+  .picker .stars { font-size: 13px; letter-spacing: 6px; }
+  .kid-row { display: flex; gap: 18px; justify-content: center; }
+  .kid { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .kid .face { width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; border: 3px solid rgba(255,255,255,.85); }
+  .kid.k1 .face { background: var(--ll-sun); }
+  .kid.k2 .face { background: var(--ll-grass); }
+  .kid.add .face { background: transparent; border-style: dashed; font-size: 24px; color: #fff; }
+  .kid span { color: #fff; font-size: 12px; font-weight: 500; }
+  .picker .grownup-corner { position: absolute; top: 38px; right: 14px; background: rgba(255,255,255,.16); color: #fff; font-size: 9px; padding: 6px 10px; border-radius: 99px; display: flex; align-items: center; gap: 4px; font-family: "IBM Plex Sans"; }
+
+  /* PIN GATE */
+  .scr.pin-gate { background: var(--ll-cream); align-items: center; justify-content: center; text-align: center; gap: 12px; }
+  .pin-gate .mascot { font-size: 40px; }
+  .pin-gate h5 { font-size: 16px; font-weight: 600; color: var(--ll-night); max-width: 18ch; }
+  .pin-gate p.sub { font-size: 10px; color: #8A8090; font-family: "IBM Plex Sans"; max-width: 24ch; }
+  .pin-boxes { display: flex; gap: 8px; }
+  .pin-boxes i { width: 34px; height: 40px; border-radius: 10px; border: 2px solid var(--ll-sky-deep); background: #fff; display: grid; place-items: center; font-style: normal; font-size: 16px; color: var(--ll-night); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 44px); gap: 7px; margin-top: 4px; }
+  .pin-pad b { width: 44px; height: 36px; border-radius: 10px; background: #fff; border: 1px solid #E5DCCB; display: grid; place-items: center; font-size: 14px; font-weight: 500; color: var(--ll-night); }
+  .pin-links { display: flex; gap: 14px; margin-top: 6px; }
+  .pin-links span { font-size: 9.5px; color: var(--ll-sky-deep); font-family: "IBM Plex Sans"; font-weight: 600; }
+
+  /* BREAK SCREEN */
+  .scr.break { background: linear-gradient(180deg, #FFB88A 0%, #FF8A6B 45%, var(--ll-plum) 130%); align-items: center; justify-content: center; text-align: center; gap: 14px; }
+  .break .moon { width: 84px; height: 84px; border-radius: 50%; background: var(--ll-cream); display: grid; place-items: center; font-size: 44px; box-shadow: 0 0 0 14px rgba(255,248,236,.22), 0 0 0 28px rgba(255,248,236,.1); }
+  .break h5 { color: #fff; font-size: 20px; font-weight: 600; max-width: 14ch; }
+  .break p { color: rgba(255,255,255,.92); font-size: 11px; font-family: "IBM Plex Sans"; max-width: 24ch; }
+  .break .stat-row { display: flex; gap: 8px; }
+  .break .st { background: rgba(255,255,255,.18); border-radius: 12px; padding: 7px 12px; color: #fff; }
+  .break .st b { display: block; font-size: 14px; font-weight: 600; }
+  .break .st span { font-size: 8px; opacity: .85; font-family: "IBM Plex Sans"; }
+  .break .parent-only { margin-top: 8px; font-size: 9px; color: rgba(255,255,255,.75); display: flex; align-items: center; gap: 5px; font-family: "IBM Plex Sans"; }
+
+  /* PLAYER */
+  .scr.player { background: #1B2233; padding-bottom: 16px; gap: 0; }
+  .player .p-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .player .p-back { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; font-size: 15px; }
+  .player .p-time { background: rgba(255,255,255,.12); color: var(--ll-sun); font-size: 9px; padding: 5px 11px; border-radius: 99px; font-family: "IBM Plex Sans"; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .player .track-row { display: flex; align-items: center; gap: 8px; margin: 12px 4px 0; }
+  .player .track-row > span { color: rgba(255,255,255,.55); font-size: 8.5px; font-family: "IBM Plex Sans"; font-weight: 600; }
+  .player .upnext { margin-top: auto; }
+  .player .un-label { font-size: 7.5px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45); font-family: "IBM Plex Sans"; font-weight: 600; }
+  .player .un-card { background: rgba(255,255,255,.08); border-radius: 12px; padding: 8px 10px; display: flex; gap: 9px; align-items: center; margin-top: 7px; }
+  .player .un-card .thumb { width: 40px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #A8E6CF, #6BCB77); display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+  .player .un-card b { color: #fff; font-size: 10px; font-weight: 600; display: block; }
+  .player .un-card span { font-size: 8px; color: var(--ll-grass); font-family: "IBM Plex Sans"; font-weight: 600; }
+
+  /* parent bottom nav — Duolingo tile pattern: active tab gets a tinted rounded square */
+  .pnav { display: flex; gap: 4px; background: #fff; border-radius: 18px; padding: 5px; margin-top: auto; box-shadow: 0 8px 20px -10px rgba(42,59,92,.45); }
+  .pnav div { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; font-size: 7.5px; color: #A79DAB; padding: 5px 0 4px; border-radius: 13px; font-weight: 700; font-family: "IBM Plex Sans"; letter-spacing: .02em; }
+  .pnav div b { font-size: 13px; font-weight: 400; line-height: 1.25; }
+  .pnav div.on { background: #DCEFF6; color: var(--ll-sky-deep); }
+  .pnav .bdg { position: absolute; top: 1px; right: 15px; background: var(--ll-coral); color: #fff; font-size: 6.5px; font-weight: 700; width: 12px; height: 12px; border-radius: 50%; display: grid; place-items: center; font-style: normal; }
+  .player .vid-stage { margin-top: 8px; border-radius: 18px; aspect-ratio: 16/9; background: linear-gradient(135deg, #2E86AB, #4EC3E0); display: grid; place-items: center; position: relative; overflow: hidden; }
+  .player .vid-stage .scene { font-size: 44px; }
+  .player .vtitle { color: #fff; text-align: center; margin-top: 14px; }
+  .player .vtitle b { font-size: 14px; font-weight: 600; display: block; }
+  .player .vtitle span { font-size: 10px; opacity: .65; font-family: "IBM Plex Sans"; }
+  .player .controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 18px 0 8px; }
+  .player .ctl { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.14); display: grid; place-items: center; color: #fff; font-size: 15px; }
+  .player .ctl.big { width: 66px; height: 66px; background: var(--ll-coral); font-size: 22px; box-shadow: 0 8px 20px -6px var(--ll-coral); }
+  .player .track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.15); margin: 0 8px; overflow: hidden; }
+  .player .track i { display: block; height: 100%; width: 38%; background: var(--ll-sun); border-radius: 99px; }
+  .player .done-hint { text-align: center; margin-top: 12px; font-size: 9px; color: rgba(255,255,255,.5); font-family: "IBM Plex Sans"; }
+
+  /* PARENT DASHBOARD */
+  .scr.dash { background: #F4F1EB; font-family: "IBM Plex Sans"; padding: 40px 14px 14px; gap: 10px; overflow: hidden; }
+  .dash .d-head { display: flex; justify-content: space-between; align-items: center; }
+  .dash .d-head b { font-family: "Fredoka"; font-size: 16px; font-weight: 600; color: var(--ll-night); }
+  .dash .d-head .kid-chip { font-size: 9px; background: var(--ll-sun); border-radius: 99px; padding: 4px 9px; font-weight: 600; color: #4A3A20; }
+  .dash .big-num { background: #fff; border-radius: 16px; padding: 13px 15px; }
+  .dash .big-num span { font-size: 9px; color: #8A8090; text-transform: uppercase; letter-spacing: .06em; }
+  .dash .big-num b { font-family: "Fredoka"; font-size: 26px; font-weight: 600; color: var(--ll-night); display: block; line-height: 1.1; }
+  .dash .big-num .vs { font-size: 9px; color: var(--ll-grass); font-weight: 600; }
+  .dash .week { background: #fff; border-radius: 16px; padding: 12px 15px; }
+  .dash .week span { font-size: 9px; color: #8A8090; text-transform: uppercase; letter-spacing: .06em; }
+  .dash .bars { display: flex; align-items: flex-end; gap: 7px; height: 52px; margin-top: 8px; }
+  .dash .bars i { flex: 1; border-radius: 5px 5px 2px 2px; background: #E4DCCF; }
+  .dash .bars i.hot { background: var(--ll-sky-deep); }
+  .dash .bars i.today { background: var(--ll-coral); }
+  .dash .watched { background: #fff; border-radius: 16px; padding: 12px 15px; flex: 1; }
+  .dash .watched span { font-size: 9px; color: #8A8090; text-transform: uppercase; letter-spacing: .06em; }
+  .dash .w-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .dash .w-row .thumb { width: 30px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; }
+  .dash .w-row div b { font-size: 10px; font-weight: 600; color: var(--ll-night); display: block; }
+  .dash .w-row div span { font-size: 8.5px; color: #8A8090; text-transform: none; letter-spacing: 0; }
+  .dash .d-cta { background: var(--ll-night); color: #fff; text-align: center; border-radius: 12px; padding: 9px; font-size: 10.5px; font-weight: 600; }
+
+  /* PARENT PLAYLIST */
+  .scr.playlist { background: #F4F1EB; font-family: "IBM Plex Sans"; padding: 40px 14px 14px; gap: 8px; overflow: hidden; }
+  .playlist .d-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .playlist .d-head b { font-family: "Fredoka"; font-size: 16px; font-weight: 600; color: var(--ll-night); }
+  .playlist .count { font-size: 9px; color: #8A8090; }
+  .paste { background: #fff; border: 1.5px dashed var(--ll-sky-deep); border-radius: 14px; padding: 11px 13px; display: flex; align-items: center; gap: 8px; }
+  .paste span { font-size: 10px; color: var(--ll-sky-deep); font-weight: 600; }
+  .pl-item { background: #fff; border-radius: 14px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; }
+  .pl-item .thumb { flex: 0 0 42px; width: 42px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 15px; }
+  .pl-item div:not(.thumb) { flex: 1; min-width: 0; }
+  .pl-item b { font-size: 10px; font-weight: 600; color: var(--ll-night); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-item span { font-size: 8.5px; color: #8A8090; }
+  .pl-item .ok { font-size: 8px; font-weight: 700; color: #fff; background: var(--ll-grass); border-radius: 99px; padding: 3px 7px; }
+  .pl-item .pending { font-size: 8px; font-weight: 700; color: #7A5C00; background: var(--ll-sun); border-radius: 99px; padding: 3px 7px; }
+
+  /* FULLSCREEN LANDSCAPE PLAYER */
+  .phone.land { width: 480px; max-width: 100%; aspect-ratio: 19.4 / 9; border-radius: 30px; }
+  .phone.land .notch { top: 50%; left: 10px; transform: translateY(-50%); width: 14px; height: 64px; }
+  .scr.fsplayer { background: linear-gradient(135deg, #2E86AB, #4EC3E0); padding: 14px 40px; justify-content: space-between; }
+  .fsplayer .fs-scene { position: absolute; inset: 0; display: grid; place-items: center; font-size: 62px; opacity: .9; }
+  .fsplayer .fs-top { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 2; }
+  .fsplayer .fs-title { color: #fff; font-size: 11px; font-weight: 600; background: rgba(27,34,51,.45); padding: 5px 12px; border-radius: 99px; }
+  .fsplayer .fs-exit { width: 30px; height: 30px; border-radius: 50%; background: rgba(27,34,51,.45); color: #fff; display: grid; place-items: center; font-size: 11px; }
+  .fsplayer .fs-controls { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 36px; z-index: 1; }
+  .fsplayer .fctl { width: 42px; height: 42px; border-radius: 50%; background: rgba(27,34,51,.4); display: grid; place-items: center; color: #fff; font-size: 13px; }
+  .fsplayer .fctl.big { width: 60px; height: 60px; background: var(--ll-coral); font-size: 20px; box-shadow: 0 8px 20px -6px rgba(255,107,87,.7); }
+  .fsplayer .fs-bottom { display: flex; align-items: center; gap: 10px; position: relative; z-index: 2; }
+  .fsplayer .fs-bottom .track { flex: 1; height: 6px; border-radius: 99px; background: rgba(27,34,51,.35); overflow: hidden; }
+  .fsplayer .fs-bottom .track i { display: block; height: 100%; width: 38%; background: var(--ll-sun); border-radius: 99px; }
+  .fsplayer .time { color: #fff; font-size: 9px; font-family: "IBM Plex Sans"; font-weight: 600; }
+
+  /* PARENT SETTINGS */
+  .scr.settings, .scr.limits, .scr.safety { background: #F4F1EB; font-family: "IBM Plex Sans"; padding: 40px 14px 14px; gap: 8px; overflow: hidden; }
+  .set-title { font-family: "Fredoka"; font-size: 16px; font-weight: 600; color: var(--ll-night); }
+  .set-sub { font-family: "Fredoka"; font-size: 11.5px; font-weight: 600; color: var(--ll-night); letter-spacing: 0; text-transform: none; margin: 8px 2px 0; }
+  .set-group { background: #fff; border-radius: 16px; overflow: hidden; }
+  .set-row { display: flex; align-items: center; gap: 10px; padding: 11.5px 12px; border-bottom: 1px solid #F0EBE1; }
+  .set-row:last-child { border-bottom: none; }
+  .set-row .ic { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 14px; }
+  .set-row > div:not(.ic):not(.toggle) { flex: 1; min-width: 0; }
+  .set-row b { font-size: 11px; font-weight: 600; color: var(--ll-night); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .set-row span { font-size: 8.5px; color: #8A8090; }
+  .set-row .chev { color: #C9C0B2; font-size: 12px; flex: 0 0 auto; }
+  .set-row .toggle, .set-row .val { flex: 0 0 auto; }
+  .toggle { width: 34px; height: 20px; border-radius: 99px; background: #E4DCCF; position: relative; flex-shrink: 0; }
+  .toggle.on { background: var(--ll-grass); }
+  .toggle i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .toggle.on i { left: auto; right: 2px; }
+
+  /* settings v2 — identity card (Telegram/Cosmos), child switcher, premium banner (Todoist) */
+  .id-card { background: #fff; border-radius: 16px; padding: 11px 12px; display: flex; align-items: center; gap: 10px; }
+  .id-card .pa { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; background: var(--ll-night); color: #fff; display: grid; place-items: center; font-family: "Fredoka"; font-size: 14px; font-weight: 600; }
+  .id-card > div:not(.pa) { flex: 1; min-width: 0; }
+  .id-card b { font-size: 11px; color: var(--ll-night); display: block; font-weight: 600; }
+  .id-card span { font-size: 8.5px; color: #8A8090; }
+  .kid-switch { display: flex; gap: 6px; }
+  .kc { flex: 0 0 auto; font-size: 9.5px; font-weight: 600; padding: 6px 12px; border-radius: 99px; background: #fff; color: #8A8090; }
+  .kc.on { background: var(--ll-night); color: #fff; }
+  .kc.add { color: #B9AF9F; border: 1.5px dashed #D8CFC0; background: transparent; }
+  .prem-banner { background: linear-gradient(120deg, #FFC93E, #FFAF3E); border-radius: 16px; padding: 11px 13px; display: flex; gap: 9px; align-items: center; }
+  .prem-banner .star { font-size: 16px; }
+  .prem-banner > div { flex: 1; }
+  .prem-banner b { font-size: 10.5px; color: #4A3A20; display: block; font-weight: 700; }
+  .prem-banner div span { font-size: 8.5px; color: #7A5C00; }
+  .prem-banner .chev { color: #7A5C00; }
+  .set-row .val { font-size: 9px; color: #8A8090; font-weight: 600; white-space: nowrap; }
+
+  /* limit presets (Duolingo goal picker) */
+  .owl-ask { display: flex; align-items: center; gap: 8px; }
+  .owl-ask > span { font-size: 22px; }
+  .owl-ask .bubble { background: #fff; border-radius: 12px; border-bottom-left-radius: 3px; padding: 8px 11px; font-size: 9.5px; color: var(--ll-night); font-weight: 600; }
+  .opt-list { background: #fff; border-radius: 16px; overflow: hidden; }
+  .opt { display: flex; align-items: center; gap: 8px; padding: 9.5px 12px; border-bottom: 1px solid #F0EBE1; }
+  .opt:last-child { border-bottom: none; }
+  .opt b { font-size: 11px; color: var(--ll-night); width: 52px; font-weight: 600; }
+  .opt span { flex: 1; font-size: 9px; color: #8A8090; }
+  .opt i { font-style: normal; color: var(--ll-sky-deep); font-weight: 700; font-size: 11px; }
+  .opt.sel { background: #EAF6FA; box-shadow: inset 3px 0 0 var(--ll-sky-deep); }
+  .opt.sel b, .opt.sel span { color: var(--ll-sky-deep); }
+
+  /* safety facts (TikTok Family Pairing explainer) */
+  .facts { background: #fff; border-radius: 16px; padding: 3px 12px; }
+  .fact { display: flex; gap: 9px; padding: 9px 0; border-bottom: 1px solid #F0EBE1; align-items: flex-start; }
+  .fact:last-child { border-bottom: none; }
+  .fact > span { font-size: 14px; line-height: 1.3; }
+  .fact p { font-size: 9px; color: #7A7080; line-height: 1.45; }
+  .fact p b { color: var(--ll-night); font-weight: 700; }
+
+  /* PAYWALL */
+  .scr.paywall { background: linear-gradient(180deg, var(--ll-plum), #5A3F96); padding: 38px 14px 14px; font-family: "IBM Plex Sans"; gap: 8px; overflow: hidden; }
+  .pw-head { text-align: center; color: #fff; }
+  .pw-head .owl { font-size: 28px; display: block; }
+  .pw-head b { font-family: "Fredoka"; font-size: 17px; font-weight: 600; display: block; }
+  .pw-context { background: rgba(255,255,255,.14); border-radius: 12px; padding: 8px 11px; color: #fff; font-size: 9px; text-align: center; }
+  .pw-context b { color: var(--ll-sun); font-weight: 700; }
+  .pw-feat { background: rgba(255,255,255,.1); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .pw-feat .f { display: flex; gap: 8px; color: #fff; font-size: 9.5px; align-items: center; }
+  .pw-feat .f i { font-style: normal; color: var(--ll-sun); font-weight: 700; }
+  .pw-plans { display: flex; gap: 8px; margin-top: 4px; }
+  .pw-plan { flex: 1; background: #fff; border-radius: 14px; padding: 12px 8px 9px; text-align: center; position: relative; }
+  .pw-plan.best { outline: 2.5px solid var(--ll-sun); }
+  .pw-plan .save { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: var(--ll-sun); color: #4A3A20; font-size: 7.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .pw-plan b { font-family: "Fredoka"; font-size: 15px; color: var(--ll-night); display: block; }
+  .pw-plan span { font-size: 8px; color: #8A8090; }
+  .pw-cta { background: var(--ll-sun); color: #4A3A20; text-align: center; border-radius: 12px; padding: 10px; font-size: 11px; font-weight: 700; }
+  .pw-links { display: flex; justify-content: center; gap: 14px; color: rgba(255,255,255,.7); font-size: 8.5px; }
+
+  /* ONBOARDING */
+  .scr.onboard { background: linear-gradient(180deg, var(--ll-sky) 0%, #A5E1EF 100%); align-items: center; justify-content: center; text-align: center; gap: 14px; padding-bottom: 26px; }
+  .onboard .mascot-stage { width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.35); display: grid; place-items: center; font-size: 56px; }
+  .onboard h5 { font-size: 19px; font-weight: 600; color: var(--ll-night); max-width: 16ch; }
+  .onboard p { font-size: 11px; color: #2E5566; font-family: "IBM Plex Sans"; max-width: 26ch; }
+  .onboard .dots { display: flex; gap: 6px; }
+  .onboard .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(42,59,92,.25); }
+  .onboard .dots i.on { background: var(--ll-night); width: 20px; border-radius: 99px; }
+  .onboard .cta { background: var(--ll-coral); color: #fff; font-weight: 600; font-size: 13px; padding: 12px 34px; border-radius: 999px; box-shadow: 0 8px 18px -6px var(--ll-coral); }
+  .onboard .skip { font-size: 10px; color: #2E5566; font-family: "IBM Plex Sans"; }
+
+  /* ---------- flow map ---------- */
+  .flowmap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
+  .fnode { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 18px; text-align: center; }
+  .fnode b { font-family: "Fredoka"; font-weight: 600; font-size: .95rem; display: block; }
+  .fnode span { font-size: 11px; color: var(--ink-2); font-family: "IBM Plex Mono"; }
+  .fnode.kid { border-color: color-mix(in srgb, var(--tangerine) 45%, var(--line)); background: var(--tangerine-soft); }
+  .fnode.par { border-color: color-mix(in srgb, var(--teal) 45%, var(--line)); background: var(--teal-soft); }
+  .farrow { font-size: 18px; color: var(--ink-2); }
+  .fgate { width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--ground); display: grid; place-items: center; font-size: 18px; }
+
+  footer { border-top: 1px solid var(--line); padding: 48px 0 70px; }
+  footer .fgrid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; align-items: end; }
+  footer h4 { font-family: "Fredoka"; font-weight: 600; font-size: 1.3rem; margin-bottom: 6px; }
+  footer p { color: var(--ink-2); font-size: 0.92rem; max-width: 46ch; }
+  footer .note { font-family: "IBM Plex Mono"; font-size: 11px; color: var(--ink-2); letter-spacing: .03em; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="row">
+    <div class="brand"><span class="dot"></span> LittleLoop · Redesign Concept</div>
+    <nav class="navlinks">
+      <a href="#system">System</a>
+      <a href="#home">Child Home</a>
+      <a href="#picker">Profiles</a>
+      <a href="#gate">PIN Gate</a>
+      <a href="#break">Break</a>
+      <a href="#play">Player</a>
+      <a href="#parent">Parent HQ</a>
+      <a href="#settings">Settings</a>
+      <a href="#paywall">Premium</a>
+      <a href="#onboardsec">Onboarding</a>
+      <a href="#flow">Flow</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Design Concept · Built from the Mobbin Research</div>
+    <h1>This is what <span class="hl">LittleLoop</span> looks like when the research becomes screens.</h1>
+    <p class="lede">Every mockup below is derived from a documented pattern in the competitive teardown — Netflix's kid grids, Disney+'s locked profiles, HBO Max's kid-proof exit, Instagram's break screen, YouTube's watch-time recap. Two worlds, one wall: a sunny child world in front, a calm parent world behind the PIN.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- DESIGN SYSTEM -->
+  <section class="block" id="system" style="border-top:none; padding-top:20px;">
+    <div class="dsys">
+      <h4>The LittleLoop product system — one brand, two temperatures</h4>
+      <div class="grid">
+        <div>
+          <div class="label">Child world · sunny &amp; saturated</div>
+          <div class="swatches">
+            <div class="sw" style="background:#4EC3E0"><span>Sky #4EC3E0</span></div>
+            <div class="sw" style="background:#FFC93E"><span>Sun #FFC93E</span></div>
+            <div class="sw" style="background:#FF6B57"><span>Coral #FF6B57</span></div>
+            <div class="sw" style="background:#6BCB77"><span>Grass #6BCB77</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">Parent world · calm &amp; papery</div>
+          <div class="swatches">
+            <div class="sw" style="background:#F4F1EB"><span>Paper #F4F1EB</span></div>
+            <div class="sw" style="background:#2A3B5C"><span>Night #2A3B5C</span></div>
+            <div class="sw" style="background:#1E93B5"><span>Deep Sky #1E93B5</span></div>
+            <div class="sw" style="background:#7C5CBF"><span>Plum #7C5CBF</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">Type</div>
+          <div class="typo-demo">
+            <b>Fredoka for joy,</b>
+            <span>IBM Plex Sans for parent UI. Rounded display type reads friendly to kids; the plain sans keeps parent screens honest and data-legible.</span>
+          </div>
+        </div>
+        <div>
+          <div class="label">Rules of the two worlds</div>
+          <p class="rule"><b>Child:</b> gradients, mascots, ≥64px touch targets, almost no text.<br><b>Parent:</b> flat paper cards, one accent, numbers first.<br><b>The wall:</b> every crossing goes through the PIN gate.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHILD HOME -->
+  <section class="block" id="home">
+    <div class="sec-head">
+      <div class="section-tag"><span class="pill"></span> Child Mode</div>
+      <div class="sec-num">01 / 09</div>
+      <h2 class="sec-title">Child Home — the whole app on one screen</h2>
+      <p class="sec-intro">No rails, no search, no tabs. The child's entire universe is the parent-approved grid, plus a gentle time meter they can learn to read.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin" style="top:88px; left:10px;">2</div>
+            <div class="pin" style="top:150px; right:10px;">1</div>
+            <div class="pin teal" style="bottom:44px; left:50%; transform:translateX(-50%);">3</div>
+            <div class="scr child-home">
+              <div class="ch-top">
+                <div class="ch-hello"><b>Hi, Mia! ☀️</b><span>Pick something fun</span></div>
+                <div class="ch-avatar">🦊</div>
+              </div>
+              <div class="ch-timer"><span>⏰</span><div class="bar"><i></i></div><span>25 min left</span></div>
+              <div class="ch-grid">
+                <div class="vid a"><span class="emoji">🚂</span><span class="vid-title">Trains!</span><span class="play">▶</span></div>
+                <div class="vid b"><span class="emoji">🦕</span><span class="vid-title">Dino Song</span><span class="play">▶</span></div>
+                <div class="vid c"><span class="emoji">🎨</span><span class="vid-title">Painting</span><span class="play">▶</span></div>
+                <div class="vid d"><span class="emoji">🐙</span><span class="vid-title">Ocean Pals</span><span class="play">▶</span></div>
+                <div class="vid e"><span class="emoji">🚀</span><span class="vid-title">To the Moon</span><span class="play">▶</span></div>
+                <div class="vid f"><span class="emoji">🎵</span><span class="vid-title">Sing-along</span><span class="play">▶</span></div>
+              </div>
+              <div class="ch-bottom"><span class="grownup">🔒 Grown-ups</span></div>
+            </div>
+          </div>
+          <div class="phone-label">child-home / grid</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno"><span class="n">1</span><div><b>Artwork is the button.</b><p>Big 2-up tiles with a single friendly illustration each — kids recognize by picture, not by title. One tap starts playback.</p><span class="from">From: Netflix Kids · Tubi</span></div></div>
+        <div class="anno"><span class="n">2</span><div><b>The time meter is kid-legible.</b><p>A sun-to-grass progress bar shows how much watching is left today — teaching the boundary instead of springing it.</p><span class="from">From: Instagram limits, reframed for kids</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>One quiet exit, PIN-gated.</b><p>The only non-video element is the small "Grown-ups" pill — deliberately low-contrast, and it opens straight into the PIN gate.</p><span class="from">From: Spotify Kids "Grown-ups" gear</span></div></div>
+        <div class="anno"><span class="n">＋</span><div><b>What we deliberately removed.</b><p>Search, categories, up-next, infinite scroll, and any hint of "more." The constraint <em>is</em> the product parents pay for.</p><span class="from">Principle: constraint is the product</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE PICKER -->
+  <section class="block" id="picker">
+    <div class="sec-head">
+      <div class="section-tag"><span class="pill"></span> Shared Entry</div>
+      <div class="sec-num">02 / 09</div>
+      <h2 class="sec-title">"Who's watching?" — the boundary made visible</h2>
+      <p class="sec-intro">The picker is where a shared device splits into worlds. Kid tiles are big and playful; the grown-up door sits in the corner with a lock on it.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin" style="top:170px; left:14px;">1</div>
+            <div class="pin teal" style="top:40px; right:8px;">2</div>
+            <div class="scr picker">
+              <div class="grownup-corner">🔒 Grown-ups</div>
+              <div class="stars">✦ ✧ ✦</div>
+              <h5>Who's watching?</h5>
+              <div class="kid-row">
+                <div class="kid k1"><div class="face">🦊</div><span>Mia</span></div>
+                <div class="kid k2"><div class="face">🐸</div><span>Leo</span></div>
+              </div>
+              <div class="kid-row">
+                <div class="kid add"><div class="face">＋</div><span>Add a child</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">profile-picker</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno"><span class="n">1</span><div><b>Character avatars, not photos.</b><p>Each child picks an animal friend. It reads as "mine" to a 4-year-old and keeps the app free of kids' personal photos by default.</p><span class="from">From: Spotify Kids · Paramount+ monsters</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>The grown-up door is present but gated.</b><p>Parents always know where their controls live; the lock icon tells the child "not for you" without hiding the door.</p><span class="from">From: Disney+ / HBO Max lock badges</span></div></div>
+        <div class="anno"><span class="n">＋</span><div><b>"Add a child" is one dashed tile.</b><p>Multi-kid households onboard the second child in seconds — and this tile is where the premium profile limit surfaces naturally.</p><span class="from">From: Duolingo ABC</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIN GATE -->
+  <section class="block" id="gate">
+    <div class="sec-head">
+      <div class="section-tag parent"><span class="pill"></span> The Wall</div>
+      <div class="sec-num">03 / 09</div>
+      <h2 class="sec-title">The PIN gate — friendly in front, firm behind</h2>
+      <p class="sec-intro">One gate protects everything: exiting Child Mode, settings, and granting extra time. It explains its own scope, offers biometrics as the fast path, and never locks a parent out.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:150px; right:12px;">1</div>
+            <div class="pin teal" style="bottom:120px; left:12px;">2</div>
+            <div class="pin teal" style="bottom:52px; right:12px;">3</div>
+            <div class="scr pin-gate">
+              <div class="mascot">🦉</div>
+              <h5>Grown-ups only!</h5>
+              <p class="sub">Enter your PIN to leave Child Mode and open settings.</p>
+              <div class="pin-boxes"><i>●</i><i>●</i><i></i><i></i></div>
+              <div class="pin-pad">
+                <b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b></b><b>0</b><b>⌫</b>
+              </div>
+              <div class="pin-links"><span>Use Face ID</span><span>Forgot PIN?</span></div>
+            </div>
+          </div>
+          <div class="phone-label">pin-gate</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno teal"><span class="n">1</span><div><b>The gate explains its scope.</b><p>"Enter your PIN to leave Child Mode and open settings" — copied from HBO Max's pattern of stating exactly what the PIN does. No mystery, no fear.</p><span class="from">From: HBO Max Kids Mode PIN</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>Biometrics as the fast lane.</b><p>Face ID / Touch ID sits right on the gate for the parent's daily use; the 4-digit PIN stays as the universal fallback.</p><span class="from">LittleLoop spec + Netflix keypad pattern</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>"Forgot PIN?" is always visible.</b><p>Email-based reset. A locked-out parent is a churned parent — recovery is a first-class citizen, not a buried FAQ.</p><span class="from">From: Netflix / HBO Max recovery links</span></div></div>
+        <div class="anno"><span class="n">＋</span><div><b>The owl keeps it friendly.</b><p>When a child inevitably taps the gate, they meet the wise owl saying "grown-ups only" — a boundary character, not an error state.</p><span class="from">Principle: calm boundaries</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BREAK SCREEN -->
+  <section class="block" id="break">
+    <div class="sec-head">
+      <div class="section-tag"><span class="pill"></span> Daily Limit</div>
+      <div class="sec-num">04 / 09</div>
+      <h2 class="sec-title">The break screen — a sunset, not a slammed door</h2>
+      <p class="sec-intro">When time runs out the sky changes. The screen celebrates what was watched, says goodnight, and offers the child exactly zero buttons. More time exists only behind the parent PIN.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin" style="top:120px; left:12px;">1</div>
+            <div class="pin" style="top:290px; right:10px;">2</div>
+            <div class="pin teal" style="bottom:46px; left:50%; transform:translateX(-50%);">3</div>
+            <div class="scr break">
+              <div class="moon">🌙</div>
+              <h5>All done for today, Mia!</h5>
+              <p>The videos will be waiting for you tomorrow. Sweet dreams!</p>
+              <div class="stat-row">
+                <div class="st"><b>45 min</b><span>watched today</span></div>
+                <div class="st"><b>3</b><span>videos enjoyed</span></div>
+              </div>
+              <div class="parent-only">🔒 Grown-ups can add more time</div>
+            </div>
+          </div>
+          <div class="phone-label">break-screen</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno"><span class="n">1</span><div><b>Full-screen, calm, final.</b><p>The whole world shifts to sunset colors — unmissable but soothing. It's a scene change, not an interruption modal a child can dismiss.</p><span class="from">From: Instagram "You've reached your daily limit"</span></div></div>
+        <div class="anno"><span class="n">2</span><div><b>Positive framing, tiny celebration.</b><p>"All done for today!" plus what they watched — ending on accomplishment, borrowing Instagram's "now's a good time" tone but pitched for a preschooler.</p><span class="from">From: Instagram copy tone</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>No kid-accessible bypass. At all.</b><p>Where Instagram offers "Ignore limit for today," LittleLoop offers nothing the child can tap. Extra time is a parent decision behind the PIN — the boundary stays consistent, which is what prevents the meltdown.</p><span class="from">Deliberate inversion of Instagram's escape hatch</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYER -->
+  <section class="block" id="play">
+    <div class="sec-head">
+      <div class="section-tag"><span class="pill"></span> Playback</div>
+      <div class="sec-num">05 / 09</div>
+      <h2 class="sec-title">The player — YouTube inside, LittleLoop outside</h2>
+      <p class="sec-intro">The embedded YouTube frame is wrapped entirely in LittleLoop chrome: three oversized controls, no titles-as-links, and a dead-end when the video finishes.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin" style="top:150px; right:10px;">1</div>
+            <div class="pin" style="bottom:200px; left:14px;">2</div>
+            <div class="pin teal" style="bottom:64px; right:12px;">3</div>
+            <div class="pin teal" style="top:40px; left:8px;">6</div>
+            <div class="scr player">
+              <div class="p-top">
+                <div class="p-back">‹</div>
+                <div class="p-time">⏰ 25 min left</div>
+              </div>
+              <div class="vid-stage"><span class="scene">🚂💨</span></div>
+              <div class="vtitle"><b>Trains for Kids!</b></div>
+              <div class="track-row"><span>4:12</span><div class="track" style="flex:1; margin:0;"><i></i></div><span>11:30</span></div>
+              <div class="controls">
+                <div class="ctl">⏮</div>
+                <div class="ctl big">❚❚</div>
+                <div class="ctl">⏭</div>
+              </div>
+              <div class="upnext">
+                <span class="un-label">Up next in Mia's playlist</span>
+                <div class="un-card">
+                  <div class="thumb">🦕</div>
+                  <div><b>Dino Song — Sing Along</b><span>✓ parent-approved</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">player / wrapped embed</div>
+        </div>
+        <div class="phone-col">
+          <div class="phone land">
+            <div class="notch"></div>
+            <div class="pin" style="top:12px; right:52px;">4</div>
+            <div class="pin teal" style="top:12px; left:26px;">5</div>
+            <div class="scr fsplayer">
+              <div class="fs-scene">🚂💨</div>
+              <div class="fs-top">
+                <div class="fs-exit">✕</div>
+                <div class="fs-title">Trains for Kids!</div>
+              </div>
+              <div class="fs-controls">
+                <div class="fctl">↺10</div>
+                <div class="fctl big">❚❚</div>
+                <div class="fctl">10↻</div>
+              </div>
+              <div class="fs-bottom">
+                <span class="time">4:12</span>
+                <div class="track"><i></i></div>
+                <span class="time">11:30</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">player / fullscreen landscape</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno"><span class="n">1</span><div><b>The embed is sandboxed visually.</b><p>YouTube provides the stream; LittleLoop provides every pixel of UI around it. No channel name, no comments, no share, no logo-as-link.</p><span class="from">From: research finding — hide the chrome</span></div></div>
+        <div class="anno"><span class="n">2</span><div><b>Three controls a small hand can't miss.</b><p>Giant coral play/pause flanked by previous/next — skipping moves through the approved playlist only, matching Headspace's warmth with your existing control triad.</p><span class="from">From: Headspace player + current LittleLoop build</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>"Up next" only ever means the playlist.</b><p>The up-next card shows the next parent-approved video — labeled as such — never a YouTube recommendation. The queue ends when the playlist does.</p><span class="from">Safe inversion of YouTube autoplay · current build</span></div></div>
+        <div class="anno"><span class="n">4</span><div><b>Fullscreen keeps the same three controls.</b><p>Rotating to landscape changes nothing but size: identical triad, centered, over a tap-anywhere scrim. Controls fade after 3s; any tap brings them back.</p><span class="from">From: HBO Max landscape player, simplified</span></div></div>
+        <div class="anno teal"><span class="n">5</span><div><b>Exit goes back, never out.</b><p>The ✕ returns to the child grid in portrait — it can never surface YouTube UI, the title is never a link, and there's no scrubbing past the wrapper.</p><span class="from">Principle: two worlds, one wall</span></div></div>
+        <div class="anno teal"><span class="n">6</span><div><b>Back button + time-left pill frame the screen.</b><p>The ‹ back returns to the grid; the countdown pill keeps the daily limit visible during playback, so the break screen is expected, not sprung.</p><span class="from">From: current LittleLoop build, kept</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARENT HQ -->
+  <section class="block" id="parent">
+    <div class="sec-head">
+      <div class="section-tag parent"><span class="pill"></span> Behind the Wall</div>
+      <div class="sec-num">06 / 09</div>
+      <h2 class="sec-title">Parent HQ — paper-calm, numbers first</h2>
+      <p class="sec-intro">Past the gate the temperature drops: flat paper cards, one accent, data before decoration. Two core screens — the per-child recap, and the playlist where links get pasted and approved.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:100px; left:10px;">1</div>
+            <div class="pin teal" style="top:210px; right:10px;">2</div>
+            <div class="pin teal" style="bottom:40px; left:50%; transform:translateX(-50%);">3</div>
+            <div class="scr dash">
+              <div class="d-head"><b>Today</b><span></span></div>
+              <div class="kid-switch"><div class="kc on">🦊 Mia</div><div class="kc">🐸 Leo</div></div>
+              <div class="big-num"><span>Watch time today</span><b>45 min</b><span class="vs">▼ 12 min under the 60-min limit</span></div>
+              <div class="week"><span>Last 7 days</span>
+                <div class="bars"><i style="height:60%"></i><i style="height:40%" class="hot"></i><i style="height:75%" class="hot"></i><i style="height:30%"></i><i style="height:55%" class="hot"></i><i style="height:90%" class="hot"></i><i style="height:68%" class="today"></i></div>
+              </div>
+              <div class="watched"><span>Watched today</span>
+                <div class="w-row"><div class="thumb" style="background:#FFD98E">🚂</div><div><b>Trains for Kids!</b><span>11 min · finished</span></div></div>
+                <div class="w-row"><div class="thumb" style="background:#A8E6CF">🦕</div><div><b>Dino Song</b><span>8 min · finished</span></div></div>
+              </div>
+              <div class="d-cta">Adjust daily limit</div>
+              <div class="pnav">
+                <div class="on"><b>📊</b>Today</div>
+                <div><b>🎬</b>Playlist<i class="bdg">1</i></div>
+                <div><b>⚙️</b>Settings</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">parent / recap</div>
+        </div>
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:104px; right:10px;">4</div>
+            <div class="pin teal" style="top:240px; left:10px;">5</div>
+            <div class="scr playlist">
+              <div class="d-head"><b>Mia's playlist</b><span class="count">6 of 10 videos · Free</span></div>
+              <div class="paste"><span>＋</span><span>Paste a YouTube link…</span></div>
+              <div class="pl-item"><div class="thumb" style="background:#FFD98E">🚂</div><div><b>Trains for Kids! Fun Railways</b><span>11:30 · added Mon</span></div><span class="ok">✓ LIVE</span></div>
+              <div class="pl-item"><div class="thumb" style="background:#A8E6CF">🦕</div><div><b>The Dino Song — Sing Along</b><span>4:02 · added Mon</span></div><span class="ok">✓ LIVE</span></div>
+              <div class="pl-item"><div class="thumb" style="background:#C6B5F0">🎨</div><div><b>Easy Painting for Toddlers</b><span>7:44 · added Tue</span></div><span class="ok">✓ LIVE</span></div>
+              <div class="pl-item"><div class="thumb" style="background:#9EDDF0">🌋</div><div><b>Volcano Science for Kids</b><span>9:12 · just pasted</span></div><span class="pending">REVIEW</span></div>
+              <div class="pnav">
+                <div><b>📊</b>Today</div>
+                <div class="on"><b>🎬</b>Playlist<i class="bdg">1</i></div>
+                <div><b>⚙️</b>Settings</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">parent / playlist</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno teal"><span class="n">1</span><div><b>Hero number first.</b><p>"45 min" against the limit, readable in one second — summary before detail, exactly as YouTube and Instagram structure their time views.</p><span class="from">From: YouTube "Time watched"</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>The universal 7-bar week.</b><p>Today highlighted in coral, heavier days in deep sky. Instantly readable, no legend needed.</p><span class="from">From: Instagram · YouTube charts</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>Insight ends in a control.</b><p>The recap's only CTA is "Adjust daily limit" — data flows straight into action, mirroring Instagram pairing its chart with reminder settings.</p><span class="from">From: Instagram "Manage your time"</span></div></div>
+        <div class="anno teal"><span class="n">4</span><div><b>Paste-first playlist.</b><p>The paste field is the hero of the playlist screen — the core loop (find → paste → approve) starts in one tap. New links land as REVIEW until explicitly approved to LIVE.</p><span class="from">LittleLoop core loop, staged like a checklist</span></div></div>
+        <div class="anno teal"><span class="n">5</span><div><b>Premium surfaces as a quiet counter.</b><p>"6 of 10 videos · Free" states the limit without a paywall ambush; upgrading is offered at the moment the cap is hit, not before.</p><span class="from">Pattern: honest limit counters</span></div></div>
+        <div class="anno teal"><span class="n">＋</span><div><b>Nav bar: Duolingo's tile, Telegram's badge.</b><p>A floating three-tab bar where the active tab gets a tinted rounded square (Duolingo's selected-tile pattern), and a coral badge on Playlist counts videos waiting for review (Telegram's settings badge). Parent-side only — Child Mode never shows a tab bar.</p><span class="from">From: Duolingo tab tiles · Telegram badges</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="block" id="settings">
+    <div class="sec-head">
+      <div class="section-tag parent"><span class="pill"></span> Behind the Wall</div>
+      <div class="sec-num">07 / 09</div>
+      <h2 class="sec-title">Settings — rebuilt on the best settings patterns on Mobbin</h2>
+      <p class="sec-intro">A second research pass through Telegram, Cosmos, Todoist, Duolingo, TikTok and HBO Max reshaped all three screens: identity first, a visible child switcher, named limit presets instead of a dial, and a safety screen that states what's enforced before showing the controls.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:78px; right:10px;">1</div>
+            <div class="pin teal" style="top:128px; left:10px;">2</div>
+            <div class="pin teal" style="top:172px; right:10px;">3</div>
+            <div class="pin teal" style="top:256px; left:10px;">4</div>
+            <div class="scr settings">
+              <div class="set-title">Settings</div>
+              <div class="id-card"><div class="pa">A</div><div><b>Anna Novak</b><span>parent@littleloop.app · Manage account</span></div><span class="chev">›</span></div>
+              <div class="kid-switch"><div class="kc on">🦊 Mia</div><div class="kc">🐸 Leo</div><div class="kc add">＋</div></div>
+              <div class="prem-banner"><span class="star">⭐</span><div><b>Upgrade to Premium</b><span>More profiles, playlists &amp; videos</span></div><span class="chev">›</span></div>
+              <div class="set-sub">Mia's rules</div>
+              <div class="set-group">
+                <div class="set-row"><div class="ic" style="background:#FFE7C2">⏰</div><div><b>Daily limit</b></div><span class="val">45 min ›</span></div>
+                <div class="set-row"><div class="ic" style="background:#E5DDF6">🌙</div><div><b>Bedtime cut-off</b></div><span class="val">7:30 PM ›</span></div>
+                <div class="set-row"><div class="ic" style="background:#D9F2DD">🎬</div><div><b>Playlist</b></div><span class="val">6 videos ›</span></div>
+              </div>
+              <div class="set-sub">Safety</div>
+              <div class="set-group">
+                <div class="set-row"><div class="ic" style="background:#FFDAD3">🔒</div><div><b>PIN &amp; Face ID</b></div><span class="val">On ›</span></div>
+                <div class="set-row"><div class="ic" style="background:#CDEDF4">🚪</div><div><b>Kid-proof exit</b></div><div class="toggle on"><i></i></div></div>
+              </div>
+              <div class="pnav">
+                <div><b>📊</b>Today</div>
+                <div><b>🎬</b>Playlist<i class="bdg">1</i></div>
+                <div class="on"><b>⚙️</b>Settings</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">parent / settings hub</div>
+        </div>
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:160px; right:10px;">5</div>
+            <div class="scr limits">
+              <div class="set-title">Daily limit · Mia</div>
+              <div class="owl-ask"><span>🦉</span><div class="bubble">How long can Mia watch each day?</div></div>
+              <div class="opt-list">
+                <div class="opt"><b>20 min</b><span>Short &amp; sweet</span></div>
+                <div class="opt sel"><b>45 min</b><span>Just right</span><i>✓</i></div>
+                <div class="opt"><b>60 min</b><span>Movie day</span></div>
+                <div class="opt"><b>90 min</b><span>Rainy Sunday</span></div>
+              </div>
+              <div class="set-group">
+                <div class="set-row"><div class="ic" style="background:#FFE7C2">🌤️</div><div><b>Weekends</b><span>+30 extra min on Sat &amp; Sun</span></div><div class="toggle on"><i></i></div></div>
+                <div class="set-row"><div class="ic" style="background:#E5DDF6">🌙</div><div><b>Bedtime cut-off</b><span>No videos after 7:30 PM</span></div><div class="toggle on"><i></i></div></div>
+                <div class="set-row"><div class="ic" style="background:#D9F2DD">⏳</div><div><b>5-minute warning</b><span>Gentle heads-up before time's up</span></div><div class="toggle on"><i></i></div></div>
+              </div>
+              <div class="d-cta">Save for Mia</div>
+            </div>
+          </div>
+          <div class="phone-label">parent / daily limit</div>
+        </div>
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:120px; right:10px;">6</div>
+            <div class="scr safety">
+              <div class="set-title">PIN &amp; safety</div>
+              <div class="set-sub">What's protected right now</div>
+              <div class="facts">
+                <div class="fact"><span>⏰</span><p>Mia's limit is <b>45 min a day</b>. When it's up, videos pause until you enter the PIN.</p></div>
+                <div class="fact"><span>🚪</span><p>Mia <b>can't leave Child Mode</b> or open settings without the PIN.</p></div>
+                <div class="fact"><span>🎬</span><p>Only videos <b>you approved</b> can ever play. Nothing else.</p></div>
+              </div>
+              <div class="set-sub">Controls</div>
+              <div class="set-group">
+                <div class="set-row"><div class="ic" style="background:#FFDAD3">🔢</div><div><b>Change PIN</b></div><span class="val">•••• ›</span></div>
+                <div class="set-row"><div class="ic" style="background:#CDEDF4">😊</div><div><b>Face ID unlock</b></div><div class="toggle on"><i></i></div></div>
+                <div class="set-row"><div class="ic" style="background:#EDE7DA">✉️</div><div><b>Reset PIN by email</b></div><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">parent / pin &amp; safety</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno teal"><span class="n">1</span><div><b>Identity card first, Telegram-style.</b><p>Settings opens with who you are — avatar, name, one tap to account. Telegram, Cosmos and CVS all anchor settings with an identity header before any options.</p><span class="from">From: Telegram · Cosmos · CVS Health</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>The child switcher is always visible.</b><p>Chips for Mia and Leo sit right under the header — every rule below is scoped to the selected child, and the "＋" chip is where the premium profile limit surfaces.</p><span class="from">From: Netflix profile chip + Duolingo ABC add-a-child</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>Premium is the first card, Todoist-style.</b><p>Todoist leads settings with "Upgrade to Pro" and a plain one-line description. Same here — an honest sunny banner, not a popup.</p><span class="from">From: Todoist "Upgrade to Pro"</span></div></div>
+        <div class="anno teal"><span class="n">4</span><div><b>Rows carry their value on the right.</b><p>"45 min ›", "7:30 PM ›", "On ›" — Cosmos and Todoist answer each row's question before it's tapped, turning the hub into a status page.</p><span class="from">From: Cosmos · Todoist value labels</span></div></div>
+        <div class="anno teal"><span class="n">5</span><div><b>Limits are named presets, not a dial.</b><p>Duolingo, Py and Noom all set daily goals with a short named list — "45 min · Just right" beats a free stepper: faster to choose, and the names give each option a personality.</p><span class="from">From: Duolingo · Py · Noom goal pickers</span></div></div>
+        <div class="anno teal"><span class="n">6</span><div><b>Safety states facts before controls.</b><p>TikTok's Family Pairing leads with plain sentences — "your teen's limit is 40 minutes; when it's reached, they can't continue without a passcode." LittleLoop's safety screen opens the same way: what's protected right now, then the levers.</p><span class="from">From: TikTok Family Pairing / Screen Time Management</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAYWALL -->
+  <section class="block" id="paywall">
+    <div class="sec-head">
+      <div class="section-tag parent"><span class="pill"></span> Premium</div>
+      <div class="sec-num">08 / 09</div>
+      <h2 class="sec-title">The paywall — shown at the cap, never before</h2>
+      <p class="sec-intro">Premium appears exactly when a free limit is hit — the 11th video, the 3rd child — with the reason stated up top. Plain feature list, two prices, no tricks the parent will resent later.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin teal" style="top:130px; left:10px;">1</div>
+            <div class="pin teal" style="top:250px; right:10px;">2</div>
+            <div class="pin teal" style="bottom:112px; left:10px;">3</div>
+            <div class="scr paywall">
+              <div class="pw-head"><span class="owl">🦉</span><b>LittleLoop Premium</b></div>
+              <div class="pw-context">Mia's playlist is full — <b>10 of 10 videos</b> on the free plan.</div>
+              <div class="pw-feat">
+                <div class="f"><i>✓</i> Unlimited videos per playlist</div>
+                <div class="f"><i>✓</i> Up to 4 child profiles</div>
+                <div class="f"><i>✓</i> Multiple playlists per child</div>
+                <div class="f"><i>✓</i> Everything in Free, forever</div>
+              </div>
+              <div class="pw-plans">
+                <div class="pw-plan"><b>$3.99</b><span>per month</span></div>
+                <div class="pw-plan best"><span class="save">SAVE 37%</span><b>$29.99</b><span>per year</span></div>
+              </div>
+              <div class="pw-cta">Start 7-day free trial</div>
+              <div class="pw-links"><span>Not now</span><span>Restore purchase</span></div>
+            </div>
+          </div>
+          <div class="phone-label">parent / paywall</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno teal"><span class="n">1</span><div><b>The trigger is the headline.</b><p>"Mia's playlist is full — 10 of 10" continues the honest counter from the playlist screen. The parent already saw this coming; the paywall just answers it.</p><span class="from">From: honest limit counters (Parent HQ §06)</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>Four benefits, zero asterisks.</b><p>Plain checkmarks, "Everything in Free, forever" stated explicitly — parents of young kids are the most dark-pattern-wary audience there is.</p><span class="from">Principle: trust, fast</span></div></div>
+        <div class="anno teal"><span class="n">3</span><div><b>"Not now" is a real exit.</b><p>Equal-weight dismiss link, no full-screen takeover on launch, never shown in Child Mode. Premium lives quietly in Settings until a cap makes it relevant.</p><span class="from">Deliberate inversion of aggressive paywall patterns</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ONBOARDING -->
+  <section class="block" id="onboardsec">
+    <div class="sec-head">
+      <div class="section-tag parent"><span class="pill"></span> First Run</div>
+      <div class="sec-num">09 / 09</div>
+      <h2 class="sec-title">Onboarding — four screens to a working app</h2>
+      <p class="sec-intro">Promise → create a child → paste the first video → set the PIN. The parent hands over a device that already works, and the owl mascot carries trust from the first screen to the PIN gate.</p>
+    </div>
+    <div class="duo">
+      <div class="phones">
+        <div class="phone-col">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="pin" style="top:150px; right:12px;">1</div>
+            <div class="pin teal" style="bottom:130px; left:14px;">2</div>
+            <div class="scr onboard">
+              <div class="mascot-stage">🦉</div>
+              <h5>Only the videos you choose.</h5>
+              <p>You approve every video. Your child sees nothing else — no ads, no rabbit holes, no surprises.</p>
+              <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+              <div class="cta">Let's set up</div>
+              <span class="skip">I already have an account</span>
+            </div>
+          </div>
+          <div class="phone-label">onboarding / promise</div>
+        </div>
+      </div>
+      <div class="annos">
+        <div class="anno"><span class="n">1</span><div><b>One idea, one mascot, one button.</b><p>The owl states the entire value proposition in a sentence. Warm illustration + single CTA + progress dots — the trust formula from the research, applied.</p><span class="from">From: Liven · Waze · Gentler Streak</span></div></div>
+        <div class="anno teal"><span class="n">2</span><div><b>Four dots, four steps, ends populated.</b><p>Promise → child profile → first pasted video → PIN. The final screen isn't a signup wall — it's Mia's grid with a real video on it, ready to hand over.</p><span class="from">Research recommendation, executed</span></div></div>
+        <div class="anno"><span class="n">＋</span><div><b>The owl is the through-line.</b><p>Same character welcomes the parent, guards the PIN gate, and says goodnight on the break screen — one mascot stitching both worlds together.</p><span class="from">From: mascot trust pattern (Gentler Streak, Alan)</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOW MAP -->
+  <section class="block" id="flow">
+    <div class="sec-head" style="max-width:100%; text-align:center; margin-left:auto; margin-right:auto;">
+      <div class="section-tag" style="margin-left:auto; margin-right:auto;"><span class="pill"></span> The whole app</div>
+      <h2 class="sec-title" style="margin-left:auto; margin-right:auto;">Two worlds, one wall — the full loop</h2>
+      <p class="sec-intro" style="margin-left:auto; margin-right:auto;">Every crossing between the sunny side and the paper side goes through the same PIN gate. That single, consistent wall is the product's entire trust model.</p>
+    </div>
+    <div class="flowmap">
+      <div class="fnode par"><b>Onboarding</b><span>4 steps</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode"><b>Profile picker</b><span>who's watching?</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode kid"><b>Child home</b><span>approved grid</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode kid"><b>Player</b><span>wrapped embed</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode kid"><b>Break screen</b><span>limit reached</span></div>
+      <span class="farrow">→</span>
+      <div class="fgate" title="PIN gate">🔒</div>
+      <span class="farrow">→</span>
+      <div class="fnode par"><b>Parent HQ</b><span>recap · playlist</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode par"><b>Settings</b><span>limits · safety</span></div>
+      <span class="farrow">→</span>
+      <div class="fnode par"><b>Premium</b><span>shown at the cap</span></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap fgrid">
+    <div>
+      <h4>LittleLoop</h4>
+      <p>Redesign concept derived screen-by-screen from the Mobbin competitive teardown. Companion document: <em>design-research-report.html</em>.</p>
+    </div>
+    <div class="note">
+      12 screens · every annotation cites its research source<br>
+      Compiled 2026 · Concept mockups, not final UI
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

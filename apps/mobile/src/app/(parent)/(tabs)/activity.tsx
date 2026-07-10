@@ -6,16 +6,12 @@ import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 import {
+  localDayKey,
   todayKey,
   useSecondsWatchedToday,
   useTimerStore,
-  type WatchSession,
+  weeklyMinutes,
 } from '@/stores/timerStore';
-
-function localDayKey(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function dayLabel(iso: string): string {
   const key = localDayKey(iso);
@@ -28,22 +24,6 @@ function dayLabel(iso: string): string {
 
 function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
-
-/** Last 7 local days (oldest first), each with total minutes watched. */
-function weekBars(sessions: WatchSession[], childId: string | null): { key: string; minutes: number }[] {
-  const days: { key: string; minutes: number }[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    days.push({ key: localDayKey(d.toISOString()), minutes: 0 });
-  }
-  for (const s of sessions) {
-    if (childId && s.childProfileId !== childId) continue;
-    const day = days.find((d) => d.key === localDayKey(s.startedAt));
-    if (day) day.minutes += s.seconds / 60;
-  }
-  return days;
 }
 
 /** s17 — activity: today vs limit, 7-day bars, most watched, session list (local data). */
@@ -61,7 +41,7 @@ export default function Activity() {
     (s) => (!profile || s.childProfileId === profile.id) && s.seconds > 0,
   );
   const recent = [...childSessions].reverse().slice(0, 8);
-  const bars = weekBars(sessions, profile?.id ?? null);
+  const bars = weeklyMinutes(sessions, profile?.id ?? null);
   const maxBar = Math.max(1, ...bars.map((b) => b.minutes));
 
   // Most-watched: play counts across the week's sessions, resolved against the playlist.

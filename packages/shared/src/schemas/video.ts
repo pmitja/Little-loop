@@ -19,6 +19,8 @@ export interface PlaylistVideo {
   id: string;
   video: VideoMeta;
   addedAt: string;
+  /** Legacy entries without a value are treated as live during hydration. */
+  status?: 'review' | 'live';
 }
 
 export const previewRequestSchema = z.object({ url: z.string().min(1) });

@@ -16,7 +16,7 @@ export default function ChildProfileScreen() {
       <Txt weight="semibold" size={14} color={colors.muted} style={{ marginTop: 6, marginBottom: 22 }}>
         Only a nickname is needed — no personal data.
       </Txt>
-      <ChildProfileForm onCreated={() => router.replace('/(parent)/(tabs)/playlist')} />
+      <ChildProfileForm onCreated={() => router.replace('/(onboarding)/first-video')} />
     </ScreenContainer>
   );
 }

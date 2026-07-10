@@ -6,7 +6,7 @@ import { colors, spacing } from '@/theme/tokens';
 
 interface ScreenContainerProps {
   children: ReactNode;
-  mode?: 'parent' | 'child' | 'dark';
+  mode?: 'parent' | 'child' | 'dark' | 'plum';
   scroll?: boolean;
   padded?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -57,9 +57,9 @@ export function ScreenContainer({
     <View style={inner}>{children}</View>
   );
 
-  if (mode === 'child') {
+  if (mode === 'child' || mode === 'plum') {
     return (
-      <LinearGradient colors={['#FFF4E4', '#FFEEDC']} style={styles.flex}>
+      <LinearGradient colors={mode === 'plum' ? [colors.child.plum, '#5A3F96'] : [colors.child.sky, colors.child.cream]} style={styles.flex}>
         {body}
       </LinearGradient>
     );

@@ -16,9 +16,8 @@ interface LockState {
   resetAttempts: () => void;
 }
 
-const MAX_ATTEMPTS = 5;
-// Escalating lockouts per PLAN §11: 30 s, 2 min, 5 min.
-const LOCKOUT_MS = [30_000, 120_000, 300_000];
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_MS = [30_000];
 
 export const useLockStore = create<LockState>()(
   persist(

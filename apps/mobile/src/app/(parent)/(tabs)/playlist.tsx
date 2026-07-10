@@ -1,167 +1,34 @@
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
-import Svg, { Path, Rect } from 'react-native-svg';
-import type { PlaylistVideo } from '@littleloop/shared';
-import {
-  AddVideoIllustration,
-  Button,
-  ChildAvatar,
-  EmptyState,
-  PlusIcon,
-  ScreenContainer,
-  Txt,
-  VideoRow,
-} from '@/components';
-import { colors, shadows } from '@/theme/tokens';
+import { Image } from 'expo-image';
+import { Button, StatusBadge, Txt } from '@/components';
+import { colors, controls, shadows } from '@/theme/tokens';
+import { FREE_LIMITS, formatDuration } from '@littleloop/shared';
 import { useAppStore } from '@/stores/appStore';
-import { usePlaylistStore, usePlaylistVideos } from '@/stores/playlistStore';
+import { useLivePlaylistVideos, usePlaylistStore, usePlaylistVideos } from '@/stores/playlistStore';
+import { usePremium } from '@/stores/entitlementStore';
+import { useLockStore } from '@/stores/lockStore';
+import { useTimerStore } from '@/stores/timerStore';
 
-function LockNote() {
-  return (
-    <View style={styles.footerNote}>
-      <Svg width={13} height={16} viewBox="0 0 13 16">
-        <Path
-          d="M3.5 7 V5 a3 3 0 0 1 6 0 v2"
-          stroke="#B9C2D0"
-          strokeWidth={2}
-          fill="none"
-          strokeLinecap="round"
-        />
-        <Rect x={0.5} y={6.5} width={12} height={9} rx={3} fill="#B9C2D0" />
-      </Svg>
-      <Txt weight="semibold" size={12.5} color={colors.subtle}>
-        Only you can add or remove videos
-      </Txt>
-    </View>
-  );
-}
-
-/** s07 (empty) / s11 (populated) — the playlist tab. */
 export default function Playlist() {
-  const router = useRouter();
-  const profile = useAppStore((s) =>
-    s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
-  );
-  const videos = usePlaylistVideos(profile?.id ?? null);
-  const removeVideo = usePlaylistStore((s) => s.removeVideo);
-  const reorderVideos = usePlaylistStore((s) => s.reorderVideos);
-
-  const name = profile?.nickname ?? 'Your child';
-  const possessive = name.endsWith('s') ? `${name}’` : `${name}’s`;
-
-  const confirmRemove = (item: PlaylistVideo) => {
-    if (!profile) return;
-    Alert.alert('Remove video?', `“${item.video.title}” will disappear from ${possessive} playlist.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeVideo(profile.id, item.id) },
-    ]);
+  const router = useRouter(); const profile = useAppStore(s => s.childProfiles.find(p => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null);
+  const videos = usePlaylistVideos(profile?.id ?? null); const premium = usePremium(); const remove = usePlaylistStore(s => s.removeVideo);
+  const liveVideos = useLivePlaylistVideos(profile?.id ?? null);
+  const reviewCount = videos.filter(v => v.status === 'review').length; const name = profile?.nickname ?? 'Your child';
+  const goPaste = () => { if (!premium && videos.length >= FREE_LIMITS.videosPerPlaylist) router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: name } }); else router.push('/(parent)/add-video'); };
+  const startChildMode = () => {
+    if (!profile || liveVideos.length === 0) return;
+    useAppStore.getState().setActiveChildProfileId(profile.id);
+    useTimerStore.getState().startSession(profile.id);
+    useLockStore.getState().setChildMode(true);
+    router.replace('/(child)');
   };
-
-  if (videos.length === 0) {
-    return (
-      <ScreenContainer style={styles.container}>
-        <View style={styles.titleRow}>
-          {profile ? <ChildAvatar avatar={profile.avatar} size={40} /> : null}
-          <Txt weight="black" size={24}>
-            {possessive} playlist
-          </Txt>
-        </View>
-        <Txt weight="semibold" size={13.5} color={colors.muted}>
-          0 approved videos
-        </Txt>
-        <View style={styles.center}>
-          <EmptyState
-            illustration={<AddVideoIllustration />}
-            title="Start with your first approved video"
-            body="Add videos manually. Your child will only be able to watch what you choose."
-            ctaLabel="Add Video"
-            onCta={() => router.push('/(parent)/add-video')}
-            secondaryLabel="Skip for now"
-            onSecondary={() => router.navigate('/(parent)/(tabs)')}
-          />
-        </View>
-        <LockNote />
-      </ScreenContainer>
-    );
-  }
-
-  const renderItem = ({ item, drag, isActive }: RenderItemParams<PlaylistVideo>) => (
-    <View style={styles.rowSpacing}>
-      <VideoRow item={item} dragging={isActive} onDragStart={drag} onRemove={() => confirmRemove(item)} />
-    </View>
-  );
-
-  return (
-    <ScreenContainer style={styles.container} padded={false}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Txt weight="black" size={24}>
-            {possessive} Playlist
-          </Txt>
-          <Pressable
-            onPress={() => router.push('/(parent)/add-video')}
-            style={[styles.addButton, shadows.primaryButton]}
-            hitSlop={6}
-          >
-            <PlusIcon size={18} />
-          </Pressable>
-        </View>
-        <Txt weight="semibold" size={13.5} color={colors.muted} style={{ marginTop: 4 }}>
-          {videos.length} approved {videos.length === 1 ? 'video' : 'videos'} · drag to reorder
-        </Txt>
-      </View>
-      <DraggableFlatList
-        data={videos}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        onDragEnd={({ data }) =>
-          profile &&
-          reorderVideos(
-            profile.id,
-            data.map((v) => v.id),
-          )
-        }
-        activationDistance={12}
-        containerStyle={{ flex: 1 }}
-        contentContainerStyle={styles.listContent}
-        ListFooterComponent={
-          <Button
-            title="Preview Child Mode"
-            variant="outline"
-            size="md"
-            style={{ marginTop: 8 }}
-            onPress={() => router.push('/(parent)/child-mode-gate')}
-          />
-        }
-      />
-      <LockNote />
-    </ScreenContainer>
-  );
+  return <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.header}><Txt weight="black" size={24}>{name}’s playlist</Txt><Txt weight="bold" size={13} color={colors.parent.muted}>{premium ? `${videos.length} ${videos.length === 1 ? 'video' : 'videos'} · Premium` : `${videos.length} of ${FREE_LIMITS.videosPerPlaylist} videos · Free`}</Txt></View>
+    <Pressable onPress={goPaste} style={styles.paste}><Txt weight="black" size={20} color={colors.child.skyDeep}>＋</Txt><Txt weight="bold" size={14} color={colors.parent.muted}>Paste a YouTube link…</Txt></Pressable>
+    {reviewCount ? <Txt weight="black" size={15} style={{marginTop:4}}>Waiting for review ({reviewCount})</Txt> : null}
+    <View style={styles.list}>{videos.map(entry => <Pressable key={entry.id} onPress={() => entry.status === 'review' ? router.push({ pathname: '/(parent)/review-video', params: { video: JSON.stringify(entry.video), entryId: entry.id } }) : undefined} style={styles.row}><Image source={{uri:entry.video.thumbnailUrl}} style={styles.thumb}/><View style={styles.copy}><Txt weight="bold" size={14} numberOfLines={1}>{entry.video.title}</Txt><Txt size={12} color={colors.parent.muted}>{entry.video.durationSeconds ? formatDuration(entry.video.durationSeconds) : 'Video'} · added {new Date(entry.addedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</Txt></View><StatusBadge state={(entry.status ?? 'live').toUpperCase() as 'LIVE' | 'REVIEW'}/><Pressable accessibilityLabel={`Remove ${entry.video.title}`} onPress={() => profile && remove(profile.id, entry.id)} style={styles.remove}><Txt size={16} color={colors.parent.muted}>×</Txt></Pressable></Pressable>)}</View>
+    <Button title="Start Child Mode" variant="outline" size="md" onPress={startChildMode} disabled={!profile || liveVideos.length === 0}/>
+  </ScrollView>;
 }
-
-const styles = StyleSheet.create({
-  container: { paddingTop: 24 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  center: { flex: 1, justifyContent: 'center' },
-  header: { paddingHorizontal: 24, marginBottom: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowSpacing: { paddingHorizontal: 24, paddingBottom: 12 },
-  listContent: { paddingBottom: 12 },
-  footerNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingBottom: 4,
-    paddingTop: 6,
-  },
-});
+const styles=StyleSheet.create({root:{flex:1,backgroundColor:colors.parent.paper},content:{paddingTop:58,paddingHorizontal:24,paddingBottom:120,gap:14},header:{gap:4},paste:{height:58,borderWidth:2,borderStyle:'dashed',borderColor:colors.child.skyDeep,borderRadius:16,backgroundColor:'#fff',paddingHorizontal:16,flexDirection:'row',alignItems:'center',gap:10},list:{gap:9},row:{minHeight:72,padding:8,backgroundColor:'#fff',borderRadius:16,flexDirection:'row',alignItems:'center',gap:9,...shadows.card},thumb:{width:66,height:48,borderRadius:10,backgroundColor:'#EAF6FA'},copy:{flex:1,minWidth:0,gap:3},remove:{width:controls.minTouchParent,height:controls.minTouchParent,alignItems:'center',justifyContent:'center'}});

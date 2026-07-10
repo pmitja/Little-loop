@@ -40,7 +40,6 @@ export function useForgotPin(): () => void {
             lock.setChildMode(false);
             await clerk?.signOut().catch(() => {});
             // Splash re-routes: signed out → auth; dev bypass → PIN setup.
-            router.dismissAll();
             router.replace('/');
           },
         },

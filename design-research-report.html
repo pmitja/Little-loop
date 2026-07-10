@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LittleLoop — Design Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Playroom palette — tangerine = kid warmth, teal = parent trust */
+    --tangerine: #FF7A3D;
+    --tangerine-soft: #FFE7D8;
+    --teal: #12938A;
+    --teal-soft: #D4EEEA;
+    --berry: #B23A6B;
+
+    --ground: #FCF8F4;
+    --surface: #FFFFFF;
+    --surface-2: #F5EDE3;
+    --ink: #26202B;
+    --ink-2: #6B6070;
+    --line: #EADFD2;
+    --shadow: 24px 32px 60px -32px rgba(60, 40, 30, 0.35);
+
+    --good: #2F9E5B;
+    --warn: #E08A00;
+
+    --maxw: 1180px;
+    --radius: 20px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #17151C;
+      --surface: #211E28;
+      --surface-2: #2A2632;
+      --ink: #F3EEE9;
+      --ink-2: #ABA1B2;
+      --line: #332E3D;
+      --tangerine-soft: #3A2A22;
+      --teal-soft: #16302E;
+      --shadow: 24px 32px 60px -30px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #17151C;
+    --surface: #211E28;
+    --surface-2: #2A2632;
+    --ink: #F3EEE9;
+    --ink-2: #ABA1B2;
+    --line: #332E3D;
+    --tangerine-soft: #3A2A22;
+    --teal-soft: #16302E;
+    --shadow: 24px 32px 60px -30px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --ground: #FCF8F4;
+    --surface: #FFFFFF;
+    --surface-2: #F5EDE3;
+    --ink: #26202B;
+    --ink-2: #6B6070;
+    --line: #EADFD2;
+    --tangerine-soft: #FFE7D8;
+    --teal-soft: #D4EEEA;
+    --shadow: 24px 32px 60px -32px rgba(60, 40, 30, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--ground) 86%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .row {
+    max-width: var(--maxw); margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Fredoka"; font-weight: 600; font-size: 19px; }
+  .brand .dot { width: 26px; height: 26px; border-radius: 9px; background: linear-gradient(135deg, var(--tangerine), var(--berry)); box-shadow: 0 4px 10px -3px var(--tangerine); }
+  .navlinks { display: flex; gap: 4px; flex-wrap: wrap; }
+  .navlinks a {
+    font-size: 13px; color: var(--ink-2); text-decoration: none;
+    padding: 7px 12px; border-radius: 999px; transition: background .15s, color .15s;
+  }
+  .navlinks a:hover { background: var(--surface-2); color: var(--ink); }
+  .navlinks a:focus-visible { outline: 2px solid var(--tangerine); outline-offset: 2px; }
+  @media (max-width: 860px) { .navlinks { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 84px 0 64px; position: relative; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(60% 60% at 82% 8%, color-mix(in srgb, var(--tangerine) 22%, transparent), transparent 70%),
+      radial-gradient(50% 50% at 6% 40%, color-mix(in srgb, var(--teal) 16%, transparent), transparent 70%);
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono"; font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--tangerine); font-weight: 600; margin-bottom: 20px;
+  }
+  h1 {
+    font-family: "Fredoka"; font-weight: 600; letter-spacing: -0.01em;
+    font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 1.02; text-wrap: balance;
+    max-width: 15ch;
+  }
+  h1 .hl { color: var(--tangerine); }
+  .lede { margin-top: 24px; max-width: 60ch; font-size: clamp(1.05rem, 1.6vw, 1.28rem); color: var(--ink-2); }
+  .hero-meta { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+  .stat { display: flex; flex-direction: column; }
+  .stat b { font-family: "Fredoka"; font-size: 1.7rem; font-weight: 600; line-height: 1; }
+  .stat span { font-size: 12px; color: var(--ink-2); font-family: "IBM Plex Mono"; letter-spacing: .04em; }
+  .stat-sep { width: 1px; height: 34px; background: var(--line); }
+
+  .legend { margin-top: 38px; }
+  .legend h4 { font-size: 12px; font-family: "IBM Plex Mono"; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-2); margin-bottom: 12px; font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-size: 13px; padding: 6px 13px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ---------- Section ---------- */
+  section.block { padding: 62px 0; border-top: 1px solid var(--line); }
+  .sec-head { display: grid; grid-template-columns: 1fr; gap: 26px; margin-bottom: 34px; }
+  @media (min-width: 900px) { .sec-head { grid-template-columns: 1.1fr 1fr; align-items: start; gap: 48px; } }
+  .sec-num { font-family: "IBM Plex Mono"; font-size: 13px; color: var(--tangerine); font-weight: 600; letter-spacing: .1em; }
+  .sec-title { font-family: "Fredoka"; font-weight: 600; font-size: clamp(1.7rem, 3.4vw, 2.5rem); line-height: 1.08; margin-top: 8px; letter-spacing: -0.01em; text-wrap: balance; }
+  .sec-intro { color: var(--ink-2); margin-top: 14px; font-size: 1.02rem; max-width: 52ch; }
+  .sec-apps { margin-top: 16px; font-family: "IBM Plex Mono"; font-size: 12px; color: var(--ink-2); letter-spacing: .02em; }
+
+  /* takeaways card */
+  .takeaways {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 24px 26px; box-shadow: var(--shadow);
+  }
+  .takeaways h5 {
+    font-size: 12px; font-family: "IBM Plex Mono"; text-transform: uppercase; letter-spacing: .14em;
+    color: var(--teal); margin-bottom: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .takeaways ul { list-style: none; display: flex; flex-direction: column; gap: 13px; }
+  .takeaways li { display: flex; gap: 12px; font-size: 0.96rem; }
+  .takeaways li .k { flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; background: var(--tangerine-soft); color: var(--tangerine); display: grid; place-items: center; font-size: 12px; font-weight: 700; margin-top: 2px; }
+  .takeaways li b { color: var(--ink); font-weight: 600; }
+  .takeaways li span { color: var(--ink-2); }
+
+  .apply {
+    margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line);
+    display: flex; gap: 12px; font-size: 0.95rem;
+  }
+  .apply .badge { flex-shrink: 0; font-family: "IBM Plex Mono"; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #fff; background: var(--teal); padding: 4px 8px; border-radius: 6px; height: fit-content; font-weight: 600; }
+  .apply p { color: var(--ink); }
+
+  /* ---------- Gallery ---------- */
+  .gallery {
+    display: flex; gap: 22px; overflow-x: auto; padding: 8px 4px 20px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+  }
+  .gallery::-webkit-scrollbar { height: 8px; }
+  .gallery::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+  .gallery::-webkit-scrollbar-track { background: transparent; }
+
+  figure.device { scroll-snap-align: start; flex: 0 0 auto; width: 216px; }
+  .screen {
+    border-radius: 26px; overflow: hidden; border: 5px solid var(--surface);
+    box-shadow: var(--shadow), 0 0 0 1px var(--line);
+    background: var(--surface-2); position: relative; aspect-ratio: 9 / 19.3;
+  }
+  .screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  figure.device figcaption { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  figure.device .app { font-weight: 600; font-size: 0.9rem; }
+  figure.device .role { font-size: 11px; color: var(--ink-2); font-family: "IBM Plex Mono"; }
+  figure.device a.src {
+    font-size: 11px; text-decoration: none; color: var(--teal); font-family: "IBM Plex Mono";
+    border: 1px solid var(--line); padding: 3px 8px; border-radius: 999px; transition: background .15s;
+    white-space: nowrap;
+  }
+  figure.device a.src:hover { background: var(--teal-soft); }
+  figure.device a.src:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .scrollhint { font-size: 12px; color: var(--ink-2); font-family: "IBM Plex Mono"; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+
+  /* ---------- Principles strip ---------- */
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-top: 8px; }
+  .pcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .pcard .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; margin-bottom: 14px; background: var(--tangerine-soft); }
+  .pcard h3 { font-family: "Fredoka"; font-weight: 600; font-size: 1.15rem; margin-bottom: 8px; }
+  .pcard p { font-size: 0.92rem; color: var(--ink-2); }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--line); padding: 48px 0 70px; }
+  footer .fgrid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 24px; align-items: end; }
+  footer h4 { font-family: "Fredoka"; font-weight: 600; font-size: 1.3rem; margin-bottom: 6px; }
+  footer p { color: var(--ink-2); font-size: 0.92rem; max-width: 46ch; }
+  footer .note { font-family: "IBM Plex Mono"; font-size: 11px; color: var(--ink-2); letter-spacing: .03em; }
+
+  .section-tag { display: inline-flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono"; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; margin-bottom: 20px; }
+  .section-tag .pill { width: 8px; height: 8px; border-radius: 50%; background: var(--tangerine); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="row">
+    <div class="brand"><span class="dot"></span> LittleLoop · Design Research</div>
+    <nav class="navlinks">
+      <a href="#browse">Home &amp; Browse</a>
+      <a href="#profiles">Profiles</a>
+      <a href="#pin">Parent PIN</a>
+      <a href="#limits">Screen Time</a>
+      <a href="#player">Player</a>
+      <a href="#onboard">Onboarding</a>
+      <a href="#activity">Activity</a>
+      <a href="#principles">Principles</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Competitive UI Teardown · Curated via Mobbin</div>
+    <h1>What the best kids&rsquo; &amp; screen-time apps teach <span class="hl">LittleLoop</span>.</h1>
+    <p class="lede">A screen-by-screen study of how leading products handle the exact problems LittleLoop solves — kid-safe browsing, parental gates, screen-time limits, and calm playback — plus the patterns worth stealing for a parent-controlled video app.</p>
+
+    <div class="hero-meta">
+      <div class="stat"><b>7</b><span>problem areas</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><b>18</b><span>apps studied</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><b>40+</b><span>real screens</span></div>
+    </div>
+
+    <div class="legend">
+      <h4>Apps referenced</h4>
+      <div class="chips">
+        <span class="chip">Netflix Kids</span>
+        <span class="chip">Disney+</span>
+        <span class="chip">YouTube Kids</span>
+        <span class="chip">Spotify Kids</span>
+        <span class="chip">Paramount+</span>
+        <span class="chip">HBO Max</span>
+        <span class="chip">Prime Video</span>
+        <span class="chip">Tubi</span>
+        <span class="chip">Coupang Play</span>
+        <span class="chip">Duolingo ABC</span>
+        <span class="chip">Headspace</span>
+        <span class="chip">Opal</span>
+        <span class="chip">Instagram</span>
+        <span class="chip">Fitbit</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. HOME & BROWSE -->
+  <section class="block" id="browse">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Child Mode · Home</div>
+        <div class="sec-num">01 / 07</div>
+        <h2 class="sec-title">The kid-facing grid: big art, zero chrome</h2>
+        <p class="sec-intro">Every major streamer runs a dedicated &ldquo;For Kids&rdquo; surface built on oversized, character-forward artwork and almost no interface furniture. Tap targets are huge, text is minimal, and the bottom nav collapses to two or three items.</p>
+        <p class="sec-apps">Netflix · Paramount+ · Prime Video · Tubi · Coupang Play</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Artwork is the button.</b> Poster tiles carry the character; titles are secondary. Kids recognize shows by face, not text.</span></li>
+          <li><span class="k">2</span><span><b>Simplified nav.</b> Kid modes drop to Home / Search / Downloads — no settings, no account, no store.</span></li>
+          <li><span class="k">3</span><span><b>Saturated, branded grounds.</b> Tubi&rsquo;s blue, Coupang&rsquo;s dark stage — a distinct world that signals &ldquo;you&rsquo;re in the safe zone.&rdquo;</span></li>
+          <li><span class="k">4</span><span><b>Horizontal rails</b> group content, each with a plain-language header (&ldquo;Movies For Kids&rdquo;).</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Because the parent curates the list, <b>drop the rails and recommendations entirely</b> — show one clean grid of approved videos as large tappable thumbnails. Less is the feature: no browse, no search, no infinite scroll.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to browse screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/0Ol0Kd3q" alt="Netflix For Children home"></div><figcaption><span class="app">Netflix<br><span class="role">For Children</span></span><a class="src" href="https://mobbin.com/screens/8caea24b-163a-49b8-a286-13cf1f0185bc" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/4Zezxpd6" alt="Netflix For Kids featured"></div><figcaption><span class="app">Netflix<br><span class="role">Kids feature</span></span><a class="src" href="https://mobbin.com/screens/4c5bdc06-8c99-4c5c-9974-95830f951a73" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/XEQWUBhu" alt="Paramount+ kids rails"></div><figcaption><span class="app">Paramount+<br><span class="role">Kids rails</span></span><a class="src" href="https://mobbin.com/screens/1620a645-bfed-4f86-8556-044a65b353c6" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/LMSC2zCJ" alt="Tubi kids home"></div><figcaption><span class="app">Tubi<br><span class="role">Kids home</span></span><a class="src" href="https://mobbin.com/screens/9930cfae-b7df-48d6-bc43-ec528e4f2d85" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/gOamH0Ff" alt="Coupang Play kids detail"></div><figcaption><span class="app">Coupang Play<br><span class="role">Kids title</span></span><a class="src" href="https://mobbin.com/screens/7af0af88-bbf2-4633-a5ea-c3ac766e2146" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/Hq4FLjXZ" alt="Prime Video kids shows"></div><figcaption><span class="app">Prime Video<br><span class="role">Kids TV</span></span><a class="src" href="https://mobbin.com/screens/a2e8b512-2300-49a2-b5a8-275c83272e62" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 2. PROFILES -->
+  <section class="block" id="profiles">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Profiles · Kid vs. Grown-up</div>
+        <div class="sec-num">02 / 07</div>
+        <h2 class="sec-title">&ldquo;Who&rsquo;s watching?&rdquo; done right</h2>
+        <p class="sec-intro">The profile picker is where the child/parent boundary is drawn visually. Kid profiles get playful avatars and a lock badge; the grown-up area is quietly tucked behind a gear or a locked tile.</p>
+        <p class="sec-apps">Disney+ · HBO Max · Paramount+ · Spotify Kids · Duolingo ABC</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Lock badge on the kid tile.</b> Disney+ and HBO Max stamp a padlock so the boundary is legible at a glance.</span></li>
+          <li><span class="k">2</span><span><b>Playful monster avatars.</b> Spotify Kids &amp; Paramount+ use characters, not photos — instantly reads as &ldquo;for me&rdquo; to a child.</span></li>
+          <li><span class="k">3</span><span><b>Grown-ups gated in the corner.</b> Spotify Kids hides settings behind a &ldquo;Grown-ups&rdquo; gear — present but not tappable-by-accident.</span></li>
+          <li><span class="k">4</span><span><b>One tap to add a child</b> with a dashed &ldquo;+&rdquo; tile keeps multi-kid households fast.</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Give each child a big friendly avatar; put the <b>parent gear in a corner that opens the PIN gate</b>. A locked grown-up zone is the single most important trust signal for the buying parent.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to profile screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/g06a86NG" alt="Spotify Kids who is listening"></div><figcaption><span class="app">Spotify Kids<br><span class="role">Grown-ups gear</span></span><a class="src" href="https://mobbin.com/screens/cb418d1c-f0d3-47d3-909e-983b89c22029" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/0lbtdOSo" alt="Disney+ who is watching with locks"></div><figcaption><span class="app">Disney+<br><span class="role">Locked profiles</span></span><a class="src" href="https://mobbin.com/screens/626191ac-c0ae-467b-bf26-bebec9ac8186" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/5SPtNuk5" alt="HBO Max who is watching kids tile"></div><figcaption><span class="app">HBO Max<br><span class="role">Kids tile</span></span><a class="src" href="https://mobbin.com/screens/e96fb176-4890-4a6b-9b43-802cc0144643" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/dxtIa8zT" alt="Paramount+ who is watching kids lock"></div><figcaption><span class="app">Paramount+<br><span class="role">Kids lock</span></span><a class="src" href="https://mobbin.com/screens/5a3abcff-cf05-4fdf-bf2c-e4039c9189b8" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/UGsVkzhr" alt="Duolingo ABC who is learning"></div><figcaption><span class="app">Duolingo ABC<br><span class="role">Add a child</span></span><a class="src" href="https://mobbin.com/screens/9d952a8b-7e1e-43a5-b034-041e84f78c49" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/NXrMdcTK" alt="YouTube Kids create profile"></div><figcaption><span class="app">YouTube Kids<br><span class="role">Create profile</span></span><a class="src" href="https://mobbin.com/screens/98649b60-f01b-4eb8-b5fa-e3b46a36d90f" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 3. PARENT PIN -->
+  <section class="block" id="pin">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> The Parental Gate</div>
+        <div class="sec-num">03 / 07</div>
+        <h2 class="sec-title">The PIN that protects the exit</h2>
+        <p class="sec-intro">The core of a parent-controlled app is the gate. The strongest implementations use a simple 4-digit entry, explain <em>exactly</em> what the PIN protects, and offer a &ldquo;kid-proof exit&rdquo; toggle plus a recovery path.</p>
+        <p class="sec-apps">HBO Max · Netflix · Disney+ · Grok</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Boxed 4-digit entry.</b> Universally understood, fast on a numeric keypad, no keyboard needed.</span></li>
+          <li><span class="k">2</span><span><b>Explain the scope.</b> HBO Max literally states &ldquo;This PIN will be required to turn off Kids Mode.&rdquo; Removes fear.</span></li>
+          <li><span class="k">3</span><span><b>&ldquo;Kid-Proof Exit&rdquo; toggle</b> + &ldquo;Reset Parent Code&rdquo; — control and recovery in one place.</span></li>
+          <li><span class="k">4</span><span><b>Always offer &ldquo;Forgot PIN?&rdquo;</b> A locked-out parent is a support ticket and a 1-star review.</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>PIN-gate <b>both the exit from Child Mode and all settings</b>. Offer optional biometrics as a fast path for the parent, but keep the 4-digit PIN as the fallback and the recovery anchor (email reset).</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to PIN screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/id8UP18A" alt="HBO Max kid-proof exit"></div><figcaption><span class="app">HBO Max<br><span class="role">Kid-Proof Exit</span></span><a class="src" href="https://mobbin.com/screens/ffb49833-1f15-408d-abcd-ac664b2daf42" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/FanfHOBd" alt="HBO Max create PIN"></div><figcaption><span class="app">HBO Max<br><span class="role">Create PIN</span></span><a class="src" href="https://mobbin.com/screens/844f137e-fe9f-4f17-8414-5ebbfe30f1d9" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/9CAumBVS" alt="Netflix enter PIN keypad"></div><figcaption><span class="app">Netflix<br><span class="role">PIN keypad</span></span><a class="src" href="https://mobbin.com/screens/6ee6c033-b138-4e13-8ea2-92bfcada3f11" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/zkOnieN3" alt="Disney+ create profile PIN"></div><figcaption><span class="app">Disney+<br><span class="role">Profile PIN</span></span><a class="src" href="https://mobbin.com/screens/b8fb0ae9-3560-4556-b84e-ec78f2604895" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/1rXyz4p3" alt="Grok kids mode PIN"></div><figcaption><span class="app">Grok<br><span class="role">Exit PIN</span></span><a class="src" href="https://mobbin.com/screens/a6dafa5e-6405-43be-bb6f-a416fee00de7" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/hLaEFEbn" alt="HBO Max change PIN"></div><figcaption><span class="app">HBO Max<br><span class="role">Change PIN</span></span><a class="src" href="https://mobbin.com/screens/84dd1e87-f6d1-41f9-8d32-fccd47960e05" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 4. SCREEN TIME -->
+  <section class="block" id="limits">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Daily Limits · The Break Screen</div>
+        <div class="sec-num">04 / 07</div>
+        <h2 class="sec-title">Ending the session without a meltdown</h2>
+        <p class="sec-intro">The digital-wellbeing apps have solved the &ldquo;time&rsquo;s up&rdquo; moment. The best versions are calm, full-screen, and non-negotiable — with the &ldquo;extend&rdquo; controls placed where only an adult would find them.</p>
+        <p class="sec-apps">Instagram · YouTube · Opal</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Full-screen, calm, final.</b> Instagram&rsquo;s limit screen is quiet and unmissable — not an easily-dismissed toast.</span></li>
+          <li><span class="k">2</span><span><b>Positive framing.</b> &ldquo;Now&rsquo;s a good time to close the app&rdquo; beats &ldquo;You&rsquo;ve been blocked.&rdquo;</span></li>
+          <li><span class="k">3</span><span><b>Watch-time chart + bedtime reminders</b> (YouTube) give parents the levers, not the child.</span></li>
+          <li><span class="k">4</span><span><b>Extension is gated.</b> &ldquo;Edit daily limit&rdquo; sits behind the adult&rsquo;s controls, never a one-tap kid override.</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Show a warm, character-led <b>&ldquo;All done for today!&rdquo; break screen</b> with no kid-accessible bypass. Only the parent PIN can grant more time — turning a tantrum trigger into a clear, consistent boundary.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to limit screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/IT15GQJw" alt="Instagram daily limit reached"></div><figcaption><span class="app">Instagram<br><span class="role">Daily limit</span></span><a class="src" href="https://mobbin.com/screens/210da399-0226-422a-a50a-524d99117b17" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/mGXNlzKI" alt="Instagram time to close"></div><figcaption><span class="app">Instagram<br><span class="role">Time to close</span></span><a class="src" href="https://mobbin.com/screens/b8f4a8e6-2d85-4fe5-9213-c5273b969f3a" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/byuDSYYG" alt="Instagram reached daily limit options"></div><figcaption><span class="app">Instagram<br><span class="role">Reminder options</span></span><a class="src" href="https://mobbin.com/screens/a6739647-8943-4220-9123-0720e9cbfe4b" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/I26Xwjpo" alt="YouTube time watched and break reminders"></div><figcaption><span class="app">YouTube<br><span class="role">Watch-time tools</span></span><a class="src" href="https://mobbin.com/screens/de6f2fa5-5f26-419d-a6d3-dddf7aab85a6" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/VUUjID49" alt="Opal blocked apps home"></div><figcaption><span class="app">Opal<br><span class="role">Block now</span></span><a class="src" href="https://mobbin.com/screens/4fe2f19c-4f1f-4171-8d7f-89b3eb3746f1" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 5. PLAYER -->
+  <section class="block" id="player">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Playback · Distraction-free</div>
+        <div class="sec-num">05 / 07</div>
+        <h2 class="sec-title">A player a four-year-old can run</h2>
+        <p class="sec-intro">Kid-friendly players strip everything to a few oversized controls. Headspace even replaces the video with a friendly character — the point is a warm, tap-anywhere surface with no rabbit holes.</p>
+        <p class="sec-apps">Headspace · HBO Max</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Three controls, huge.</b> Play/pause and skip-10s — nothing a small finger can miss.</span></li>
+          <li><span class="k">2</span><span><b>No related content.</b> The end of a video is a dead end, not a recommendation funnel.</span></li>
+          <li><span class="k">3</span><span><b>Character &amp; color warmth.</b> Headspace&rsquo;s playful egg makes even a paused screen feel friendly.</span></li>
+          <li><span class="k">4</span><span><b>Exit is gated.</b> Leaving playback shouldn&rsquo;t drop the child into a browsable library.</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Embed YouTube but <b>hide its chrome — no comments, no up-next, no channel links</b>. Wrap it in your own oversized controls and return the child to the approved grid on finish. This is your single biggest safety differentiator.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to player screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/cJ4lbhMf" alt="Headspace playful player"></div><figcaption><span class="app">Headspace<br><span class="role">Playful player</span></span><a class="src" href="https://mobbin.com/screens/5911b7af-85c0-4e21-b97d-cb51d5d51dab" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/yRBAizut" alt="HBO Max minimal player controls"></div><figcaption><span class="app">HBO Max<br><span class="role">Minimal controls</span></span><a class="src" href="https://mobbin.com/screens/d31a408f-a28a-46f9-8d79-dd2ce65f15d7" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 6. ONBOARDING -->
+  <section class="block" id="onboard">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Parent Onboarding</div>
+        <div class="sec-num">06 / 07</div>
+        <h2 class="sec-title">One idea per screen, one clear CTA</h2>
+        <p class="sec-intro">The best onboarding flows earn trust fast: a friendly illustration or character, a single value proposition, progress dots, and one obvious button. Warmth here reassures the parent before they hand over the device.</p>
+        <p class="sec-apps">Liven · Waze · Gentler Streak · Alan</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>One value prop per screen</b> with a warm illustration — never a wall of text.</span></li>
+          <li><span class="k">2</span><span><b>Progress dots</b> set expectations: this is short.</span></li>
+          <li><span class="k">3</span><span><b>A mascot builds trust.</b> Gentler Streak and Alan use a character to feel human and safe.</span></li>
+          <li><span class="k">4</span><span><b>One primary CTA,</b> a quiet secondary (&ldquo;Log in&rdquo;) — no decision paralysis.</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Get parents to value fast: <b>promise → create a child → paste the first video → set the PIN</b>. Four warm screens ending in a populated playlist, so the first thing they do is hand a working app to their kid.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to onboarding screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/IzDe5v1N" alt="Liven welcome onboarding"></div><figcaption><span class="app">Liven<br><span class="role">Welcome</span></span><a class="src" href="https://mobbin.com/screens/3eb0162b-13f1-4f14-9a8b-352b1a14433a" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/1sweFCiy" alt="Waze onboarding value prop"></div><figcaption><span class="app">Waze<br><span class="role">Value + dots</span></span><a class="src" href="https://mobbin.com/screens/dd4be012-6bc6-4c6a-9f71-9ac9878b2121" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/aZc5Hzhp" alt="Gentler Streak mascot onboarding"></div><figcaption><span class="app">Gentler Streak<br><span class="role">Mascot intro</span></span><a class="src" href="https://mobbin.com/screens/3e1eb0e5-c4d4-48f9-9130-8b8ba1e82190" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/RLcqNV90" alt="Alan warm up onboarding"></div><figcaption><span class="app">Alan<br><span class="role">Character CTA</span></span><a class="src" href="https://mobbin.com/screens/71e53214-cb50-4566-aa9e-de155a561011" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- 7. ACTIVITY -->
+  <section class="block" id="activity">
+    <div class="sec-head">
+      <div>
+        <div class="section-tag"><span class="pill"></span> Parent Review · Activity</div>
+        <div class="sec-num">07 / 07</div>
+        <h2 class="sec-title">Showing parents what happened</h2>
+        <p class="sec-intro">Wellbeing and fitness apps have refined the &ldquo;here&rsquo;s your week&rdquo; view: a single big number up top, a daily bar chart, and a clear average — glanceable in three seconds.</p>
+        <p class="sec-apps">YouTube · Instagram · Fitbit · Opal</p>
+      </div>
+      <div class="takeaways">
+        <h5>Patterns worth stealing</h5>
+        <ul>
+          <li><span class="k">1</span><span><b>Hero number first.</b> &ldquo;8 min daily average&rdquo; before any detail — summary before granularity.</span></li>
+          <li><span class="k">2</span><span><b>Seven-bar week chart</b> is the universal, instantly-readable format for daily usage.</span></li>
+          <li><span class="k">3</span><span><b>A progress ring</b> (Fitbit, timespent) makes &ldquo;against the limit&rdquo; obvious.</span></li>
+          <li><span class="k">4</span><span><b>Actionable, not just informative.</b> Instagram pairs the chart with &ldquo;set a reminder.&rdquo;</span></li>
+        </ul>
+        <div class="apply">
+          <span class="badge">For LittleLoop</span>
+          <p>Give parents a per-child recap: <b>today&rsquo;s watch time as a big number, a 7-day bar chart, and the list of videos watched</b>. Pair it with a one-tap &ldquo;adjust daily limit&rdquo; so insight leads straight to a control.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollhint">→ scroll to activity screens</div>
+    <div class="gallery">
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/DPqeloN5" alt="Instagram your activity time"></div><figcaption><span class="app">Instagram<br><span class="role">Your activity</span></span><a class="src" href="https://mobbin.com/screens/dff8a7fe-e983-4471-8680-066bbf4df4b0" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/I26Xwjpo" alt="YouTube time watched chart"></div><figcaption><span class="app">YouTube<br><span class="role">Time watched</span></span><a class="src" href="https://mobbin.com/screens/de6f2fa5-5f26-419d-a6d3-dddf7aab85a6" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/d0VWUP2s" alt="Fitbit daily breakdown"></div><figcaption><span class="app">Fitbit<br><span class="role">Daily breakdown</span></span><a class="src" href="https://mobbin.com/screens/53272b0f-f51e-4356-9a04-44d10c772d17" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/kglfwPcY" alt="timespent daily recap ring"></div><figcaption><span class="app">timespent<br><span class="role">Recap ring</span></span><a class="src" href="https://mobbin.com/screens/4bf89dbc-99ee-46de-ba7d-17ddfea5bd79" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+      <figure class="device"><div class="screen"><img loading="lazy" src="https://mobbin.com/api/mcp/short/wQE2cMpY" alt="Opal community insights"></div><figcaption><span class="app">Opal<br><span class="role">Insights</span></span><a class="src" href="https://mobbin.com/screens/dbf71c60-5a58-4cc8-9623-eefa9c401db5" target="_blank" rel="noopener">Mobbin ↗</a></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section class="block" id="principles">
+    <div style="margin-bottom:30px;">
+      <div class="section-tag"><span class="pill"></span> Cross-cutting playbook</div>
+      <h2 class="sec-title" style="max-width:20ch;">Six principles the top apps agree on</h2>
+    </div>
+    <div class="principles">
+      <div class="pcard"><div class="ic">🔒</div><h3>Two worlds, one wall</h3><p>A warm, playful child world and a plain, capable parent world — with a single, unmistakable PIN wall between them.</p></div>
+      <div class="pcard"><div class="ic">🎨</div><h3>Recognition over reading</h3><p>Kids navigate by artwork, faces, and color. Big thumbnails and characters beat text labels every time.</p></div>
+      <div class="pcard"><div class="ic">🚫</div><h3>Constraint is the product</h3><p>No search, no browse, no up-next. What you remove is the safety feature parents are paying for.</p></div>
+      <div class="pcard"><div class="ic">🌤️</div><h3>Calm boundaries</h3><p>&ldquo;All done for today&rdquo; framed warmly and made final — kind wording, but no kid-accessible bypass.</p></div>
+      <div class="pcard"><div class="ic">📊</div><h3>Summary before detail</h3><p>Parent-facing data leads with one big number and a 7-day chart, then lets them drill down if they want.</p></div>
+      <div class="pcard"><div class="ic">👋</div><h3>Trust, fast</h3><p>Friendly onboarding, a mascot, one idea per screen — parents decide in seconds whether to hand over the phone.</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap fgrid">
+    <div>
+      <h4>LittleLoop</h4>
+      <p>A parent-controlled video app for young children. This teardown is a design starting point — every pattern above maps to a screen LittleLoop will need to build.</p>
+    </div>
+    <div class="note">
+      Research curated via Mobbin · 18 apps · 7 problem areas<br>
+      Compiled 2026 · Screens link to their source on Mobbin
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

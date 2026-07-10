@@ -2,29 +2,16 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
-import Svg, { Path, Rect } from 'react-native-svg';
-import { Button, PINDots, PINKeypad, ScreenContainer, Txt } from '@/components';
+import { Button, PINBoxes, PINKeypad, ScreenContainer, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { savePin } from '@/lib/pin';
 import { useLockStore } from '@/stores/lockStore';
 
 const PIN_LENGTH = 4;
 
-function LockIcon() {
-  return (
-    <View style={styles.iconBox}>
-      <Svg width={26} height={29} viewBox="0 0 26 29">
-        <Path
-          d="M6.5 12 V8 a6.5 6.5 0 0 1 13 0 v4"
-          stroke={colors.primary}
-          strokeWidth={3}
-          fill="none"
-          strokeLinecap="round"
-        />
-        <Rect x={1} y={11} width={24} height={17} rx={6} fill={colors.primary} />
-      </Svg>
-    </View>
-  );
+/** The owl guards the PIN everywhere — setup matches the gate (concept §03). */
+function Owl() {
+  return <Txt size={44} style={{ marginBottom: 10 }}>🦉</Txt>;
 }
 
 type Step = 'enter' | 'confirm' | 'biometric';
@@ -96,7 +83,7 @@ export default function PinSetup() {
     return (
       <ScreenContainer>
         <View style={styles.bioWrap}>
-          <LockIcon />
+          <Owl />
           <Txt weight="black" size={26} center>
             Unlock with Face ID?
           </Txt>
@@ -121,7 +108,7 @@ export default function PinSetup() {
 
   return (
     <ScreenContainer style={styles.container}>
-      <LockIcon />
+      <Owl />
       <Txt weight="black" size={26} center style={{ marginBottom: 8 }}>
         {isConfirm ? 'Confirm your PIN' : 'Create your Parent PIN'}
       </Txt>
@@ -129,7 +116,7 @@ export default function PinSetup() {
         {isConfirm ? 'Enter the same 4 digits again.' : 'This keeps settings protected from children.'}
       </Txt>
       <View style={styles.dots}>
-        <PINDots length={PIN_LENGTH} filled={errorFlash ? PIN_LENGTH : pin.length} error={errorFlash} />
+        <PINBoxes length={PIN_LENGTH} filled={errorFlash ? PIN_LENGTH : pin.length} error={errorFlash} />
       </View>
       <PINKeypad
         onDigit={onDigit}
@@ -146,15 +133,6 @@ export default function PinSetup() {
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 28 },
-  iconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 22,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
   dots: { marginTop: 34, marginBottom: 38 },
   bioWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 8 },
   bioButtons: { alignSelf: 'stretch', gap: 8, marginTop: 20 },

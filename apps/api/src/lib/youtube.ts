@@ -100,6 +100,53 @@ export async function resolveVideo(providerVideoId: string): Promise<ResolvedVid
 }
 
 /**
+ * Search YouTube and return only videos that pass the same PLAN §9 gates as
+ * resolveVideo (embeddable, not live, not age-restricted, real duration).
+ * Quota: search.list = 100 units + one videos.list call = 1 unit, so callers
+ * MUST cache results (see search-cache) — this is ~100x a preview lookup.
+ */
+export async function searchVideos(query: string, maxResults = 20): Promise<ResolvedVideo[]> {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) throw new HttpError(500, 'MISCONFIGURED', 'YOUTUBE_API_KEY is not set');
+  const url =
+    'https://www.googleapis.com/youtube/v3/search' +
+    `?part=id&type=video&videoEmbeddable=true&safeSearch=strict` +
+    `&maxResults=${maxResults}&q=${encodeURIComponent(query)}&key=${key}`;
+  const res = await fetch(url);
+  if (res.status === 403) {
+    throw new HttpError(503, 'QUOTA_EXCEEDED', 'Video search is temporarily unavailable');
+  }
+  if (!res.ok) {
+    throw new HttpError(502, 'PROVIDER_ERROR', `YouTube API error (${res.status})`);
+  }
+  const body = (await res.json()) as { items?: { id?: { videoId?: string } }[] };
+  const ids = (body.items ?? [])
+    .map((item) => item.id?.videoId)
+    .filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return [];
+
+  const items = await fetchItems(ids);
+  const results: ResolvedVideo[] = [];
+  for (const item of items) {
+    if (item.status.privacyStatus === 'private' || !item.status.embeddable) continue;
+    if (item.snippet.liveBroadcastContent !== 'none') continue;
+    if (item.contentDetails.contentRating?.ytRating === 'ytAgeRestricted') continue;
+    const durationSeconds = parseIsoDuration(item.contentDetails.duration);
+    if (!durationSeconds) continue;
+    results.push({
+      providerVideoId: item.id,
+      title: item.snippet.title,
+      channelTitle: item.snippet.channelTitle,
+      durationSeconds,
+      thumbnailUrl: bestThumbnail(item.snippet.thumbnails, item.id),
+      embeddable: true,
+      madeForKids: item.status.madeForKids ?? null,
+    });
+  }
+  return results;
+}
+
+/**
  * Availability re-check for the nightly cron: returns the subset of `ids`
  * still available+embeddable. Missing from the response = deleted/private.
  */

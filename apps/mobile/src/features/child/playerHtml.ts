@@ -78,7 +78,13 @@ export function buildPlayerHtml(videoId: string): string {
     if (!player) return;
     if (cmd === 'play') player.playVideo();
     else if (cmd === 'pause') player.pauseVideo();
-    else if (cmd === 'load') player.loadVideoById(arg);
+    else if (cmd === 'load') {
+      if (arg && typeof arg === 'object') {
+        player.loadVideoById({ videoId: arg.videoId, startSeconds: Number(arg.startSeconds) || 0 });
+      } else {
+        player.loadVideoById(arg);
+      }
+    }
     else if (cmd === 'seek') player.seekTo(Number(arg) || 0, true);
   };
 </script>

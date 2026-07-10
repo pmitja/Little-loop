@@ -34,7 +34,7 @@ function CheckMark({ on }: { on: boolean }) {
 /** s09 — preview the resolved video and explicitly approve it. */
 export default function ReviewVideo() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ video?: string }>();
+  const params = useLocalSearchParams<{ video?: string; entryId?: string }>();
   const [approved, setApproved] = useState(false);
 
   const video: VideoMeta | null = useMemo(() => {
@@ -49,6 +49,7 @@ export default function ReviewVideo() {
     s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
   const addVideo = usePlaylistStore((s) => s.addVideo);
+  const setVideoStatus = usePlaylistStore((s) => s.setVideoStatus);
 
   if (!video || !profile) {
     // Shouldn't happen in the normal flow; bail out gracefully.
@@ -57,7 +58,12 @@ export default function ReviewVideo() {
   }
 
   const onAdd = () => {
-    const result = addVideo(profile.id, video);
+    if (params.entryId) {
+      setVideoStatus(profile.id, params.entryId, 'live');
+      router.replace('/(parent)/(tabs)/playlist');
+      return;
+    }
+    const result = addVideo(profile.id, video, 'live');
     if (result === 'duplicate') {
       Alert.alert('Already added', `This video is already in ${profile.nickname}’s playlist.`);
       return;
@@ -65,7 +71,7 @@ export default function ReviewVideo() {
     if (result === 'limit') {
       // 11th video on the free plan → paywall (PLAN §12); the approved video
       // stays on this screen so the add can be retried after purchase.
-      router.push('/paywall');
+      router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: profile.nickname } });
       return;
     }
     router.replace('/(parent)/(tabs)/playlist');

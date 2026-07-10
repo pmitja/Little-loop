@@ -53,10 +53,10 @@ export default function Splash() {
       if (childModeActive) {
         // Killed during child mode → restore into child mode, never flash parent UI.
         router.replace('/(child)');
+      } else if (!isSignedIn) {
+        router.replace('/(auth)/sign-in');
       } else if (!onboardingComplete) {
         router.replace('/(onboarding)/welcome');
-      } else if (!isSignedIn) {
-        router.replace('/(auth)/sign-up');
       } else if (!pinSet) {
         router.replace('/(onboarding)/pin-setup');
       } else {

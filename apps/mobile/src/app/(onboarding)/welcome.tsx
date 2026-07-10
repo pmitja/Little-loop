@@ -1,48 +1,52 @@
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, ScreenContainer, Txt } from '@/components';
-import { colors } from '@/theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Txt } from '@/components';
+import { colors, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
-import { clerkEnabled } from '@/lib/auth';
-import {
-  ChildModeIllustration,
-  NoBrowsingIllustration,
-  PlaylistIllustration,
-} from '@/features/onboarding/illustrations';
+import { clerkEnabled, useAuthStatus } from '@/lib/auth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PAGES = [
   {
-    illustration: <PlaylistIllustration />,
-    title: 'Parent-approved videos only',
-    body: 'Create a playlist your child can watch safely — without search, recommendations, or endless scrolling.',
-    cta: 'Get Started',
+    emoji: '🦉',
+    title: 'Only the videos you choose.',
+    body: 'You approve every video. Your child sees nothing else — no ads, no rabbit holes, no surprises.',
+    cta: 'Let’s set up',
   },
   {
-    illustration: <NoBrowsingIllustration />,
+    emoji: '🔒',
     title: 'No browsing. No surprises.',
-    body: 'Children can only watch videos you add. They cannot open related videos, channels, or search results.',
+    body: 'Children can only watch videos you add. No related videos, channels, or search results.',
     cta: 'Continue',
   },
   {
-    illustration: <ChildModeIllustration />,
+    emoji: '🚂',
     title: 'Simple child mode',
     body: 'A calm, distraction-free player designed for young children.',
     cta: 'Create Parent PIN',
   },
 ] as const;
 
-/** s02–s04 — onboarding pager with Skip, dots, and per-page CTA. */
+/** Onboarding promise pager (concept §09): sky gradient, mascot circle, one idea per page. */
 export default function Welcome() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
+  const { isSignedIn } = useAuthStatus();
   const setOnboardingComplete = useAppStore((s) => s.setOnboardingComplete);
 
   const finish = () => {
     setOnboardingComplete(true);
-    router.replace(clerkEnabled ? '/(auth)/sign-up' : '/(onboarding)/pin-setup');
+    router.replace(clerkEnabled && !isSignedIn ? '/(auth)/sign-up' : '/(onboarding)/pin-setup');
+  };
+
+  const signIn = () => {
+    setOnboardingComplete(true);
+    router.replace(clerkEnabled ? '/(auth)/sign-in' : '/(onboarding)/pin-setup');
   };
 
   const goTo = (index: number) => {
@@ -52,33 +56,26 @@ export default function Welcome() {
   const isLast = page === PAGES.length - 1;
 
   return (
-    <ScreenContainer padded={false}>
-      <View style={styles.skipRow}>
-        <Pressable onPress={() => (isLast ? finish() : goTo(PAGES.length - 1))} hitSlop={10}>
-          <Txt weight="extrabold" size={14} color={colors.subtle} style={styles.skip}>
-            Skip
-          </Txt>
-        </Pressable>
-      </View>
+    <LinearGradient colors={[colors.child.sky, '#A5E1EF']} style={styles.root}>
       <ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
-        style={styles.pager}
+        style={{ flex: 1, marginTop: insets.top }}
       >
         {PAGES.map((p) => (
           <View key={p.title} style={[styles.page, { width }]}>
-            <View style={styles.illustration}>{p.illustration}</View>
-            <View style={styles.copy}>
-              <Txt weight="black" size={28} center lineHeight={33.5}>
-                {p.title}
-              </Txt>
-              <Txt weight="semibold" size={15} color={colors.muted} center lineHeight={22.5}>
-                {p.body}
-              </Txt>
+            <View style={styles.mascotStage}>
+              <Txt size={64}>{p.emoji}</Txt>
             </View>
+            <Txt weight="black" size={26} color={colors.parent.night} center lineHeight={31} style={styles.title}>
+              {p.title}
+            </Txt>
+            <Txt weight="semibold" size={14.5} color="#2E5566" center lineHeight={21.75} style={styles.body}>
+              {p.body}
+            </Txt>
           </View>
         ))}
       </ScrollView>
@@ -86,29 +83,54 @@ export default function Welcome() {
         {PAGES.map((_, i) => (
           <View
             key={i}
-            style={[
-              styles.dotBase,
-              i === page ? styles.dotActive : { backgroundColor: colors.dotInactive },
-            ]}
+            style={[styles.dotBase, i === page ? styles.dotActive : styles.dotIdle]}
           />
         ))}
       </View>
-      <View style={styles.ctaWrap}>
-        <Button title={PAGES[page].cta} onPress={() => (isLast ? finish() : goTo(page + 1))} />
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 22 }]}>
+        <Pressable
+          onPress={() => (isLast ? finish() : goTo(page + 1))}
+          style={({ pressed }) => [styles.cta, shadows.coralButton, pressed && { opacity: 0.9 }]}
+        >
+          <Txt weight="black" size={16} color="#fff">{PAGES[page].cta}</Txt>
+        </Pressable>
+        {!isSignedIn ? (
+          <Pressable onPress={signIn} hitSlop={8}>
+            <Txt weight="bold" size={13} color="#2E5566" center>
+              I already have an account
+            </Txt>
+          </Pressable>
+        ) : null}
       </View>
-    </ScreenContainer>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  skipRow: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 14 },
-  skip: { paddingVertical: 10, paddingHorizontal: 6 },
-  pager: { flex: 1 },
-  page: { flex: 1 },
-  illustration: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  copy: { gap: 12, paddingHorizontal: 30 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, marginVertical: 22 },
-  dotBase: { width: 8, height: 8, borderRadius: 4 },
-  dotActive: { width: 22, backgroundColor: colors.primary },
-  ctaWrap: { paddingHorizontal: 24, paddingBottom: 20 },
+  root: { flex: 1 },
+  page: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, gap: 16 },
+  mascotStage: {
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: 'rgba(255,255,255,.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  title: { maxWidth: 280 },
+  body: { maxWidth: 280 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, marginBottom: 20 },
+  dotBase: { height: 8, borderRadius: 4 },
+  dotIdle: { width: 8, backgroundColor: 'rgba(42,59,92,.25)' },
+  dotActive: { width: 22, backgroundColor: colors.parent.night },
+  footer: { paddingHorizontal: 24, gap: 16, alignItems: 'center' },
+  cta: {
+    alignSelf: 'stretch',
+    minHeight: 54,
+    borderRadius: 999,
+    backgroundColor: colors.child.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

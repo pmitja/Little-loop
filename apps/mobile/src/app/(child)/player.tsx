@@ -21,7 +21,7 @@ import { TimerBadge } from '@/components/TimerBadge';
 import { colors, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/stores/appStore';
-import { usePlaylistVideos } from '@/stores/playlistStore';
+import { useLivePlaylistVideos, usePlaylistStore } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday, useTimerStore } from '@/stores/timerStore';
 import {
   PLAYER_ORIGIN,
@@ -49,21 +49,42 @@ function PlayPauseIcon({ playing }: { playing: boolean }) {
   );
 }
 
-function SkipIcon({ direction }: { direction: 'prev' | 'next' }) {
-  const triangle = (
-    <Svg width={12} height={15} viewBox="0 0 12 15">
+function SeekIcon({ direction }: { direction: 'back' | 'forward' }) {
+  const transform = direction === 'forward' ? 'translate(36 0) scale(-1 1)' : undefined;
+  return (
+    <View style={styles.seekIcon}>
+      <Svg width={36} height={36} viewBox="0 0 36 36" style={StyleSheet.absoluteFill}>
+        <Path
+          d="M10 9H4V3 M5 9C8 4 14 2 20 4C28 6 32 14 29 22C26 30 17 33 10 29C7 27 5 25 4 22"
+          transform={transform}
+          stroke="rgba(255,255,255,.88)"
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+      <Txt weight="black" size={10} color="#FFFFFF">
+        10
+      </Txt>
+    </View>
+  );
+}
+
+function SkipIcon({ direction }: { direction: 'previous' | 'next' }) {
+  const transform = direction === 'previous' ? 'translate(22 0) scale(-1 1)' : undefined;
+  return (
+    <Svg width={22} height={22} viewBox="0 0 22 22">
       <Path
-        d={direction === 'next' ? 'M1 1 L11 7.5 L1 14 Z' : 'M11 1 L1 7.5 L11 14 Z'}
-        fill="rgba(255,255,255,.85)"
+        d="M3 3 L15 11 L3 19 Z M17 3 V19"
+        transform={transform}
+        stroke="rgba(255,255,255,.88)"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="rgba(255,255,255,.88)"
       />
     </Svg>
-  );
-  const bar = <View style={styles.skipBar} />;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-      {direction === 'prev' ? bar : triangle}
-      {direction === 'prev' ? triangle : bar}
-    </View>
   );
 }
 
@@ -89,24 +110,41 @@ export default function ChildPlayer() {
   const profile = useAppStore((s) =>
     s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
-  const videos = usePlaylistVideos(profile?.id ?? null);
+  const videos = useLivePlaylistVideos(profile?.id ?? null);
   const watched = useSecondsWatchedToday(profile?.id ?? null);
   const remaining = remainingSeconds(profile?.dailyLimitMinutes, watched);
 
   const initialIndex = Math.min(Math.max(Number(params.index ?? 0) || 0, 0), Math.max(videos.length - 1, 0));
   const [index, setIndex] = useState(initialIndex);
   const current = videos[index];
-  const nextIndex = videos.length > 1 ? (index + 1) % videos.length : null;
+  const prevIndex = index > 0 ? index - 1 : null;
+  const nextIndex = index + 1 < videos.length ? index + 1 : null;
   const next = nextIndex !== null ? videos[nextIndex] : undefined;
+  const initialProgress =
+    profile && current
+      ? usePlaylistStore.getState().playbackProgressByChild?.[profile.id]?.[
+          current.video.providerVideoId
+        ]
+      : undefined;
 
   const webviewRef = useRef<WebView>(null);
-  const latestPositionRef = useRef(0);
-  const latestPlayingRef = useRef(false);
+  const latestPositionRef = useRef(initialProgress?.positionSeconds ?? 0);
+  const latestDurationRef = useRef(
+    initialProgress?.durationSeconds ?? current?.video.durationSeconds ?? 0,
+  );
+  const currentIdentityRef = useRef({
+    childProfileId: profile?.id ?? null,
+    providerVideoId: current?.video.providerVideoId ?? null,
+  });
+  const lastProgressSaveRef = useRef(0);
   const [controlsOpacity] = useState(() => new Animated.Value(1));
   const controlsHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [playerState, setPlayerState] = useState<number>(-1);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(current?.video.durationSeconds ?? 0);
+  const [position, setPosition] = useState(initialProgress?.positionSeconds ?? 0);
+  const [duration, setDuration] = useState(
+    initialProgress?.durationSeconds ?? current?.video.durationSeconds ?? 0,
+  );
+  const [progressTrackWidth, setProgressTrackWidth] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const playing = playerState === YT_STATE.playing;
   // Two-minute warning (PLAN §13): remaining only decreases, so this window
@@ -116,11 +154,18 @@ export default function ChildPlayer() {
   // The document is created once; later videos load over the bridge.
   const html = useMemo(() => buildPlayerHtml(current?.video.providerVideoId ?? ''), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const command = useCallback((cmd: string, arg?: number | string) => {
+  const command = useCallback((cmd: string, arg?: unknown) => {
     webviewRef.current?.injectJavaScript(
       `window.llCommand(${JSON.stringify(cmd)}, ${JSON.stringify(arg ?? null)}); true;`,
     );
   }, []);
+
+  useEffect(() => {
+    currentIdentityRef.current = {
+      childProfileId: profile?.id ?? null,
+      providerVideoId: current?.video.providerVideoId ?? null,
+    };
+  }, [profile?.id, current?.video.providerVideoId]);
 
   const clearControlsHideTimer = useCallback(() => {
     if (controlsHideTimer.current) {
@@ -151,18 +196,56 @@ export default function ChildPlayer() {
     }
   }, [clearControlsHideTimer, playing, setChromeVisible]);
 
+  const persistCurrentProgress = useCallback(() => {
+    const { childProfileId, providerVideoId } = currentIdentityRef.current;
+    if (!childProfileId || !providerVideoId) return;
+    usePlaylistStore
+      .getState()
+      .savePlaybackProgress(
+        childProfileId,
+        providerVideoId,
+        latestPositionRef.current,
+        latestDurationRef.current,
+      );
+    lastProgressSaveRef.current = Date.now();
+  }, []);
+
+  const seekTo = useCallback(
+    (seconds: number) => {
+      const target = Math.min(Math.max(seconds, 0), Math.max(duration, 0));
+      latestPositionRef.current = target;
+      setPosition(target);
+      command('seek', target);
+      revealControls();
+    },
+    [command, duration, revealControls],
+  );
+
   const goTo = useCallback(
     (i: number) => {
       const target = videos[i];
       if (!target) return;
+      persistCurrentProgress();
+      const saved = profile
+        ? usePlaylistStore.getState().playbackProgressByChild?.[profile.id]?.[
+            target.video.providerVideoId
+          ]
+        : undefined;
+      const resumeAt = saved?.positionSeconds ?? 0;
+      const targetDuration = saved?.durationSeconds ?? target.video.durationSeconds ?? 0;
+      currentIdentityRef.current = {
+        childProfileId: profile?.id ?? null,
+        providerVideoId: target.video.providerVideoId,
+      };
       setIndex(i);
-      setPosition(0);
-      latestPositionRef.current = 0;
-      setDuration(target.video.durationSeconds ?? 0);
+      setPosition(resumeAt);
+      latestPositionRef.current = resumeAt;
+      setDuration(targetDuration);
+      latestDurationRef.current = targetDuration;
       revealControls();
-      command('load', target.video.providerVideoId);
+      command('load', { videoId: target.video.providerVideoId, startSeconds: resumeAt });
     },
-    [videos, command, revealControls],
+    [videos, profile, command, revealControls, persistCurrentProgress],
   );
 
   const onMessage = useCallback(
@@ -174,26 +257,36 @@ export default function ChildPlayer() {
         return;
       }
       if (msg.type === 'state') {
-        latestPlayingRef.current = msg.state === YT_STATE.playing;
         setPlayerState(msg.state);
         if (msg.state === YT_STATE.ended) {
+          if (profile && current) {
+            usePlaylistStore
+              .getState()
+              .clearPlaybackProgress(profile.id, current.video.providerVideoId);
+          }
           // End-state takeover (PLAN §9): never show YouTube's end screen —
           // advance within the approved playlist or leave the player.
           if (videos[index + 1]) goTo(index + 1);
           else router.back();
+        } else if (msg.state === YT_STATE.paused) {
+          persistCurrentProgress();
         }
       } else if (msg.type === 'time') {
         latestPositionRef.current = msg.current;
+        latestDurationRef.current = msg.duration;
         setPosition(msg.current);
         if (msg.duration > 0) setDuration(msg.duration);
+        if (Date.now() - lastProgressSaveRef.current >= 5000) {
+          persistCurrentProgress();
+        }
       } else if (msg.type === 'ready') {
-        if (msg.duration > 0) setDuration(msg.duration);
+        if (msg.duration > 0) {
+          setDuration(msg.duration);
+          latestDurationRef.current = msg.duration;
+        }
         const restoreAt = latestPositionRef.current;
         if (restoreAt > 1) {
           command('seek', restoreAt);
-          if (!latestPlayingRef.current) {
-            command('pause');
-          }
         }
       } else if (msg.type === 'error') {
         // Unplayable video (removed/region-locked since approval): skip it.
@@ -201,7 +294,7 @@ export default function ChildPlayer() {
         else router.back();
       }
     },
-    [videos, index, goTo, router, command],
+    [videos, index, goTo, router, command, profile, current, persistCurrentProgress],
   );
 
   // 1 Hz watch counting, only while the player reports PLAYING (PLAN §13).
@@ -229,6 +322,15 @@ export default function ChildPlayer() {
 
   useEffect(() => clearControlsHideTimer, [clearControlsHideTimer]);
 
+  // Persist the latest meaningful position when leaving the player. Writes
+  // during playback are throttled above so MMKV is not updated every 500 ms.
+  useEffect(
+    () => () => {
+      persistCurrentProgress();
+    },
+    [persistCurrentProgress],
+  );
+
   // T = 0 → pause, close the session, hand over to the break screen.
   useEffect(() => {
     if (remaining !== null && remaining <= 0) {
@@ -241,10 +343,13 @@ export default function ChildPlayer() {
   // Backgrounding pauses playback (PLAN §10).
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') command('pause');
+      if (state !== 'active') {
+        persistCurrentProgress();
+        command('pause');
+      }
     });
     return () => sub.remove();
-  }, [command]);
+  }, [command, persistCurrentProgress]);
 
   // Restore portrait when the player unmounts.
   useEffect(() => {
@@ -291,33 +396,54 @@ export default function ChildPlayer() {
 
   const transportControls = (gap: number, mainSize: number, sideSize: number) => (
     <View style={[styles.controlsRow, { gap }]}>
-      <RoundButton size={sideSize} disabled={index === 0} onPress={() => goTo(index - 1)}>
-        <SkipIcon direction="prev" />
+      <RoundButton
+        accessibilityLabel="Previous video"
+        size={sideSize - 10}
+        disabled={prevIndex === null}
+        onPress={() => {
+          if (prevIndex !== null) goTo(prevIndex);
+        }}
+      >
+        <SkipIcon direction="previous" />
+      </RoundButton>
+      <RoundButton
+        accessibilityLabel="Go back 10 seconds"
+        size={sideSize}
+        onPress={() => seekTo(position - 10)}
+      >
+        <SeekIcon direction="back" />
       </RoundButton>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={playing ? 'Pause video' : 'Play video'}
         onPress={() => {
           revealControls();
           command(playing ? 'pause' : 'play');
         }}
-        style={[shadows.coralButton, { borderRadius: mainSize / 2 }]}
-      >
-        <LinearGradient
-          colors={['#FF9A8B', '#FF8A7A']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
+        style={[
+          shadows.coralButton,
+          {
             width: mainSize,
             height: mainSize,
             borderRadius: mainSize / 2,
+            backgroundColor: colors.child.coral,
             alignItems: 'center',
             justifyContent: 'center',
-          }}
-        >
-          <PlayPauseIcon playing={playing} />
-        </LinearGradient>
+          },
+        ]}
+      >
+        <PlayPauseIcon playing={playing} />
       </Pressable>
       <RoundButton
+        accessibilityLabel="Go forward 10 seconds"
         size={sideSize}
+        onPress={() => seekTo(position + 10)}
+      >
+        <SeekIcon direction="forward" />
+      </RoundButton>
+      <RoundButton
+        accessibilityLabel="Next video"
+        size={sideSize - 10}
         disabled={nextIndex === null}
         onPress={() => {
           if (nextIndex !== null) goTo(nextIndex);
@@ -333,9 +459,34 @@ export default function ChildPlayer() {
       <Txt weight="bold" size={12} color={light ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.6)'}>
         {formatDuration(Math.floor(position))}
       </Txt>
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-      </View>
+      <Pressable
+        accessibilityRole="adjustable"
+        accessibilityLabel="Video timeline"
+        accessibilityValue={{
+          min: 0,
+          max: Math.floor(duration),
+          now: Math.floor(position),
+          text: `${formatDuration(Math.floor(position))} of ${formatDuration(Math.floor(duration))}`,
+        }}
+        accessibilityActions={[
+          { name: 'increment', label: 'Forward 10 seconds' },
+          { name: 'decrement', label: 'Back 10 seconds' },
+        ]}
+        onAccessibilityAction={(event) =>
+          seekTo(position + (event.nativeEvent.actionName === 'increment' ? 10 : -10))
+        }
+        onLayout={(event) => setProgressTrackWidth(event.nativeEvent.layout.width)}
+        onPress={(event) => {
+          if (progressTrackWidth <= 0 || duration <= 0) return;
+          seekTo((event.nativeEvent.locationX / progressTrackWidth) * duration);
+        }}
+        style={styles.trackTouch}
+      >
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+          <View style={[styles.scrubber, { left: `${progress * 100}%` }]} />
+        </View>
+      </Pressable>
       <Txt weight="bold" size={12} color={light ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.6)'}>
         {formatDuration(Math.floor(duration))}
       </Txt>
@@ -449,7 +600,7 @@ export default function ChildPlayer() {
       </Txt>
       <View style={{ marginTop: 14 }}>{progressBar()}</View>
 
-      <View style={{ marginTop: 26 }}>{transportControls(26, 78, 58)}</View>
+      <View style={{ marginTop: 26 }}>{transportControls(16, 72, 52)}</View>
 
       <View style={{ flex: 1 }} />
 
@@ -475,10 +626,10 @@ export default function ChildPlayer() {
               <Txt weight="extrabold" size={13.5} color="#FFFFFF" numberOfLines={1}>
                 {next.video.title}
               </Txt>
-              <Txt weight="semibold" size={11.5} color="rgba(255,255,255,.5)" style={{ marginTop: 2 }}>
+              <Txt weight="bold" size={11.5} color={colors.child.grass} style={{ marginTop: 2 }}>
                 {next.video.durationSeconds
-                  ? `${formatDuration(next.video.durationSeconds)} · parent-approved`
-                  : 'parent-approved'}
+                  ? `✓ parent-approved · ${formatDuration(next.video.durationSeconds)}`
+                  : '✓ parent-approved'}
               </Txt>
             </View>
           </Pressable>
@@ -493,17 +644,21 @@ function RoundButton({
   children,
   size,
   onPress,
+  accessibilityLabel,
   disabled,
   style,
 }: {
   children: React.ReactNode;
   size: number;
   onPress: () => void;
+  accessibilityLabel: string;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
@@ -556,18 +711,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cornerInVideo: { position: 'absolute', bottom: 10, right: 10 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  trackTouch: { flex: 1, height: 44, justifyContent: 'center' },
   track: {
-    flex: 1,
+    width: '100%',
     height: 7,
     borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,.14)',
-    overflow: 'hidden',
   },
-  fill: { height: '100%', borderRadius: 4, backgroundColor: colors.primary },
+  fill: { height: '100%', borderRadius: 4, backgroundColor: colors.child.sun },
+  scrubber: {
+    position: 'absolute',
+    top: -3,
+    width: 13,
+    height: 13,
+    marginLeft: -6.5,
+    borderRadius: 6.5,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: colors.child.sun,
+  },
   controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   pauseBar: { width: 7, height: 26, borderRadius: 3, backgroundColor: '#FFFFFF' },
-  skipBar: { width: 3, height: 14, borderRadius: 2, backgroundColor: 'rgba(255,255,255,.85)' },
+  seekIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   upNextLabel: { letterSpacing: 0.84, marginBottom: 10 },
   upNextCard: {
     flexDirection: 'row',

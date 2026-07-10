@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 
 export const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 export const clerkEnabled = CLERK_PUBLISHABLE_KEY.length > 0;
@@ -21,4 +21,20 @@ export function useAuthStatus(): AuthStatus {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { isLoaded, isSignedIn } = useAuth();
   return { isLoaded, isSignedIn: isSignedIn ?? false };
+}
+
+/**
+ * Signed-in parent's display identity, with the same dev bypass as
+ * `useAuthStatus` — `useUser` throws outside <ClerkProvider>.
+ */
+export function useParentIdentity(): { name: string | null; email: string | null } {
+  if (!clerkEnabled) {
+    return { name: null, email: null };
+  }
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { user } = useUser();
+  return {
+    name: user?.firstName ?? null,
+    email: user?.primaryEmailAddress?.emailAddress ?? null,
+  };
 }

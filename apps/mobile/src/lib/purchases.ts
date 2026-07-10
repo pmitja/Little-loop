@@ -20,7 +20,6 @@ export interface Plan {
   priceString: string;
   /** e.g. "$2.92/mo · save 42%" — only on yearly. */
   subline: string;
-  trialDays: number;
   /** RevenueCat package identifier when live; mock plans carry their id. */
   rcPackageId: string;
 }
@@ -31,7 +30,6 @@ const MOCK_PLANS: Plan[] = [
     productId: 'll_premium_monthly',
     priceString: '$4.99',
     subline: 'per month',
-    trialDays: 0,
     rcPackageId: '$rc_monthly',
   },
   {
@@ -39,7 +37,6 @@ const MOCK_PLANS: Plan[] = [
     productId: 'll_premium_yearly',
     priceString: '$34.99',
     subline: '$2.92/mo · save 42%',
-    trialDays: 7,
     rcPackageId: '$rc_annual',
   },
 ];
@@ -95,7 +92,6 @@ export async function getPlans(): Promise<Plan[]> {
       subline: isYearly
         ? `${pkg.product.pricePerMonthString ?? ''} / mo`.trim()
         : 'per month',
-      trialDays: isYearly ? 7 : 0,
       rcPackageId: pkg.identifier,
     });
   }
