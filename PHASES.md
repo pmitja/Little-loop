@@ -78,7 +78,7 @@ Phase 0 ─ Foundation ─► Phase 1 ─ Design system + Auth/Onboarding
 **Goal:** free limits enforced, premium purchasable, activity visible.
 
 **Scope**
-- RevenueCat: SDK init, `logIn(clerkUserId)`, offerings; paywall s19 (plan cards, trial copy, restore); webhook → `subscription_status` (PLAN §12).
+- RevenueCat: SDK init, `logIn(clerkUserId)`, offerings; paywall s19 (plan cards, restore); webhook → `subscription_status` (PLAN §12).
 - Free-limit gates client + server (1 profile / 1 playlist / 10 videos → 402 → paywall); expiration behavior (keep content, block adds).
 - Entitlement store with offline cache; Settings upgrade banner.
 - Activity screen s17: today vs limit, 7-day bars, most watched, session list from `GET /activity` (free tier: local session data, per the "stored only on this device" copy).

@@ -33,8 +33,8 @@ history, health, financial info, messages, audio.
   Play policy).
 - Data encrypted in transit: **Yes.**
 - Users can request deletion: **Yes** — in-app (Settings → Delete account &
-  data) and via privacy@littleloop.app. Deletion URL for the form:
-  https://littleloop.app/privacy#deletion
+  data) and via privacy@littleloopapp.com. Deletion URL for the form:
+  https://littleloopapp.com/delete-account
 - Target audience: **Parents.** The app is used by children under parental
   supervision in a locked mode that collects nothing; declare under Families
   policy accordingly and complete the Teacher/Families questionnaire with
@@ -42,7 +42,7 @@ history, health, financial info, messages, audio.
 
 ## App Review notes (both stores)
 
-- Demo login: `review@littleloop.app` / password supplied in the review notes
+- Demo login: `review@littleloopapp.com` / password supplied in the review notes
   field at submission time. Parent PIN for the demo build: **1234**.
 - Flow to review the lock: Dashboard → "Start Child Mode" → gate → Start.
   Exit requires the PIN (padlock, top right). Hardware back on Android shows
@@ -52,5 +52,5 @@ history, health, financial info, messages, audio.
   modify, overlay, or strip the player's content, and we state in-app that
   videos may include platform ads.
 - Account deletion: Settings → Delete account & data (double confirmation).
-- Subscriptions: `ll_premium_monthly` $4.99, `ll_premium_yearly` $34.99 with
-  7-day trial, via RevenueCat. Restore Purchases is on the paywall.
+- Subscriptions: `ll_premium_monthly` $4.99, `ll_premium_yearly` $34.99, no free
+  trial, via RevenueCat. Restore Purchases is on the paywall.

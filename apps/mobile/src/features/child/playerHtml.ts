@@ -5,7 +5,7 @@
  */
 
 /** Loaded with `baseUrl: PLAYER_ORIGIN` so the embed gets a stable origin. */
-export const PLAYER_ORIGIN = 'https://player.littleloop.app';
+export const PLAYER_ORIGIN = 'https://player.littleloopapp.com';
 
 export type PlayerEvent =
   | { type: 'ready'; duration: number }
@@ -101,7 +101,7 @@ const ALLOWED_HOST_SUFFIXES = [
   'gstatic.com',
   'google.com',
   'doubleclick.net', // embeds may serve ads; blocking their frames breaks playback
-  'littleloop.app',
+  'littleloopapp.com',
 ];
 
 export function isAllowedPlayerUrl(url: string): boolean {

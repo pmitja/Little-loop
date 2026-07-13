@@ -366,14 +366,14 @@ POST /api/v1/playlists/8f2.../videos
 
 ## 12. Subscription and paywall logic
 
-- **Products:** `ll_premium_monthly` $4.99, `ll_premium_yearly` $34.99 w/ 7-day trial (yearly anchored as "BEST VALUE", per s19). One RevenueCat entitlement: `premium`.
+- **Products:** `ll_premium_monthly` $4.99, `ll_premium_yearly` $34.99, no free trial (yearly anchored as "BEST VALUE", per s19). One RevenueCat entitlement: `premium`.
 - **Free limits** (constants in `@littleloop/shared`): `{ childProfiles: 1, playlists: 1, videosPerPlaylist: 10, avatars: 6 basic }`. Premium: unlimited profiles/playlists/videos, advanced schedules, cloud sync of settings, extra avatars, activity insights (week+ history).
 - **Integration:** `react-native-purchases`; `Purchases.logIn(clerkUserId)` so the RevenueCat app-user-id == our user; entitlement read from `customerInfo.entitlements.active.premium`. Paywall screen is fully custom (s19) using `getOfferings()` for localized prices.
 - **When shown:** hitting any free limit (client checks first for instant UX; server 402 is the backstop), Settings upgrade banner, optionally once post-onboarding (soft, dismissible).
 - **Restore:** s19 link → `restorePurchases()`; also automatic on `logIn`.
 - **Webhook sync:** RevenueCat → `POST /webhooks/revenuecat` (INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, BILLING_ISSUE, PRODUCT_CHANGE) → upsert `subscription_status`. Server-side limit checks read this table — client can't spoof entitlement.
 - **Offline:** last-known entitlement cached in MMKV; honored offline indefinitely for *reading* content (never lock a child out of already-approved videos), but new gated *writes* require server confirmation anyway.
-- **Edge cases:** expiration with over-limit data → nothing is deleted; existing content stays watchable/removable, **adding** is blocked until under limit or re-subscribed. Trial cancellation, grace period (honor `currentPeriodEnd`), family-shared purchases (RevenueCat handles), sandbox vs production environments split by RevenueCat project config.
+- **Edge cases:** expiration with over-limit data → nothing is deleted; existing content stays watchable/removable, **adding** is blocked until under limit or re-subscribed. Cancellation, grace period (honor `currentPeriodEnd`), family-shared purchases (RevenueCat handles), sandbox vs production environments split by RevenueCat project config.
 
 ## 13. Timer and watch session logic
 
@@ -484,7 +484,7 @@ Components (all typed, in `src/components/`):
 - **API (Vitest + route-handler invocation against a Neon branch DB):** every endpoint: auth required, ownership enforced (user A can't touch user B's playlist), limit 402s, duplicate 409, reorder permutation validation, webhook idempotency + signature check, session seconds capping.
 - **Integration:** add-video happy path (mocked YouTube API), preview error mapping (private/quota/non-embeddable), entitlement change → limit behavior.
 - **Mobile E2E (Maestro):** onboarding→PIN→profile→empty playlist; add+approve video; enter child mode→play→locked modal on back→PIN exit; wrong PIN ×5 lockout; timer expiry → s16 (with a debug 1-minute limit); paywall on 11th video; restore purchases (sandbox).
-- **Subscription cases (manual + RevenueCat sandbox):** trial start, cancel during trial, renewal, expiration, restore on fresh install, offline entitlement.
+- **Subscription cases (manual + RevenueCat sandbox):** initial purchase, cancellation, renewal, expiration, restore on fresh install, offline entitlement.
 - **Child-lock manual matrix:** Android hardware back, iOS swipe-back, app switcher kill/relaunch, deep link while locked, WebView tap on video title/logo/end screen, rotation to s14b.
 
 ## 20. Sprint 1 backlog (2 weeks — M0 + M1 + start of M2)

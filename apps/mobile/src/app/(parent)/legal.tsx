@@ -27,7 +27,7 @@ const PRIVACY: Section[] = [
   },
   {
     heading: 'Deleting your data',
-    body: 'Settings → Delete account & data removes everything from the device and your account. You can also email privacy@littleloop.app.',
+    body: 'Settings → Delete account & data removes everything from the device and your account. You can also email privacy@littleloopapp.com.',
   },
 ];
 

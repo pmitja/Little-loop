@@ -11,7 +11,12 @@ import {
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { Image } from 'expo-image';
-import { extractYouTubeId, formatDuration, type VideoMeta } from '@littleloop/shared';
+import {
+  extractYouTubeId,
+  formatDuration,
+  VIDEO_ERROR_CODES,
+  type VideoMeta,
+} from '@littleloop/shared';
 import { Button, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
 import { colors, radii } from '@/theme/tokens';
 import {
@@ -22,6 +27,7 @@ import {
   VIDEO_ERROR_MESSAGES,
 } from '@/lib/videos';
 import { useAppStore } from '@/stores/appStore';
+import { usePremium } from '@/stores/entitlementStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
 
 function PlayBadge() {
@@ -44,9 +50,18 @@ export default function AddVideo() {
   const [addingId, setAddingId] = useState<string | null>(null);
   const profile = useAppStore((s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null);
   const addVideo = usePlaylistStore((s) => s.addVideo);
+  const premium = usePremium();
 
-  const canSearch = searchAvailable();
+  // Search needs the API; on the free plan the affordance stays visible but
+  // routes to the paywall instead of spending YouTube quota.
+  const searchOffered = searchAvailable();
+  const searchLocked = searchOffered && !premium;
+  const canSearch = searchOffered && premium;
   const isLink = extractYouTubeId(input) !== null;
+
+  const openSearchPaywall = (): void => {
+    router.push({ pathname: '/paywall', params: { trigger: 'search' } });
+  };
 
   /** Shared tail of both flows: local add + hand over to the review screen. */
   const addAndReview = (video: VideoMeta): void => {
@@ -89,6 +104,10 @@ export default function AddVideo() {
       setResults(found);
       if (found.length === 0) setError('No videos found — try different words or paste a link.');
     } catch (err) {
+      if (err instanceof VideoPreviewError && err.code === VIDEO_ERROR_CODES.premiumRequired) {
+        openSearchPaywall();
+        return;
+      }
       setError(
         err instanceof VideoPreviewError ? err.message : VIDEO_ERROR_MESSAGES.VIDEO_UNAVAILABLE,
       );
@@ -102,6 +121,8 @@ export default function AddVideo() {
       void onPreviewLink();
     } else if (canSearch) {
       void onSearch();
+    } else if (searchLocked) {
+      openSearchPaywall();
     } else {
       setError(VIDEO_ERROR_MESSAGES.INVALID_LINK);
     }
@@ -126,7 +147,7 @@ export default function AddVideo() {
       >
         <ParentHeader title="Add Video" onBack={() => router.back()} />
         <SectionLabel style={styles.label}>
-          {canSearch ? 'Search YouTube or paste a link' : 'Paste video link'}
+          {searchOffered ? 'Search YouTube or paste a link' : 'Paste video link'}
         </SectionLabel>
         <View style={[styles.inputWrap, error ? styles.inputError : null]}>
           <PlayBadge />
@@ -136,15 +157,15 @@ export default function AddVideo() {
               setInput(next);
               if (error) setError(null);
             }}
-            placeholder={canSearch ? 'e.g. peppa pig, or https://…' : 'https://…'}
+            placeholder={searchOffered ? 'e.g. peppa pig, or https://…' : 'https://…'}
             placeholderTextColor={colors.subtle}
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType={canSearch ? 'default' : 'url'}
+            keyboardType={searchOffered ? 'default' : 'url'}
             autoFocus
             style={styles.input}
             onSubmitEditing={onSubmit}
-            returnKeyType={canSearch ? 'search' : 'go'}
+            returnKeyType={searchOffered ? 'search' : 'go'}
           />
           {input.length > 0 ? (
             <Pressable
@@ -177,11 +198,19 @@ export default function AddVideo() {
           <Txt weight="semibold" size={13} color={colors.muted} lineHeight={19.5} style={styles.helper}>
             {results
               ? 'Every result opens in review first — nothing reaches the playlist unapproved.'
-              : 'Add one video at a time to keep the playlist fully parent-approved.'}
+              : searchLocked && !isLink
+                ? 'Searching YouTube in-app is a Premium feature — on the free plan, paste any video link.'
+                : 'Add one video at a time to keep the playlist fully parent-approved.'}
           </Txt>
         )}
         <Button
-          title={isLink ? 'Preview Video' : canSearch ? 'Search' : 'Preview Video'}
+          title={
+            isLink || !searchOffered
+              ? 'Preview Video'
+              : searchLocked
+                ? 'Search with Premium'
+                : 'Search'
+          }
           loading={loading}
           disabled={input.trim().length === 0}
           onPress={onSubmit}

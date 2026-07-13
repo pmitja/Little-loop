@@ -3,10 +3,18 @@ import { Alert, ActivityIndicator, Pressable, StyleSheet, View } from 'react-nat
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Txt, ScreenContainer } from '@/components';
 import { colors } from '@/theme/tokens';
-import { getPlans, purchasePlan, purchasesLive, restorePurchases, type Plan } from '@/lib/purchases';
+import {
+  getPlans,
+  purchasePlan,
+  purchasesLive,
+  restorePurchases,
+  yearlySavingsPercent,
+  type Plan,
+} from '@/lib/purchases';
 import { usePremium } from '@/stores/entitlementStore';
 
 const FEATURES = [
+  'Search YouTube from inside the app',
   'Unlimited videos per playlist',
   'Up to 4 child profiles',
   'Multiple playlists per child',
@@ -27,7 +35,7 @@ function FeatureCheck({ label }: { label: string }) {
 /** s19 — paywall: fully custom plan cards over the RevenueCat offering (PLAN §12). */
 export default function Paywall() {
   const router = useRouter();
-  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'settings'; child?: string }>();
+  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'search' | 'settings'; child?: string }>();
   const premium = usePremium();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan['id']>('yearly');
@@ -54,6 +62,7 @@ export default function Paywall() {
   }, [premium, router]);
 
   const selectedPlan = plans.find((p) => p.id === selected);
+  const savings = yearlySavingsPercent(plans);
 
   const buy = async () => {
     if (!selectedPlan || busy) return;
@@ -62,6 +71,12 @@ export default function Paywall() {
     setBusy(false);
     if (result === 'failed') {
       Alert.alert('Purchase failed', 'The store could not complete the purchase. Please try again.');
+    } else if (result === 'pending') {
+      // Ask to Buy: the parent has to approve it before the entitlement lands.
+      Alert.alert(
+        'Waiting for approval',
+        'Your purchase needs approval before it can complete. Premium unlocks as soon as it’s approved.',
+      );
     }
   };
 
@@ -80,7 +95,7 @@ export default function Paywall() {
 
   const ctaTitle = premium ? 'Premium active' : 'Subscribe now';
 
-  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: '10 of 10 videos', post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : null;
+  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: '10 of 10 videos', post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'search' ? { pre: '', hl: 'Searching YouTube in-app', post: ' is part of Premium — free plans add videos by pasting a link.' } : null;
   return (
     <ScreenContainer mode="plum" style={styles.container}>
       <View style={styles.closeRow}>
@@ -120,9 +135,9 @@ export default function Paywall() {
               onPress={() => setSelected(id)}
               style={[styles.planCard, isSelected ? styles.planCardSelected : null]}
             >
-              {id === 'yearly' ? (
+              {id === 'yearly' && savings !== null ? (
                 <View style={styles.saveBadge}>
-                  <Txt weight="black" size={9.5} color="#4A3A20">SAVE 37%</Txt>
+                  <Txt weight="black" size={9.5} color="#4A3A20">SAVE {savings}%</Txt>
                 </View>
               ) : null}
               <Txt weight="black" size={20} color={colors.parent.night}>
@@ -160,11 +175,25 @@ export default function Paywall() {
       </View>
 
       <View style={{ flex: 1 }} />
+
+      {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
+          what renews, how often, and at what price, and must link to the EULA
+          and privacy policy from the screen itself — not only from Settings. */}
       <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5}>
         {purchasesLive
-          ? 'Subscription renews automatically. Cancel anytime in App Store settings before renewal. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.'
+          ? 'LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.'
           : 'Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.'}
       </Txt>
+
+      <View style={styles.legalRow}>
+        <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8}>
+          <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Terms of Use</Txt>
+        </Pressable>
+        <Txt weight="bold" size={11} color="rgba(255,255,255,.45)">·</Txt>
+        <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8}>
+          <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Privacy Policy</Txt>
+        </Pressable>
+      </View>
     </ScreenContainer>
   );
 }
@@ -230,4 +259,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   linkRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 14 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8 },
+  legalLink: { textDecorationLine: 'underline' },
 });

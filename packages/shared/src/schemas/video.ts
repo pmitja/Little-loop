@@ -33,6 +33,7 @@ export const VIDEO_ERROR_CODES = {
   duplicate: 'DUPLICATE_VIDEO',
   quotaExceeded: 'QUOTA_EXCEEDED',
   offline: 'OFFLINE',
+  premiumRequired: 'PREMIUM_REQUIRED',
 } as const;
 
 export type VideoErrorCode = (typeof VIDEO_ERROR_CODES)[keyof typeof VIDEO_ERROR_CODES];

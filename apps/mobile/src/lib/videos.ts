@@ -24,6 +24,7 @@ export const VIDEO_ERROR_MESSAGES: Record<VideoErrorCode, string> = {
   DUPLICATE_VIDEO: 'This video is already in the playlist',
   QUOTA_EXCEEDED: 'Video preview is temporarily busy — try again in a few minutes',
   OFFLINE: "You're offline — connect to the internet to add videos",
+  PREMIUM_REQUIRED: 'Searching YouTube is a Premium feature — paste a video link instead',
 };
 
 /**
@@ -90,6 +91,13 @@ export async function searchVideos(query: string): Promise<VideoMeta[]> {
         throw new VideoPreviewError(
           VIDEO_ERROR_CODES.quotaExceeded,
           'Search is busy right now — paste a video link instead, or try again later',
+        );
+      }
+      // Server backstop for a client whose cached entitlement says premium (§12).
+      if (err.code === VIDEO_ERROR_CODES.premiumRequired) {
+        throw new VideoPreviewError(
+          VIDEO_ERROR_CODES.premiumRequired,
+          VIDEO_ERROR_MESSAGES.PREMIUM_REQUIRED,
         );
       }
       throw new VideoPreviewError(VIDEO_ERROR_CODES.unavailable, err.message);

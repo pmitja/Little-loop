@@ -36,6 +36,35 @@ export const DEFAULT_CHILD_RULES: ChildRules = {
   kidProofExit: true,
 };
 
+/**
+ * Hydration gate: the splash screen waits until every persisted store has loaded
+ * before deciding where to route.
+ *
+ * This must be declared *above* useAppStore. MMKV is a synchronous storage, so
+ * zustand's persist runs onRehydrateStorage during create() — if the hydration
+ * store were declared below, that call would hit it in the temporal dead zone,
+ * persist would swallow the ReferenceError, and 'app' would never flip.
+ */
+const HYDRATION_KEYS = ['app', 'lock', 'playlist', 'timer'] as const;
+type HydrationKey = (typeof HYDRATION_KEYS)[number];
+
+interface HydrationState {
+  hydrated: Record<HydrationKey, boolean>;
+}
+
+export const useHydrationStore = create<HydrationState>(() => ({
+  hydrated: { app: false, lock: false, playlist: false, timer: false },
+}));
+
+export function markHydrated(key: HydrationKey) {
+  useHydrationStore.setState((s) => ({ hydrated: { ...s.hydrated, [key]: true } }));
+}
+
+export function useStoresHydrated(): boolean {
+  const hydrated = useHydrationStore((s) => s.hydrated);
+  return HYDRATION_KEYS.every((k) => hydrated[k]);
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
@@ -80,26 +109,3 @@ export const useAppStore = create<AppState>()(
   ),
 );
 
-/**
- * Hydration gate: the splash screen waits until every persisted store has loaded
- * (AsyncStorage fallback is async) before deciding where to route.
- */
-const HYDRATION_KEYS = ['app', 'lock', 'playlist', 'timer'] as const;
-type HydrationKey = (typeof HYDRATION_KEYS)[number];
-
-interface HydrationState {
-  hydrated: Record<HydrationKey, boolean>;
-}
-
-export const useHydrationStore = create<HydrationState>(() => ({
-  hydrated: { app: false, lock: false, playlist: false, timer: false },
-}));
-
-export function markHydrated(key: HydrationKey) {
-  useHydrationStore.setState((s) => ({ hydrated: { ...s.hydrated, [key]: true } }));
-}
-
-export function useStoresHydrated(): boolean {
-  const hydrated = useHydrationStore((s) => s.hydrated);
-  return HYDRATION_KEYS.every((k) => hydrated[k]);
-}

@@ -2,14 +2,14 @@
 
 _Last updated: July 8, 2026. This is the canonical copy; the in-app version
 (`apps/mobile/src/app/(parent)/legal.tsx`) is a condensed rendering and must be
-kept in sync. Host this document at https://littleloop.app/privacy for the
+kept in sync. Host this document at https://littleloopapp.com/privacy for the
 store listings._
 
 ## Who we are
 
 LittleLoop ("we") is a parent-controlled video playlist app. Parents review and
 approve individual videos; children watch only that approved list in a locked
-child mode. Contact: privacy@littleloop.app.
+child mode. Contact: privacy@littleloopapp.com.
 
 ## What we collect
 
@@ -65,7 +65,7 @@ use cross-app tracking.
 
 Account data is retained while your account exists. **Settings → Delete
 account & data** in the app removes all local data and your account. You can
-also request deletion at privacy@littleloop.app; we complete requests within
+also request deletion at privacy@littleloopapp.com; we complete requests within
 30 days.
 
 ## Changes

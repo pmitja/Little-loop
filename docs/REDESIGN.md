@@ -166,7 +166,7 @@ Mockup §07. `FactsPanel` first ("What's protected right now" — limit, kid-pro
 
 ### 5.11 Paywall — `src/app/paywall.tsx`
 
-Mockup §08. Plum gradient, owl, **trigger as headline** ("{Child}'s playlist is full — 10 of 10 videos"), 4 plain checkmarks (incl. "Everything in Free, forever"), monthly vs yearly cards (yearly outlined `sun` + SAVE badge), "Start 7-day free trial" CTA, equal-weight "Not now" + "Restore purchase".
+Mockup §08. Plum gradient, owl, **trigger as headline** ("{Child}'s playlist is full — 10 of 10 videos"), 4 plain checkmarks (incl. "Everything in Free, forever"), monthly vs yearly cards (yearly outlined `sun` + SAVE badge, percent derived from the live prices), "Subscribe now" CTA, equal-weight "Not now" + "Restore purchase".
 
 - AC: accepts a `trigger` param and renders it; only ever shown at a cap or from the Settings banner — never on launch, **never in `(child)` routes**; "Not now" always present.
 
@@ -181,7 +181,7 @@ Mockup §09. Four steps, progress dots: **welcome (promise)** → **child-profil
 ## 6. Copy rules
 
 - Child-facing: first names, warmth, zero system language. "All done for today, Mia!" not "Daily limit reached."
-- Parent-facing: plain, specific, value-forward. Buttons say what happens ("Save for Mia", "Start 7-day free trial").
+- Parent-facing: plain, specific, value-forward. Buttons say what happens ("Save for Mia", "Subscribe now").
 - The wall explains itself: every PIN prompt states what the PIN protects.
 - Facts over promises on safety surfaces (FactsPanel pattern).
 
