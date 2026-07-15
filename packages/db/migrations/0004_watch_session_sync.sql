@@ -1,0 +1,2 @@
+ALTER TABLE "watch_sessions" ADD COLUMN "client_session_id" text;--> statement-breakpoint
+ALTER TABLE "watch_sessions" ADD CONSTRAINT "watch_sessions_client_session_id_unique" UNIQUE("client_session_id");

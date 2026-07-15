@@ -19,7 +19,13 @@ interface SettingsRowProps {
 
 export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle, onPress, titleColor }: SettingsRowProps) {
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={styles.row}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={title ?? label}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
       <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
         {typeof icon === 'string' ? <Txt size={15}>{icon}</Txt> : icon}
       </View>
@@ -27,7 +33,7 @@ export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle
         {title ?? label}
       </Txt>
       {value ? (
-        <Txt weight="bold" size={14} color={colors.muted}>
+        <Txt weight="bold" size={13} color={colors.muted} numberOfLines={1} style={styles.value}>
           {value}
         </Txt>
       ) : null}
@@ -81,4 +87,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { flex: 1, minWidth: 0 },
+  value: { maxWidth: '42%' },
+  rowPressed: { opacity: 0.68 },
 });

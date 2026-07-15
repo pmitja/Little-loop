@@ -27,22 +27,80 @@ export const users = pgTable('users', {
   ...timestamps,
 });
 
+/** One shared household. Exactly one member is the administrative/billing owner. */
+export const families = pgTable('families', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerUserId: uuid('owner_user_id')
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  ...timestamps,
+});
+
+export const familyMembers = pgTable(
+  'family_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familyId: uuid('family_id')
+      .notNull()
+      .references(() => families.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'caregiver'] }).notNull(),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('uq_family_member_user').on(t.userId),
+    uniqueIndex('uq_family_member_family_user').on(t.familyId, t.userId),
+    index('idx_family_members_family').on(t.familyId),
+  ],
+);
+
+export const familyInvites = pgTable(
+  'family_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familyId: uuid('family_id')
+      .notNull()
+      .references(() => families.id, { onDelete: 'cascade' }),
+    invitedByUserId: uuid('invited_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    acceptedByUserId: uuid('accepted_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index('idx_family_invites_family').on(t.familyId)],
+);
+
 export const childProfiles = pgTable(
   'child_profiles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    familyId: uuid('family_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => families.id, { onDelete: 'cascade' }),
     // Nickname only — no PII, no birthdate (PLAN §16).
     nickname: text('nickname').notNull(),
     ageRange: text('age_range', { enum: ['2-4', '5-7', '8-10'] }).notNull(),
     avatar: text('avatar').notNull().default('bear'),
     dailyLimitMinutes: integer('daily_limit_minutes'), // null = no limit
+    weekendBonus: boolean('weekend_bonus').notNull().default(true),
+    bedtimeEnabled: boolean('bedtime_enabled').notNull().default(true),
+    bedtime: text('bedtime').notNull().default('7:30 PM'),
+    warningEnabled: boolean('warning_enabled').notNull().default(true),
+    kidProofExit: boolean('kid_proof_exit').notNull().default(true),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
-  (t) => [index('idx_child_profiles_user').on(t.userId)],
+  (t) => [index('idx_child_profiles_family').on(t.familyId)],
 );
 
 export const playlists = pgTable(
@@ -161,6 +219,7 @@ export const watchSessions = pgTable(
   'watch_sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    clientSessionId: text('client_session_id').unique(),
     childProfileId: uuid('child_profile_id')
       .notNull()
       .references(() => childProfiles.id, { onDelete: 'cascade' }),
@@ -237,6 +296,32 @@ export const playlistsRelations = relations(playlists, ({ one, many }) => ({
 }));
 
 export const childProfilesRelations = relations(childProfiles, ({ one, many }) => ({
-  user: one(users, { fields: [childProfiles.userId], references: [users.id] }),
+  family: one(families, { fields: [childProfiles.familyId], references: [families.id] }),
   playlists: many(playlists),
+}));
+
+export const familiesRelations = relations(families, ({ one, many }) => ({
+  owner: one(users, { fields: [families.ownerUserId], references: [users.id] }),
+  members: many(familyMembers),
+  children: many(childProfiles),
+  invites: many(familyInvites),
+}));
+
+export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
+  family: one(families, { fields: [familyMembers.familyId], references: [families.id] }),
+  user: one(users, { fields: [familyMembers.userId], references: [users.id] }),
+}));
+
+export const familyInvitesRelations = relations(familyInvites, ({ one }) => ({
+  family: one(families, { fields: [familyInvites.familyId], references: [families.id] }),
+  invitedBy: one(users, {
+    fields: [familyInvites.invitedByUserId],
+    references: [users.id],
+    relationName: 'familyInviteCreator',
+  }),
+  acceptedBy: one(users, {
+    fields: [familyInvites.acceptedByUserId],
+    references: [users.id],
+    relationName: 'familyInviteAcceptor',
+  }),
 }));

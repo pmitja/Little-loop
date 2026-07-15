@@ -15,6 +15,27 @@
       "when": 1783687643663,
       "tag": "0001_search_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784118023961,
+      "tag": "0002_family_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784118631854,
+      "tag": "0003_shared_child_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784118860063,
+      "tag": "0004_watch_session_sync",
+      "breakpoints": true
     }
   ]
 }

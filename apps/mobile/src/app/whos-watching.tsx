@@ -13,13 +13,12 @@ import { usePremium } from '@/stores/entitlementStore';
 import { useLockStore } from '@/stores/lockStore';
 import { useTimerStore } from '@/stores/timerStore';
 
-const FACE_TINTS = ['#FFC93E', '#6BCB77', '#9EDDF0', '#F999B7'] as const;
-
 export default function WhosWatching() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const profiles = useAppStore((s) => s.childProfiles);
   const premium = usePremium();
+  const childModeActive = useLockStore((state) => state.childMode.active);
   const [noVideosChildId, setNoVideosChildId] = useState<string | null>(null);
   const noVideosChild = profiles.find((candidate) => candidate.id === noVideosChildId);
 
@@ -46,6 +45,10 @@ export default function WhosWatching() {
       router.push({ pathname: '/paywall', params: { trigger: 'profile-cap' } });
       return;
     }
+    if (childModeActive && profiles.length) {
+      router.push({ pathname: '/pin-unlock', params: { next: '/(parent)/add-child' } });
+      return;
+    }
     router.push(profiles.length ? '/(parent)/add-child' : '/(onboarding)/child-profile');
   };
 
@@ -58,8 +61,13 @@ export default function WhosWatching() {
   };
 
   return (
-    <LinearGradient colors={[colors.child.plum, '#5A3F96']} style={styles.root}>
-      <StatusBar style="light" />
+    <View style={styles.root}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.child.sky, '#7FD4E8']}
+        style={[styles.headerBackdrop, { height: insets.top + 260 }]}
+      />
 
       <Pressable
         accessibilityRole="button"
@@ -74,8 +82,8 @@ export default function WhosWatching() {
           pressed && styles.pressed,
         ]}
       >
-        <LockGlyph color="#FFFFFF" scale={0.72} />
-        <Txt weight="bold" size={12} color="#FFFFFF">
+        <LockGlyph color={colors.parent.night} scale={0.72} />
+        <Txt weight="bold" size={12} color={colors.parent.night}>
           Grown-ups
         </Txt>
       </Pressable>
@@ -93,18 +101,18 @@ export default function WhosWatching() {
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
             size={15}
-            color="rgba(255,255,255,.78)"
+            color={colors.child.skyDeep}
             style={styles.stars}
           >
             ✦ ✧ ✦
           </Txt>
-          <Txt weight="black" size={28} color="#FFFFFF" center>
+          <Txt weight="black" size={28} color={colors.parent.night} center>
             Who’s watching?
           </Txt>
         </View>
 
         <View style={styles.profileGrid}>
-          {profiles.map((profile, index) => (
+          {profiles.map((profile) => (
             <Pressable
               key={profile.id}
               accessibilityRole="button"
@@ -112,36 +120,33 @@ export default function WhosWatching() {
               onPress={() => start(profile.id)}
               style={({ pressed }) => [styles.kid, pressed && styles.pressed]}
             >
-              <View
-                style={[
-                  styles.face,
-                  { backgroundColor: FACE_TINTS[index % FACE_TINTS.length] },
-                ]}
-              >
-                <ChildAvatar avatar={profile.avatar} size={60} />
+              <View style={styles.face}>
+                <ChildAvatar avatar={profile.avatar} size={92} />
               </View>
-              <Txt weight="black" size={15} color="#FFFFFF" numberOfLines={1}>
+              <Txt weight="black" size={15} color={colors.parent.night} numberOfLines={1}>
                 {profile.nickname}
               </Txt>
             </Pressable>
           ))}
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add a child profile"
-          onPress={add}
-          style={({ pressed }) => [styles.kid, styles.addKid, pressed && styles.pressed]}
-        >
-          <View style={styles.add}>
-            <Txt size={30} color="#FFFFFF">
-              ＋
+        {!childModeActive ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add a child profile"
+            onPress={add}
+            style={({ pressed }) => [styles.kid, styles.addKid, pressed && styles.pressed]}
+          >
+            <View style={styles.add}>
+              <Txt size={30} color={colors.parent.night}>
+                ＋
+              </Txt>
+            </View>
+            <Txt weight="black" size={14} color={colors.parent.night}>
+              Add a child
             </Txt>
-          </View>
-          <Txt weight="black" size={14} color="#FFFFFF">
-            Add a child
-          </Txt>
-        </Pressable>
+          </Pressable>
+        ) : null}
       </ScrollView>
 
       <NoVideosModal
@@ -150,12 +155,13 @@ export default function WhosWatching() {
         onAddVideo={addVideo}
         onDismiss={() => setNoVideosChildId(null)}
       />
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: colors.child.cream },
+  headerBackdrop: { position: 'absolute', left: 0, right: 0, top: 0 },
   content: {
     flexGrow: 1,
     alignItems: 'center',
@@ -171,7 +177,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 13,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,.16)',
+    backgroundColor: 'rgba(255,255,255,.9)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -192,11 +198,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   face: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,.92)',
+    width: 96,
+    height: 96,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -207,7 +210,7 @@ const styles = StyleSheet.create({
     borderRadius: 39,
     borderWidth: 3,
     borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,.9)',
+    borderColor: colors.parent.night,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -54,7 +54,11 @@ export const POST = handle<Ctx>(async (req, { params }) => {
   if (existing.length >= FREE_LIMITS.videosPerPlaylist) {
     const { isPremium } = await getEntitlement(db, user!.id);
     if (!isPremium) {
-      throw new HttpError(402, 'LIMIT_REACHED', 'Upgrade to add more than 10 videos');
+      throw new HttpError(
+        402,
+        'LIMIT_REACHED',
+        `Upgrade to add more than ${FREE_LIMITS.videosPerPlaylist} videos`,
+      );
     }
   }
 

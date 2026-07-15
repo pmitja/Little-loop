@@ -6,14 +6,16 @@ import { requireAuth } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlement';
 import { handle, HttpError, json, parseBody } from '@/lib/http';
 import { requireChildProfile } from '@/lib/ownership';
+import { requireFamilyMembership } from '@/lib/family';
 
 export const GET = handle(async (req) => {
   const { db, user } = await requireAuth(req);
+  const family = await requireFamilyMembership(db, user!.id);
   const childProfileId = new URL(req.url).searchParams.get('childProfileId');
   if (childProfileId) await requireChildProfile(db, user!.id, childProfileId);
 
   const ownedChildren = await db.query.childProfiles.findMany({
-    where: and(eq(childProfiles.userId, user!.id), isNull(childProfiles.deletedAt)),
+    where: and(eq(childProfiles.familyId, family.familyId), isNull(childProfiles.deletedAt)),
     columns: { id: true },
   });
   const childIds = childProfileId ? [childProfileId] : ownedChildren.map((c) => c.id);
@@ -33,12 +35,13 @@ const createPlaylistSchema = z.object({
 
 export const POST = handle(async (req) => {
   const { db, user } = await requireAuth(req);
+  const family = await requireFamilyMembership(db, user!.id);
   const body = await parseBody(req, createPlaylistSchema);
   await requireChildProfile(db, user!.id, body.childProfileId);
 
   // Free tier: 1 playlist per account, counted across all children (PLAN §12).
   const ownedChildren = await db.query.childProfiles.findMany({
-    where: and(eq(childProfiles.userId, user!.id), isNull(childProfiles.deletedAt)),
+    where: and(eq(childProfiles.familyId, family.familyId), isNull(childProfiles.deletedAt)),
     columns: { id: true },
   });
   const existing = await db.query.playlists.findMany({

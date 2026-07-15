@@ -12,12 +12,14 @@ export function Field({ label, error, ...inputProps }: FieldProps) {
     <View style={{ gap: 8 }}>
       <SectionLabel>{label}</SectionLabel>
       <TextInput
+        accessibilityLabel={label}
+        accessibilityHint={error ?? undefined}
         placeholderTextColor={colors.subtle}
         style={[styles.input, error ? { borderColor: colors.red } : null]}
         {...inputProps}
       />
       {error ? (
-        <Txt weight="bold" size={12.5} color={colors.red}>
+        <Txt accessibilityLiveRegion="polite" weight="bold" size={12.5} color={colors.red}>
           {error}
         </Txt>
       ) : null}

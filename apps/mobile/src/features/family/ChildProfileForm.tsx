@@ -4,14 +4,18 @@ import * as Crypto from 'expo-crypto';
 import {
   AGE_RANGES,
   AVATAR_IDS,
+  DAILY_LIMIT_MINUTES,
   createChildProfileSchema,
+  formatDailyLimit,
   type AgeRange,
   type AvatarId,
   type ChildProfile,
 } from '@littleloop/shared';
-import { Button, Card, ChildAvatar, SectionLabel, Txt } from '@/components';
+import { Button, Card, ChildAvatar, DailyLimitPopup, SectionLabel, Txt } from '@/components';
 import { colors, fonts, radii } from '@/theme/tokens';
 import { api, ApiError, apiConfigured } from '@/lib/api';
+import { updateChildProfile as saveChildProfile } from '@/features/family/updateChildProfile';
+import { syncFamilyPlaylists } from '@/features/family/playlistSync';
 import { useAppStore } from '@/stores/appStore';
 
 const AVATAR_LABELS: Record<AvatarId, string> = {
@@ -23,33 +27,39 @@ const AVATAR_LABELS: Record<AvatarId, string> = {
   rocket: 'Rocket',
 };
 
-const LIMIT_OPTIONS = [30, 45, 60, 90, null] as const;
-
 interface ChildProfileFormProps {
+  /** An existing profile puts the form in edit mode; omitted, it creates one. */
+  profile?: ChildProfile;
   onCreated: (profile: ChildProfile) => void;
   /** Server said the plan's profile limit is hit (402) — caller opens the paywall. */
   onLimitReached?: () => void;
   showLimitRow?: boolean;
   /** Rendered between the fields and the submit button (e.g. the Premium note on s22). */
   footer?: ReactNode;
+  submitLabel?: string;
 }
 
-/** Shared profile creation form: nickname, age range, avatar (s06 / s22). */
+/** Shared profile form: nickname, age range, avatar — creates (s06 / s22) or edits. */
 export function ChildProfileForm({
+  profile: editing,
   onCreated,
   onLimitReached,
   showLimitRow = true,
   footer,
+  submitLabel,
 }: ChildProfileFormProps) {
   const addChildProfile = useAppStore((s) => s.addChildProfile);
-  const [nickname, setNickname] = useState('');
-  const [ageRange, setAgeRange] = useState<AgeRange>('5-7');
-  const [avatar, setAvatar] = useState<AvatarId>('bear');
-  const [limitIndex, setLimitIndex] = useState(1); // 45 min default
+  const [nickname, setNickname] = useState(editing?.nickname ?? '');
+  const [ageRange, setAgeRange] = useState<AgeRange>(editing?.ageRange ?? '5-7');
+  const [avatar, setAvatar] = useState<AvatarId>(editing?.avatar ?? 'bear');
+  const [dailyLimitMinutes, setDailyLimitMinutes] = useState<number | null>(
+    editing?.dailyLimitMinutes === undefined
+      ? DAILY_LIMIT_MINUTES.default
+      : editing.dailyLimitMinutes,
+  );
+  const [limitOptionsOpen, setLimitOptionsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const dailyLimitMinutes = LIMIT_OPTIONS[limitIndex];
 
   const submit = async () => {
     const parsed = createChildProfileSchema.safeParse({
@@ -64,6 +74,21 @@ export function ChildProfileForm({
     }
     setError(null);
     setSubmitting(true);
+
+    // Edit mode: the profile already exists, so this is a patch, not a create.
+    // updateChildProfile writes locally first and mirrors to the account; a failed
+    // PATCH is worth saying out loud, since it silently reverts on a cold start.
+    if (editing) {
+      const saved = await saveChildProfile(editing.id, parsed.data);
+      setSubmitting(false);
+      if (!saved) {
+        setError('Saved on this device, but we couldn’t reach your account. Try again later.');
+        return;
+      }
+      onCreated({ ...editing, ...parsed.data });
+      return;
+    }
+
     let profile: ChildProfile | null = null;
     if (apiConfigured()) {
       try {
@@ -76,7 +101,10 @@ export function ChildProfileForm({
         // The server is the entitlement backstop — never create locally past a 402.
         if (e instanceof ApiError && e.status === 402) {
           setSubmitting(false);
-          onLimitReached?.();
+          if (onLimitReached) onLimitReached();
+          // Without a handler this used to fail silently, leaving the parent on a
+          // dead form with no error and no way forward.
+          else setError('You’ve reached your plan’s child-profile limit.');
           return;
         }
         // fall through to local profile; sync will reconcile once the API is live
@@ -88,6 +116,7 @@ export function ChildProfileForm({
       createdAt: new Date().toISOString(),
     };
     addChildProfile(profile);
+    if (apiConfigured()) await syncFamilyPlaylists([profile]).catch(() => {});
     setSubmitting(false);
     onCreated(profile);
   };
@@ -96,6 +125,7 @@ export function ChildProfileForm({
     <>
       <SectionLabel style={{ marginBottom: 8 }}>Name or nickname</SectionLabel>
       <TextInput
+        accessibilityLabel="Child name or nickname"
         testID="nickname-input"
         value={nickname}
         onChangeText={setNickname}
@@ -118,6 +148,9 @@ export function ChildProfileForm({
           return (
             <Pressable
               key={range}
+              accessibilityRole="button"
+              accessibilityLabel={`Age ${range.replace('-', ' to ')}`}
+              accessibilityState={{ selected: active }}
               onPress={() => setAgeRange(range)}
               style={[styles.chip, active ? styles.chipActive : styles.chipIdle]}
             >
@@ -136,6 +169,9 @@ export function ChildProfileForm({
           return (
             <Pressable
               key={id}
+              accessibilityRole="button"
+              accessibilityLabel={`${AVATAR_LABELS[id]} avatar`}
+              accessibilityState={{ selected: active }}
               onPress={() => setAvatar(id)}
               style={[styles.avatarCell, active ? styles.chipActive : styles.chipIdle]}
             >
@@ -149,30 +185,45 @@ export function ChildProfileForm({
       </View>
 
       {showLimitRow ? (
-        <Card radius={radii.input} style={styles.limitRow}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="extrabold" size={14.5}>
-              Daily watch limit
-            </Txt>
-            <Txt weight="semibold" size={12} color={colors.muted}>
-              Optional — you can change it anytime
-            </Txt>
-          </View>
+        <>
           <Pressable
-            onPress={() => setLimitIndex((i) => (i + 1) % LIMIT_OPTIONS.length)}
-            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Daily watch limit ${formatDailyLimit(dailyLimitMinutes)}. Tap to choose.`}
+            accessibilityState={{ expanded: limitOptionsOpen }}
+            onPress={() => setLimitOptionsOpen(true)}
+            style={({ pressed }) => pressed && styles.pressed}
           >
-            <Txt weight="extrabold" size={15} color={colors.primary}>
-              {dailyLimitMinutes === null ? 'No limit ›' : `${dailyLimitMinutes} min ›`}
-            </Txt>
+            <Card radius={radii.input} style={styles.limitRow}>
+              <View style={{ flex: 1 }}>
+                <Txt weight="extrabold" size={14.5}>
+                  Daily watch limit
+                </Txt>
+                <Txt weight="semibold" size={12} color={colors.muted}>
+                  Optional — you can change it anytime
+                </Txt>
+              </View>
+              <Txt weight="extrabold" size={15} color={colors.primary}>
+                {`${formatDailyLimit(dailyLimitMinutes)} ›`}
+              </Txt>
+            </Card>
           </Pressable>
-        </Card>
+          <DailyLimitPopup
+            visible={limitOptionsOpen}
+            value={dailyLimitMinutes}
+            onCancel={() => setLimitOptionsOpen(false)}
+            onChange={setDailyLimitMinutes}
+          />
+        </>
       ) : null}
 
       {footer}
 
       <View style={{ height: 28 }} />
-      <Button title="Create Profile" onPress={submit} loading={submitting} />
+      <Button
+        title={submitLabel ?? (editing ? 'Save changes' : 'Create profile')}
+        onPress={submit}
+        loading={submitting}
+      />
     </>
   );
 }
@@ -223,4 +274,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  pressed: { opacity: 0.7 },
 });

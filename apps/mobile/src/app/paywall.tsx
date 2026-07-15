@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Alert, ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Txt, ScreenContainer } from '@/components';
+import { FREE_LIMITS } from '@littleloop/shared';
+import { showAppAlert, Txt, ScreenContainer } from '@/components';
 import { colors } from '@/theme/tokens';
 import {
   getPlans,
@@ -12,8 +13,10 @@ import {
   type Plan,
 } from '@/lib/purchases';
 import { usePremium } from '@/stores/entitlementStore';
+import { useAppStore } from '@/stores/appStore';
 
 const FEATURES = [
+  'Share management with another caregiver',
   'Search YouTube from inside the app',
   'Unlimited videos per playlist',
   'Up to 4 child profiles',
@@ -37,11 +40,13 @@ export default function Paywall() {
   const router = useRouter();
   const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'search' | 'settings'; child?: string }>();
   const premium = usePremium();
+  const canManageBilling = useAppStore((state) => state.familyRole !== 'caregiver');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan['id']>('yearly');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!canManageBilling) return;
     let cancelled = false;
     getPlans()
       .then((p) => {
@@ -51,15 +56,27 @@ export default function Paywall() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canManageBilling]);
+
+  /**
+   * The paywall is reached both by push (settings, add-video) and by replace or
+   * <Redirect> (add-child at the profile cap, a shared link over the limit). In the
+   * replace cases there is no history entry behind it, so a bare router.back() is a
+   * no-op that fires "GO_BACK was not handled by any navigator" and traps the parent
+   * on the paywall with no way out.
+   */
+  const dismiss = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(parent)/(tabs)');
+  }, [router]);
 
   // Purchase (or restore) completed → nothing left to sell.
   useEffect(() => {
     if (premium) {
-      const t = setTimeout(() => router.back(), 600);
+      const t = setTimeout(dismiss, 600);
       return () => clearTimeout(t);
     }
-  }, [premium, router]);
+  }, [premium, dismiss]);
 
   const selectedPlan = plans.find((p) => p.id === selected);
   const savings = yearlySavingsPercent(plans);
@@ -70,10 +87,10 @@ export default function Paywall() {
     const result = await purchasePlan(selectedPlan);
     setBusy(false);
     if (result === 'failed') {
-      Alert.alert('Purchase failed', 'The store could not complete the purchase. Please try again.');
+      showAppAlert('Purchase failed', 'The store could not complete the purchase. Please try again.');
     } else if (result === 'pending') {
       // Ask to Buy: the parent has to approve it before the entitlement lands.
-      Alert.alert(
+      showAppAlert(
         'Waiting for approval',
         'Your purchase needs approval before it can complete. Premium unlocks as soon as it’s approved.',
       );
@@ -85,7 +102,7 @@ export default function Paywall() {
     setBusy(true);
     const restored = await restorePurchases().catch(() => false);
     setBusy(false);
-    Alert.alert(
+    showAppAlert(
       restored ? 'Purchases restored' : 'Nothing to restore',
       restored
         ? 'LittleLoop Premium is active on this device.'
@@ -95,11 +112,32 @@ export default function Paywall() {
 
   const ctaTitle = premium ? 'Premium active' : 'Subscribe now';
 
-  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: '10 of 10 videos', post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'search' ? { pre: '', hl: 'Searching YouTube in-app', post: ' is part of Premium — free plans add videos by pasting a link.' } : null;
+  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: `${FREE_LIMITS.videosPerPlaylist} of ${FREE_LIMITS.videosPerPlaylist} videos`, post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'search' ? { pre: '', hl: 'Searching YouTube in-app', post: ' is part of Premium — free plans can paste or share any YouTube link.' } : null;
+  if (!canManageBilling) {
+    return (
+      <ScreenContainer mode="plum" style={styles.container}>
+        <View style={styles.closeRow}>
+          <Pressable onPress={dismiss} hitSlop={8} style={styles.closeCircle}>
+            <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
+          </Pressable>
+        </View>
+        <View style={[styles.hero, { flex: 1, justifyContent: 'center', gap: 14 }]}>
+          <Txt size={48}>👨‍👩‍👧</Txt>
+          <Txt weight="black" size={24} color="#FFFFFF" center>Ask the main caregiver</Txt>
+          <Txt weight="bold" size={14} color="rgba(255,255,255,.78)" center lineHeight={21}>
+            Only the main caregiver can start or manage LittleLoop Premium for this family.
+          </Txt>
+          <Pressable onPress={dismiss} style={styles.cta}>
+            <Txt weight="black" size={16} color="#4A3A20">Got it</Txt>
+          </Pressable>
+        </View>
+      </ScreenContainer>
+    );
+  }
   return (
     <ScreenContainer mode="plum" style={styles.container}>
       <View style={styles.closeRow}>
-        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.closeCircle}>
+        <Pressable onPress={dismiss} hitSlop={8} style={styles.closeCircle}>
           <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
         </Pressable>
       </View>
@@ -166,7 +204,7 @@ export default function Paywall() {
       </Pressable>
 
       <View style={styles.linkRow}>
-        <Pressable onPress={() => router.back()} hitSlop={8} disabled={busy}>
+        <Pressable onPress={dismiss} hitSlop={8} disabled={busy}>
           <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Not now</Txt>
         </Pressable>
         <Pressable onPress={restore} hitSlop={8} disabled={busy}>
@@ -181,8 +219,8 @@ export default function Paywall() {
           and privacy policy from the screen itself — not only from Settings. */}
       <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5}>
         {purchasesLive
-          ? 'LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.'
-          : 'Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to 10 approved videos.'}
+          ? `LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`
+          : `Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`}
       </Txt>
 
       <View style={styles.legalRow}>

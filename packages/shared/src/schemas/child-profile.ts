@@ -12,6 +12,11 @@ export const createChildProfileSchema = z.object({
     .max(DAILY_LIMIT_MINUTES.max)
     .nullable()
     .optional(),
+  weekendBonus: z.boolean().optional(),
+  bedtimeEnabled: z.boolean().optional(),
+  bedtime: z.string().regex(/^\d{1,2}:\d{2} (AM|PM)$/).optional(),
+  warningEnabled: z.boolean().optional(),
+  kidProofExit: z.boolean().optional(),
 });
 
 export type CreateChildProfileInput = z.infer<typeof createChildProfileSchema>;

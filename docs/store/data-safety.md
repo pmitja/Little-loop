@@ -13,7 +13,7 @@ show the ATT prompt.)
 - Identifiers → User ID (Clerk user id, RevenueCat app-user id; app functionality)
 - Purchases → Purchase history (RevenueCat subscription status; app functionality)
 - User content → Other user content (child nickname/avatar/settings, approved
-  video list; app functionality)
+  video list, and Premium family watch activity; app functionality)
 
 **Data not linked to you:**
 - Diagnostics → Crash data, performance data (Sentry; app functionality).

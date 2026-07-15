@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Pressable, View } from 'react-native';
+import { StyleSheet, Pressable } from 'react-native';
 import { colors, radii } from '@/theme/tokens';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Txt } from './Txt';
+import { StoryIllustration } from './StoryIllustration';
 
 interface EmptyStateProps {
   illustration: ReactNode;
@@ -52,37 +53,7 @@ const styles = StyleSheet.create({
   cta: { alignSelf: 'stretch', height: 54, borderRadius: 27 },
 });
 
-/** Dashed "add a video" placeholder used as the s07 illustration. */
+/** Friendly, self-explanatory add-video scene used by empty playlists. */
 export function AddVideoIllustration() {
-  return (
-    <View style={illo.frame}>
-      <View style={illo.plusCircle}>
-        <Txt weight="extrabold" size={24} color={colors.primary}>
-          +
-        </Txt>
-      </View>
-    </View>
-  );
+  return <StoryIllustration scene="add-video" width={168} />;
 }
-
-const illo = StyleSheet.create({
-  frame: {
-    width: 120,
-    height: 80,
-    borderRadius: 18,
-    borderWidth: 2.5,
-    borderStyle: 'dashed',
-    borderColor: '#BFD9F4',
-    backgroundColor: '#F6FAFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

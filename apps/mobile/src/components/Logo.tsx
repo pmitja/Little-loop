@@ -1,35 +1,37 @@
-import { View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { colors } from '@/theme/tokens';
 
-/** App mark: blue gradient rounded square with a play ring (s01). */
+const APP_ICON = require('../../assets/images/icon.png');
+
+/** The same LittleLoop mark used by the installed app icon. */
 export function Logo({ size = 96 }: { size?: number }) {
-  const ring = size * 0.54;
   return (
-    <LinearGradient
-      colors={['#6FBBFB', '#4A9FF0']}
-      start={{ x: 0.15, y: 0 }}
-      end={{ x: 0.85, y: 1 }}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size * 0.354,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 14 },
-        shadowOpacity: 0.4,
-        shadowRadius: 34,
-        elevation: 10,
-      }}
+    <View
+      style={[
+        styles.shadow,
+        { width: size, height: size, borderRadius: size * 0.225 },
+      ]}
     >
-      <View style={{ width: ring, height: ring }}>
-        <Svg width={ring} height={ring} viewBox="0 0 52 52">
-          <Circle cx={26} cy={26} r={23} stroke="rgba(255,255,255,.95)" strokeWidth={5} fill="none" />
-          <Path d="M21 16 L37 26 L21 36 Z" fill="#FFFFFF" />
-        </Svg>
-      </View>
-    </LinearGradient>
+      <Image
+        source={APP_ICON}
+        style={[styles.image, { borderRadius: size * 0.225 }]}
+        contentFit="cover"
+        transition={120}
+        accessibilityLabel="LittleLoop"
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  shadow: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  image: { width: '100%', height: '100%' },
+});

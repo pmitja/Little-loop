@@ -1,13 +1,15 @@
 import { childProfiles, playlists, type Db } from '@littleloop/db';
 import { and, eq, isNull } from 'drizzle-orm';
 import { HttpError } from './http';
+import { requireFamilyMembership } from './family';
 
 /** 404 (not 403) on foreign resources — don't leak existence. */
 export async function requireChildProfile(db: Db, userId: string, childProfileId: string) {
+  const family = await requireFamilyMembership(db, userId);
   const row = await db.query.childProfiles.findFirst({
     where: and(
       eq(childProfiles.id, childProfileId),
-      eq(childProfiles.userId, userId),
+      eq(childProfiles.familyId, family.familyId),
       isNull(childProfiles.deletedAt),
     ),
   });

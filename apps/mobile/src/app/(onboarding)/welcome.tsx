@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Txt } from '@/components';
+import { StoryIllustration, Txt } from '@/components';
 import { colors, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { clerkEnabled, useAuthStatus } from '@/lib/auth';
@@ -10,22 +10,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PAGES = [
   {
-    emoji: '🦉',
-    title: 'Only the videos you choose.',
-    body: 'You approve every video. Your child sees nothing else — no ads, no rabbit holes, no surprises.',
-    cta: 'Let’s set up',
+    art: 'welcome',
+    title: 'You choose every video.',
+    body: 'Your child gets one calm screen with only the videos you approve.',
+    cta: 'Show me how',
   },
   {
-    emoji: '🔒',
-    title: 'No browsing. No surprises.',
-    body: 'Children can only watch videos you add. No related videos, channels, or search results.',
-    cta: 'Continue',
-  },
-  {
-    emoji: '🚂',
-    title: 'Simple child mode',
-    body: 'A calm, distraction-free player designed for young children.',
-    cta: 'Create Parent PIN',
+    art: 'pin-safe',
+    title: 'Ready in three small steps.',
+    body: 'Create a parent PIN, add your child, then choose their first video.',
+    cta: 'Start setup',
   },
 ] as const;
 
@@ -67,9 +61,7 @@ export default function Welcome() {
       >
         {PAGES.map((p) => (
           <View key={p.title} style={[styles.page, { width }]}>
-            <View style={styles.mascotStage}>
-              <Txt size={64}>{p.emoji}</Txt>
-            </View>
+            <StoryIllustration scene={p.art} width={Math.min(width - 48, 320)} style={styles.mascotStage} />
             <Txt weight="black" size={26} color={colors.parent.night} center lineHeight={31} style={styles.title}>
               {p.title}
             </Txt>
@@ -109,15 +101,7 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, gap: 16 },
-  mascotStage: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: 'rgba(255,255,255,.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
+  mascotStage: { marginBottom: 12, borderRadius: 32 },
   title: { maxWidth: 280 },
   body: { maxWidth: 280 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, marginBottom: 20 },

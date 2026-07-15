@@ -1,24 +1,9 @@
 {
-  "/api/v1/health/route": "app/api/v1/health/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/v1/playlists/[id]/route": "app/api/v1/playlists/[id]/route.js",
-  "/api/v1/activity/route": "app/api/v1/activity/route.js",
-  "/api/cron/recheck-videos/route": "app/api/cron/recheck-videos/route.js",
-  "/api/v1/child-profiles/[id]/route": "app/api/v1/child-profiles/[id]/route.js",
-  "/api/v1/playlists/[id]/videos/[playlistVideoId]/route": "app/api/v1/playlists/[id]/videos/[playlistVideoId]/route.js",
-  "/api/v1/users/route": "app/api/v1/users/route.js",
-  "/api/v1/playlists/[id]/videos/order/route": "app/api/v1/playlists/[id]/videos/order/route.js",
-  "/api/v1/videos/preview/route": "app/api/v1/videos/preview/route.js",
   "/api/v1/playlists/[id]/videos/route": "app/api/v1/playlists/[id]/videos/route.js",
-  "/api/v1/subscription/route": "app/api/v1/subscription/route.js",
-  "/api/v1/settings/pin/route": "app/api/v1/settings/pin/route.js",
-  "/api/v1/videos/search/route": "app/api/v1/videos/search/route.js",
+  "/api/v1/family/route": "app/api/v1/family/route.js",
+  "/api/v1/family/invites/[id]/route": "app/api/v1/family/invites/[id]/route.js",
+  "/api/v1/family/invites/route": "app/api/v1/family/invites/route.js",
   "/api/v1/playlists/route": "app/api/v1/playlists/route.js",
   "/api/v1/child-profiles/route": "app/api/v1/child-profiles/route.js",
-  "/api/v1/users/sync/route": "app/api/v1/users/sync/route.js",
-  "/api/v1/webhooks/revenuecat/route": "app/api/v1/webhooks/revenuecat/route.js",
-  "/api/v1/watch-sessions/route": "app/api/v1/watch-sessions/route.js",
-  "/api/v1/watch-sessions/[id]/route": "app/api/v1/watch-sessions/[id]/route.js",
-  "/delete-account/page": "app/delete-account/page.js",
-  "/privacy/page": "app/privacy/page.js"
+  "/invite/page": "app/invite/page.js"
 }

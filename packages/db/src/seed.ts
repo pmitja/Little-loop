@@ -4,7 +4,15 @@
  *   pnpm --filter @littleloop/db seed
  */
 import { getDb } from './index';
-import { childProfiles, playlists, playlistVideos, users, videoMetadata } from './schema';
+import {
+  childProfiles,
+  families,
+  familyMembers,
+  playlists,
+  playlistVideos,
+  users,
+  videoMetadata,
+} from './schema';
 
 async function seed() {
   const db = getDb();
@@ -15,9 +23,19 @@ async function seed() {
     .onConflictDoUpdate({ target: users.clerkId, set: { email: 'seed@littleloop.dev' } })
     .returning();
 
+  const [family] = await db
+    .insert(families)
+    .values({ ownerUserId: user.id })
+    .onConflictDoUpdate({ target: families.ownerUserId, set: { updatedAt: new Date() } })
+    .returning();
+  await db
+    .insert(familyMembers)
+    .values({ familyId: family.id, userId: user.id, role: 'owner' })
+    .onConflictDoNothing({ target: familyMembers.userId });
+
   const [child] = await db
     .insert(childProfiles)
-    .values({ userId: user.id, nickname: 'Emma', ageRange: '5-7', avatar: 'bear', dailyLimitMinutes: 45 })
+    .values({ familyId: family.id, nickname: 'Emma', ageRange: '5-7', avatar: 'bear', dailyLimitMinutes: 45 })
     .returning();
 
   const [playlist] = await db

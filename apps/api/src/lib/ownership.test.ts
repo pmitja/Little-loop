@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb } from '@/test/db';
 import { HttpError } from './http';
 import { requireChildProfile, requirePlaylist } from './ownership';
+import { ensurePersonalFamily } from './family';
 
 let db: Db;
 let owner: { id: string };
@@ -20,9 +21,11 @@ beforeAll(async () => {
     .insert(users)
     .values({ clerkId: 'clerk_stranger', email: 'stranger@example.com' })
     .returning();
+  const ownerFamily = await ensurePersonalFamily(db, owner.id);
+  await ensurePersonalFamily(db, stranger.id);
   const [profile] = await db
     .insert(childProfiles)
-    .values({ userId: owner.id, nickname: 'Mila', ageRange: '5-7' })
+    .values({ familyId: ownerFamily.familyId, nickname: 'Mila', ageRange: '5-7' })
     .returning();
   profileId = profile.id;
   const [playlist] = await db.insert(playlists).values({ childProfileId: profileId }).returning();
@@ -44,7 +47,7 @@ describe('requireChildProfile', () => {
   it('404s on a soft-deleted profile', async () => {
     const [deleted] = await db
       .insert(childProfiles)
-      .values({ userId: owner.id, nickname: 'Old', ageRange: '2-4', deletedAt: new Date() })
+      .values({ familyId: (await ensurePersonalFamily(db, owner.id)).familyId, nickname: 'Old', ageRange: '2-4', deletedAt: new Date() })
       .returning();
     await expect(requireChildProfile(db, owner.id, deleted.id)).rejects.toMatchObject({
       status: 404,

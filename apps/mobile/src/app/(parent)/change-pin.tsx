@@ -21,6 +21,7 @@ export default function ChangePin() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('current');
   const [pin, setPin] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
   const [firstPin, setFirstPin] = useState('');
   const [errorFlash, setErrorFlash] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,6 +50,7 @@ export default function ChangePin() {
       const ok = await verifyPin(next);
       setBusy(false);
       if (ok) {
+        setCurrentPin(next);
         setPin('');
         setStep('enter');
       } else {
@@ -58,6 +60,10 @@ export default function ChangePin() {
     }
 
     if (step === 'enter') {
+      if (next === currentPin) {
+        fail('enter');
+        return;
+      }
       setFirstPin(next);
       setTimeout(() => {
         setPin('');
@@ -80,6 +86,9 @@ export default function ChangePin() {
     <ScreenContainer style={styles.container}>
       <ParentHeader title="Parent PIN" onBack={() => router.back()} />
       <View style={styles.body}>
+        <Txt weight="black" size={12} color={colors.primaryDark} style={styles.stepLabel}>
+          STEP {step === 'current' ? '1' : step === 'enter' ? '2' : '3'} OF 3
+        </Txt>
         <Txt weight="black" size={26} center style={{ marginBottom: 8 }}>
           {COPY[step].title}
         </Txt>
@@ -91,9 +100,19 @@ export default function ChangePin() {
             length={PIN_LENGTH}
             filled={errorFlash ? PIN_LENGTH : pin.length}
             error={errorFlash}
+            checking={busy}
           />
         </View>
         <PINKeypad onDigit={onDigit} onDelete={() => setPin((p) => p.slice(0, -1))} disabled={busy} />
+        {errorFlash ? (
+          <Txt accessibilityLiveRegion="polite" weight="bold" size={13} color={colors.red} style={styles.error}>
+            {step === 'current'
+              ? 'That PIN is incorrect.'
+              : step === 'enter'
+                ? 'Choose a PIN different from your current one.'
+                : 'PINs didn’t match. Try again.'}
+          </Txt>
+        ) : null}
       </View>
     </ScreenContainer>
   );
@@ -102,5 +121,7 @@ export default function ChangePin() {
 const styles = StyleSheet.create({
   container: { paddingTop: 16 },
   body: { flex: 1, alignItems: 'center', paddingTop: 28 },
+  stepLabel: { marginBottom: 10, letterSpacing: 0.8 },
   dots: { marginTop: 34, marginBottom: 38 },
+  error: { marginTop: 14 },
 });

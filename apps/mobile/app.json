@@ -12,22 +12,19 @@
       "bundleIdentifier": "app.littleloop.mobile",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "LittleLoop uses Face ID so parents can unlock child mode quickly.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.littleloop.mobile",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#FFF9F1",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
-      ]
+      "permissions": []
     },
     "web": {
       "output": "static",
@@ -43,13 +40,23 @@
         }
       ],
       "expo-secure-store",
-      "expo-local-authentication",
       "expo-font",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true
+          },
+          "androidIntentFilters": ["text/*"]
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF9F1",
-          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#F4F1EB",
+          "image": "./assets/images/icon.png",
           "imageWidth": 96
         }
       ],

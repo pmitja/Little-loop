@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractYouTubeId,
+  extractYouTubeIdFromText,
   formatDuration,
   formatDurationLong,
   parseIso8601Duration,
@@ -96,5 +97,30 @@ describe('formatDurationLong', () => {
     [720, '12 min'],
   ] as [number, string][])('formats %d', (input, expected) => {
     expect(formatDurationLong(input)).toBe(expected);
+  });
+});
+
+describe('extractYouTubeIdFromText', () => {
+  it('reads a bare link, the way a paste arrives', () => {
+    expect(extractYouTubeIdFromText('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('finds the link inside what a share sheet actually sends', () => {
+    // YouTube's Android share puts the title above the link.
+    const shared = 'Peppa Pig - Muddy Puddles\nhttps://youtu.be/dQw4w9WgXcQ?si=AbC123';
+    expect(extractYouTubeIdFromText(shared)).toBe('dQw4w9WgXcQ');
+  });
+
+  it('handles a link wrapped in a sentence', () => {
+    expect(
+      extractYouTubeIdFromText('watch this (https://www.youtube.com/watch?v=dQw4w9WgXcQ).'),
+    ).toBe('dQw4w9WgXcQ');
+  });
+
+  it('rejects shared text with no video in it', () => {
+    expect(extractYouTubeIdFromText('check out https://example.com/hello')).toBeNull();
+    expect(extractYouTubeIdFromText('just some words')).toBeNull();
+    // A channel is not a video, and must not become one.
+    expect(extractYouTubeIdFromText('https://www.youtube.com/@SomeChannel')).toBeNull();
   });
 });

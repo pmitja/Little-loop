@@ -3,12 +3,14 @@ import { childProfiles, playlists } from '@littleloop/db';
 import { and, eq, isNull } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlement';
+import { requireFamilyMembership } from '@/lib/family';
 import { handle, HttpError, json, parseBody } from '@/lib/http';
 
 export const GET = handle(async (req) => {
   const { db, user } = await requireAuth(req);
+  const family = await requireFamilyMembership(db, user!.id);
   const rows = await db.query.childProfiles.findMany({
-    where: and(eq(childProfiles.userId, user!.id), isNull(childProfiles.deletedAt)),
+    where: and(eq(childProfiles.familyId, family.familyId), isNull(childProfiles.deletedAt)),
     orderBy: (t, { asc }) => [asc(t.createdAt)],
   });
   return json({ childProfiles: rows });
@@ -16,10 +18,11 @@ export const GET = handle(async (req) => {
 
 export const POST = handle(async (req) => {
   const { db, user } = await requireAuth(req);
+  const family = await requireFamilyMembership(db, user!.id);
   const body = await parseBody(req, createChildProfileSchema);
 
   const existing = await db.query.childProfiles.findMany({
-    where: and(eq(childProfiles.userId, user!.id), isNull(childProfiles.deletedAt)),
+    where: and(eq(childProfiles.familyId, family.familyId), isNull(childProfiles.deletedAt)),
     columns: { id: true },
   });
   if (existing.length >= FREE_LIMITS.childProfiles) {
@@ -32,7 +35,7 @@ export const POST = handle(async (req) => {
   const [profile] = await db
     .insert(childProfiles)
     .values({
-      userId: user!.id,
+      familyId: family.familyId,
       nickname: body.nickname,
       ageRange: body.ageRange,
       avatar: body.avatar,

@@ -1,34 +1,35 @@
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Button, ChildSwitcher, OptionList, OwlBubble, ParentHeader, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, Txt } from '@/components';
+import { formatDailyLimit } from '@littleloop/shared';
+import { AppIcon, Button, ChildSwitcher, DailyLimitOptions, OwlBubble, ParentHeader, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt } from '@/components';
+import { updateChildProfile } from '@/features/family/updateChildProfile';
+import { updateSharedChildRules } from '@/features/family/updateChildRules';
+import { formatBedtime, parseBedtime } from '@/lib/bedtime';
 import { DEFAULT_CHILD_RULES, useAppStore } from '@/stores/appStore';
 import { colors, controls, radii, shadows } from '@/theme/tokens';
-
-const options = [{ value: 20, nickname: 'Short & sweet' }, { value: 45, nickname: 'Just right' }, { value: 60, nickname: 'Movie day' }, { value: 90, nickname: 'Rainy Sunday' }];
-
-function bedtimeMinutes(value: string): number {
-  const match = /^(\d{1,2}):(\d{2})\s(AM|PM)$/.exec(value);
-  if (!match) return 19 * 60 + 30;
-  const hour = Number(match[1]) % 12;
-  const minute = Number(match[2]);
-  return hour * 60 + minute + (match[3] === 'PM' ? 12 * 60 : 0);
-}
-
-function bedtimeLabel(minutes: number): string {
-  const normalized = (minutes + 24 * 60) % (24 * 60);
-  const hour24 = Math.floor(normalized / 60);
-  const minute = normalized % 60;
-  const hour12 = hour24 % 12 || 12;
-  return `${hour12}:${String(minute).padStart(2, '0')} ${hour24 >= 12 ? 'PM' : 'AM'}`;
-}
 
 export default function TimeLimit() {
   const router = useRouter();
   const profiles = useAppStore(s => s.childProfiles);
   const profile = useAppStore(s => s.childProfiles.find(p => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null);
   const rules = useAppStore(s => profile ? s.childRules[profile.id] ?? DEFAULT_CHILD_RULES : DEFAULT_CHILD_RULES);
-  const update = (patch: Partial<typeof rules>) => { if (profile) useAppStore.getState().updateChildRules(profile.id, patch); };
-  const adjustBedtime = (change: number) => update({ bedtime: bedtimeLabel(bedtimeMinutes(rules.bedtime) + change) });
+  const update = (patch: Partial<typeof rules>) => {
+    if (profile) void updateSharedChildRules(profile.id, patch);
+  };
+  const adjustBedtime = (change: number) => update({ bedtime: formatBedtime(parseBedtime(rules.bedtime) + change) });
+
+  const limit = profile?.dailyLimitMinutes ?? null;
+
+  const saveLimit = async (dailyLimitMinutes: number) => {
+    if (!profile) return;
+    const saved = await updateChildProfile(profile.id, { dailyLimitMinutes });
+    if (!saved) {
+      showAppAlert(
+        'Saved on this device only',
+        `${profile.nickname}’s limit is ${formatDailyLimit(dailyLimitMinutes)} here, but we couldn’t reach your account. Open this screen again while online to save it for good.`,
+      );
+    }
+  };
 
   return <ScreenContainer scroll style={styles.root}>
     <ParentHeader title="Time limits" onBack={() => router.back()} />
@@ -38,13 +39,13 @@ export default function TimeLimit() {
     </> : null}
     <OwlBubble>Set a daily limit and bedtime just for {profile?.nickname ?? 'your child'}.</OwlBubble>
     <SectionLabel>Daily limit</SectionLabel>
-    <OptionList options={options} selected={profile?.dailyLimitMinutes ?? null} onSelect={value => { if (profile) useAppStore.getState().updateChildProfile(profile.id, { dailyLimitMinutes: value }); }} />
+    <DailyLimitOptions value={limit} onChange={(minutes) => { void saveLimit(minutes); }} />
     <SectionLabel>Bedtime</SectionLabel>
     <View style={styles.bedtimeCard}>
       <View style={styles.bedtimeHeader}>
         <View style={styles.bedtimeCopy}>
           <Txt weight="extrabold" size={16}>Bedtime cut-off</Txt>
-          <Txt size={13} color={colors.parent.muted}>Stop videos after this time</Txt>
+          <Txt size={13} color={colors.parent.muted}>Stop videos from this time until 6:00 AM</Txt>
         </View>
         <Switch value={rules.bedtimeEnabled} onValueChange={value => update({ bedtimeEnabled: value })} trackColor={{ true: colors.child.grass, false: colors.border }} thumbColor="#FFFFFF" />
       </View>
@@ -63,8 +64,8 @@ export default function TimeLimit() {
     </View>
     <SectionLabel>Extra care</SectionLabel>
     <SettingsGroup>
-      <SettingsRow icon="☀" iconBg="#FFF3D9" title="Weekends" value="+30 extra min" toggle={{ value: rules.weekendBonus, onChange: value => update({ weekendBonus: value }) }} />
-      <SettingsRow icon="⌛" iconBg="#EAFBF0" title="5-minute warning" value="Gentle heads-up" toggle={{ value: rules.warningEnabled, onChange: value => update({ warningEnabled: value }) }} />
+      <SettingsRow icon={<AppIcon name="weekend" />} iconBg="transparent" title="Weekends" value="+30 extra min" toggle={{ value: rules.weekendBonus, onChange: value => update({ weekendBonus: value }) }} />
+      <SettingsRow icon={<AppIcon name="warning" />} iconBg="transparent" title="5-minute warning" value="Gentle heads-up" toggle={{ value: rules.warningEnabled, onChange: value => update({ warningEnabled: value }) }} />
     </SettingsGroup>
     <Button title={`Save for ${profile?.nickname ?? 'child'}`} onPress={() => router.back()} />
   </ScreenContainer>;

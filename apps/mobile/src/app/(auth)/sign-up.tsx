@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useSignUp } from '@clerk/clerk-expo';
 import { Button, ScreenContainer, Txt } from '@/components';
@@ -85,20 +85,16 @@ function ClerkSignUp() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScreenContainer scroll style={styles.container}>
+    <ScreenContainer scroll style={styles.container}>
         <View style={styles.header}>
           <Logo size={64} />
           <Txt weight="black" size={26}>
-            {verifying ? 'Check your email' : 'Create your account'}
+            {verifying ? 'Enter your code' : 'Create parent account'}
           </Txt>
           <Txt weight="semibold" size={14} color={colors.muted} center>
             {verifying
               ? `We sent a 6-digit code to ${email.trim()}.`
-              : 'Your playlists sync securely across devices.'}
+              : 'Save your children’s videos and settings securely.'}
           </Txt>
         </View>
         <View style={{ gap: 16 }}>
@@ -111,6 +107,8 @@ function ClerkSignUp() {
               keyboardType="number-pad"
               maxLength={6}
               error={error}
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
             />
           ) : (
             <>
@@ -122,6 +120,8 @@ function ClerkSignUp() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
               />
               <Field
                 label="Password"
@@ -130,29 +130,41 @@ function ClerkSignUp() {
                 placeholder="8+ characters"
                 secureTextEntry
                 error={error}
+                autoComplete="new-password"
+                textContentType="newPassword"
               />
             </>
           )}
           <Button
-            title={verifying ? 'Verify' : 'Sign Up'}
+            title={verifying ? 'Verify email' : 'Create account'}
             onPress={verifying ? verify : submit}
             loading={busy}
+            disabled={busy || (verifying ? code.trim().length !== 6 : !email.trim() || password.length < 8)}
           />
+          {verifying ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { setVerifying(false); setCode(''); setError(null); }}
+              hitSlop={8}
+              style={styles.changeEmail}
+            >
+              <Txt weight="extrabold" size={14} color={colors.primaryDark}>Use a different email</Txt>
+            </Pressable>
+          ) : null}
         </View>
         <View style={styles.footer}>
           <Txt weight="semibold" size={14} color={colors.muted}>
             Already have an account?
           </Txt>
           <Link href="/(auth)/sign-in" asChild>
-            <Pressable hitSlop={8}>
+            <Pressable accessibilityRole="link" hitSlop={8}>
               <Txt weight="extrabold" size={14} color={colors.primary}>
                 Sign in
               </Txt>
             </Pressable>
           </Link>
         </View>
-      </ScreenContainer>
-    </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
@@ -160,4 +172,5 @@ const styles = StyleSheet.create({
   container: { paddingTop: 60, justifyContent: 'center' },
   header: { alignItems: 'center', gap: 10, marginBottom: 28 },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 24 },
+  changeEmail: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

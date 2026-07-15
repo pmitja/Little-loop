@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { fetchClerkEmail, requireAuth } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlement';
+import { ensurePersonalFamily } from '@/lib/family';
 import { handle, json, parseBody } from '@/lib/http';
 
 const syncSchema = z.object({
@@ -27,6 +28,8 @@ export const POST = handle(async (req) => {
       .returning();
   }
 
+  const family = await ensurePersonalFamily(ctx.db, user.id);
+
   await ctx.db
     .insert(devices)
     .values({
@@ -43,13 +46,14 @@ export const POST = handle(async (req) => {
   const [entitlement, profiles] = await Promise.all([
     getEntitlement(ctx.db, user.id),
     ctx.db.query.childProfiles.findMany({
-      where: and(eq(childProfiles.userId, user.id), isNull(childProfiles.deletedAt)),
+      where: and(eq(childProfiles.familyId, family.familyId), isNull(childProfiles.deletedAt)),
     }),
   ]);
 
   return json({
     user: { id: user.id, email: user.email },
     entitlement,
+    family: { id: family.familyId, role: family.role },
     childProfiles: profiles,
   });
 });

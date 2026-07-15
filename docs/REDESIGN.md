@@ -142,7 +142,7 @@ Mockup §06. Paper ground. `ParentHeader` "Today" + `ChildSwitcher`. Cards in or
 
 ### 5.7 Parent Playlist tab — `src/app/(parent)/(tabs)/playlist.tsx`
 
-Mockup §06. Header "{Child}'s playlist" + honest counter "6 of 10 videos · Free". Hero element = paste field (dashed `child.skyDeep` border, "Paste a YouTube link…"). Rows: thumb, title, meta, `StatusBadge` REVIEW/LIVE. New links land as REVIEW → `review-video.tsx` approval flow → LIVE.
+Mockup §06. Header "{Child}'s playlist" + honest counter "6 of 15 videos · Free". Hero element = paste field (dashed `child.skyDeep` border, "Paste a YouTube link…"). Rows: thumb, title, meta, `StatusBadge` REVIEW/LIVE. New links land as REVIEW → `review-video.tsx` approval flow → LIVE.
 
 - AC: paste-first (field above the list); REVIEW items never appear in child mode; counter reflects entitlements; hitting the cap routes to paywall with context.
 
@@ -166,7 +166,7 @@ Mockup §07. `FactsPanel` first ("What's protected right now" — limit, kid-pro
 
 ### 5.11 Paywall — `src/app/paywall.tsx`
 
-Mockup §08. Plum gradient, owl, **trigger as headline** ("{Child}'s playlist is full — 10 of 10 videos"), 4 plain checkmarks (incl. "Everything in Free, forever"), monthly vs yearly cards (yearly outlined `sun` + SAVE badge, percent derived from the live prices), "Subscribe now" CTA, equal-weight "Not now" + "Restore purchase".
+Mockup §08. Plum gradient, owl, **trigger as headline** ("{Child}'s playlist is full — 15 of 15 videos"), 4 plain checkmarks (incl. "Everything in Free, forever"), monthly vs yearly cards (yearly outlined `sun` + SAVE badge, percent derived from the live prices), "Subscribe now" CTA, equal-weight "Not now" + "Restore purchase".
 
 - AC: accepts a `trigger` param and renders it; only ever shown at a cap or from the Settings banner — never on launch, **never in `(child)` routes**; "Not now" always present.
 

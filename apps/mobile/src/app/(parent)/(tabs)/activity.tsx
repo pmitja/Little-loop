@@ -1,7 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
-import { Card, ScreenContainer, SectionLabel, Txt } from '@/components';
+import { useQuery } from '@tanstack/react-query';
+import { Card, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
@@ -12,6 +13,8 @@ import {
   useTimerStore,
   weeklyMinutes,
 } from '@/stores/timerStore';
+import { apiConfigured } from '@/lib/api';
+import { fetchSharedActivity } from '@/features/family/activityApi';
 
 function dayLabel(iso: string): string {
   const key = localDayKey(iso);
@@ -34,14 +37,31 @@ export default function Activity() {
   const sessions = useTimerStore((s) => s.sessions);
   const videos = usePlaylistVideos(profile?.id ?? null);
   const secondsToday = useSecondsWatchedToday(profile?.id ?? null);
-  const minutesToday = Math.floor(secondsToday / 60);
-  const limit = profile?.dailyLimitMinutes ?? null;
+  const sharedActivity = useQuery({
+    queryKey: ['activity', profile?.id],
+    queryFn: () => fetchSharedActivity(profile!.id),
+    enabled: Boolean(profile && apiConfigured()),
+  });
+  const minutesToday = sharedActivity.data?.todayMinutes ?? Math.floor(secondsToday / 60);
+  const limit = sharedActivity.data?.dailyLimitMinutes ?? profile?.dailyLimitMinutes ?? null;
 
   const childSessions = sessions.filter(
     (s) => (!profile || s.childProfileId === profile.id) && s.seconds > 0,
   );
-  const recent = [...childSessions].reverse().slice(0, 8);
-  const bars = weeklyMinutes(sessions, profile?.id ?? null);
+  const recent = sharedActivity.data
+    ? sharedActivity.data.sessions.slice(0, 8).map((session) => ({
+        id: session.id,
+        childProfileId: profile!.id,
+        startedAt: session.startedAt,
+        endedAt: session.startedAt,
+        seconds: session.minutes * 60,
+        videoIds: Array.from({ length: session.videosCount }, (_, index) => `${session.id}:${index}`),
+        endReason: null,
+      }))
+    : [...childSessions].reverse().slice(0, 8);
+  const bars = sharedActivity.data
+    ? sharedActivity.data.weekByDay.map((day) => ({ key: day.date, minutes: day.minutes }))
+    : weeklyMinutes(sessions, profile?.id ?? null);
   const maxBar = Math.max(1, ...bars.map((b) => b.minutes));
 
   // Most-watched: play counts across the week's sessions, resolved against the playlist.
@@ -50,9 +70,13 @@ export default function Activity() {
     for (const id of s.videoIds) counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   const [topVideoId, topCount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
-  const topVideo = topVideoId
+  const localTopVideo = topVideoId
     ? (videos.find((v) => v.video.providerVideoId === topVideoId)?.video ?? null)
     : null;
+  const topVideo = sharedActivity.data?.mostWatched ?? localTopVideo;
+  const topLabel = sharedActivity.data?.mostWatched
+    ? `${sharedActivity.data.mostWatched.minutes} min watched this week`
+    : `Watched ${topCount} ${topCount === 1 ? 'time' : 'times'} this week`;
 
   const statusLine =
     limit === null
@@ -63,11 +87,11 @@ export default function Activity() {
 
   return (
     <ScreenContainer scroll style={styles.container}>
-      <Txt weight="black" size={24}>
-        Activity
-      </Txt>
+      <ParentHeader title="Activity" />
       <Txt weight="semibold" size={13.5} color={colors.muted} style={{ marginBottom: 16 }}>
-        {profile ? `${profile.nickname} · stored only on this device` : 'stored only on this device'}
+        {profile
+          ? `${profile.nickname} · ${apiConfigured() ? 'synced across caregivers' : 'stored only on this device'}`
+          : apiConfigured() ? 'synced across caregivers' : 'stored only on this device'}
       </Txt>
 
       <View style={styles.statsRow}>
@@ -114,7 +138,7 @@ export default function Activity() {
         </Card>
       </View>
 
-      {topVideoId ? (
+      {topVideo ? (
         <>
           <SectionLabel style={styles.sectionLabel}>Most watched</SectionLabel>
           <Card radius={radii.card} padding={12} style={styles.mostWatched}>
@@ -133,10 +157,10 @@ export default function Activity() {
             </View>
             <View style={{ flex: 1 }}>
               <Txt weight="extrabold" size={13.5} numberOfLines={1}>
-                {topVideo?.title ?? 'A video no longer in the playlist'}
+                {topVideo.title}
               </Txt>
               <Txt weight="semibold" size={11.5} color={colors.subtle} style={{ marginTop: 3 }}>
-                Watched {topCount} {topCount === 1 ? 'time' : 'times'} this week
+                {topLabel}
               </Txt>
             </View>
           </Card>

@@ -50,10 +50,21 @@ export async function previewVideo(url: string): Promise<VideoMeta> {
       });
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.status === 401) {
+          throw new VideoPreviewError(
+            VIDEO_ERROR_CODES.unavailable,
+            'Sign in to LittleLoop before adding a shared video',
+          );
+        }
         const code = (
           err.code in VIDEO_ERROR_MESSAGES ? err.code : VIDEO_ERROR_CODES.unavailable
         ) as VideoErrorCode;
-        throw new VideoPreviewError(code, VIDEO_ERROR_MESSAGES[code]);
+        throw new VideoPreviewError(
+          code,
+          err.code in VIDEO_ERROR_MESSAGES
+            ? VIDEO_ERROR_MESSAGES[code]
+            : 'LittleLoop couldn\'t check this video right now — please try again',
+        );
       }
       throw new VideoPreviewError(VIDEO_ERROR_CODES.offline, VIDEO_ERROR_MESSAGES.OFFLINE);
     }

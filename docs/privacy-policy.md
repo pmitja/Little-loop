@@ -1,6 +1,6 @@
 # LittleLoop Privacy Policy
 
-_Last updated: July 8, 2026. This is the canonical copy; the in-app version
+_Last updated: July 15, 2026. This is the canonical copy; the in-app version
 (`apps/mobile/src/app/(parent)/legal.tsx`) is a condensed rendering and must be
 kept in sync. Host this document at https://littleloopapp.com/privacy for the
 store listings._
@@ -25,6 +25,12 @@ require a real name.
 **Subscription status.** Whether your account has an active LittleLoop Premium
 subscription, processed by RevenueCat and the Apple App Store / Google Play.
 We never see your payment details.
+
+**Family sharing.** If the main caregiver invites another caregiver, family
+members can see each other's account email address and can access the shared
+child profiles, settings, approved playlists, and watch activity. Invitation
+links are random, expire after seven days, and can be revoked by the main
+caregiver. Do not forward an invitation link to someone you do not trust.
 
 **Crash reports.** Technical crash data via Sentry: device model, OS version,
 and stack traces. We configure Sentry to send no personally identifying
@@ -64,7 +70,9 @@ use cross-app tracking.
 ## Data retention & deletion
 
 Account data is retained while your account exists. **Settings → Delete
-account & data** in the app removes all local data and your account. You can
+account & data** removes the entire family when used by the main caregiver. For
+an invited caregiver, it removes only that caregiver's account and family
+access; the main caregiver's family data remains. You can
 also request deletion at privacy@littleloopapp.com; we complete requests within
 30 days.
 

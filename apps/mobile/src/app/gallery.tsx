@@ -94,7 +94,7 @@ export default function Gallery() {
         <SettingsRow
           icon={<Txt size={14}>✨</Txt>}
           iconBg={colors.greenTint}
-          label="Unlock with Face ID"
+          label="Pause videos at bedtime"
           toggle={{ value: toggle, onChange: setToggle }}
         />
         <SettingsRow

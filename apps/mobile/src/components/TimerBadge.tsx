@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -10,14 +11,15 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { AppIcon } from './AppIcon';
 
 interface TimerBadgeProps {
   /** Seconds remaining today; null = no daily limit. */
   remainingSeconds: number | null;
   /** Full daily allowance in seconds — drives the progress bar fill (light variant). */
   totalSeconds?: number | null;
-  /** 'light' — full-width meter pill on child home; 'dark' — compact pill on the player. */
-  variant?: 'light' | 'dark';
+  /** Full meter on the library; compact light/dark pills in the player. */
+  variant?: 'light' | 'compact' | 'dark';
   style?: StyleProp<ViewStyle>;
 }
 
@@ -34,26 +36,42 @@ export function timerLabel(remaining: number | null): string {
  */
 export function TimerBadge({ remainingSeconds, totalSeconds, variant = 'light', style }: TimerBadgeProps) {
   const warning = remainingSeconds !== null && remainingSeconds <= 120;
+  const reducedMotion = useReducedMotion();
   const pulse = useSharedValue(1);
 
   useEffect(() => {
-    if (warning) {
+    if (warning && !reducedMotion) {
       pulse.value = withRepeat(
         withSequence(withTiming(1.06, { duration: 500 }), withTiming(1, { duration: 500 })),
-        -1,
+        2,
       );
     } else {
       pulse.value = withTiming(1, { duration: 150 });
     }
-  }, [warning, pulse]);
+  }, [warning, reducedMotion, pulse]);
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   if (variant === 'dark') {
     return (
       <Animated.View style={[styles.pill, styles.dark, animatedStyle, style]}>
-        <Txt size={13}>⏰</Txt>
+        <AppIcon name="time" size={18} />
         <Txt weight="extrabold" size={13.5} color={warning ? colors.child.coral : colors.child.sun}>
+          {timerLabel(remainingSeconds)}
+        </Txt>
+      </Animated.View>
+    );
+  }
+
+  if (variant === 'compact') {
+    return (
+      <Animated.View
+        accessibilityRole="text"
+        accessibilityLabel={timerLabel(remainingSeconds)}
+        style={[styles.pill, styles.compact, shadows.card, animatedStyle, style]}
+      >
+        <AppIcon name="time" size={18} />
+        <Txt weight="extrabold" size={13.5} color={warning ? colors.child.coral : colors.parent.night}>
           {timerLabel(remainingSeconds)}
         </Txt>
       </Animated.View>
@@ -67,7 +85,7 @@ export function TimerBadge({ remainingSeconds, totalSeconds, variant = 'light', 
 
   return (
     <Animated.View style={[styles.pill, styles.light, shadows.card, animatedStyle, style]}>
-      <Txt size={14}>⏰</Txt>
+      <AppIcon name="time" size={19} />
       <View style={styles.track}>
         <LinearGradient
           colors={warning ? [colors.child.coral, colors.child.coral] : [colors.child.grass, colors.child.sun]}
@@ -93,6 +111,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   light: { backgroundColor: 'rgba(255,255,255,.92)', alignSelf: 'stretch' },
+  compact: { backgroundColor: '#FFFFFF', alignSelf: 'flex-start', gap: 6 },
   dark: { backgroundColor: 'rgba(255,255,255,.12)', alignSelf: 'flex-start', gap: 5 },
   track: { flex: 1, height: 8, borderRadius: 99, backgroundColor: '#E8E0D0', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },

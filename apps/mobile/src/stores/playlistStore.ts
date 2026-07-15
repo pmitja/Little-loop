@@ -21,6 +21,7 @@ interface PlaylistState {
    * (server truth moves to TanStack Query once the playlist API is live).
    */
   videosByChild: Record<string, PlaylistVideo[]>;
+  playlistIdByChild: Record<string, string>;
   playbackProgressByChild: Record<string, Record<string, PlaybackProgress>>;
   addVideo: (childProfileId: string, video: VideoMeta, status?: 'review' | 'live') => AddVideoResult;
   setVideoStatus: (childProfileId: string, playlistVideoId: string, status: 'review' | 'live') => void;
@@ -33,6 +34,7 @@ interface PlaylistState {
     durationSeconds: number,
   ) => void;
   clearPlaybackProgress: (childProfileId: string, providerVideoId: string) => void;
+  setServerPlaylist: (childProfileId: string, playlistId: string, videos: PlaylistVideo[]) => void;
   /** Drop everything stored for a child (profile deleted). */
   removeChildData: (childProfileId: string) => void;
 }
@@ -41,6 +43,7 @@ export const usePlaylistStore = create<PlaylistState>()(
   persist(
     (set, get) => ({
       videosByChild: {},
+      playlistIdByChild: {},
       playbackProgressByChild: {},
       addVideo: (childProfileId, video, status = 'review') => {
         const current = get().videosByChild[childProfileId] ?? [];
@@ -157,12 +160,18 @@ export const usePlaylistStore = create<PlaylistState>()(
             },
           };
         }),
+      setServerPlaylist: (childProfileId, playlistId, videos) =>
+        set((state) => ({
+          playlistIdByChild: { ...state.playlistIdByChild, [childProfileId]: playlistId },
+          videosByChild: { ...state.videosByChild, [childProfileId]: videos },
+        })),
       removeChildData: (childProfileId) =>
         set((s) => {
           const { [childProfileId]: _videos, ...videosByChild } = s.videosByChild;
+          const { [childProfileId]: _playlist, ...playlistIdByChild } = s.playlistIdByChild;
           const { [childProfileId]: _progress, ...playbackProgressByChild } =
             s.playbackProgressByChild ?? {};
-          return { videosByChild, playbackProgressByChild };
+          return { videosByChild, playlistIdByChild, playbackProgressByChild };
         }),
     }),
     {

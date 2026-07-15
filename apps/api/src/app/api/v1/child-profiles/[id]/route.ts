@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { handle, json, parseBody } from '@/lib/http';
 import { requireChildProfile } from '@/lib/ownership';
+import { requireFamilyOwner } from '@/lib/family';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -24,6 +25,7 @@ export const DELETE = handle<Ctx>(async (req, { params }) => {
   const { db, user } = await requireAuth(req);
   const { id } = await params;
   await requireChildProfile(db, user!.id, id);
+  await requireFamilyOwner(db, user!.id);
   await db
     .update(childProfiles)
     .set({ deletedAt: new Date() })

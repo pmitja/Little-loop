@@ -70,6 +70,32 @@ export function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+const URL_IN_TEXT_RE = /https?:\/\/[^\s<>"']+/gi;
+
+/**
+ * Pull a video id out of shared text.
+ *
+ * extractYouTubeId needs the whole string to be one URL, which a paste always is
+ * — but a share sheet hands over whatever the source app chose to put there, and
+ * YouTube's includes the video title above the link. Scan for URLs instead of
+ * demanding the text be one, so a real share still resolves.
+ */
+export function extractYouTubeIdFromText(text: string): string | null {
+  const direct = extractYouTubeId(text);
+  if (direct) return direct;
+  for (const match of text.match(URL_IN_TEXT_RE) ?? []) {
+    // Trailing punctuation belongs to the sentence, not the link.
+    const id = extractYouTubeId(match.replace(/[.,)\]]+$/, ''));
+    if (id) return id;
+  }
+  return null;
+}
+
+/** Canonical watch URL for a video id — what we hand to the preview endpoint. */
+export function youtubeWatchUrl(videoId: string): string {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
 /** Parse an ISO-8601 duration (YouTube contentDetails.duration) into seconds. */
 export function parseIso8601Duration(duration: string): number | null {
   const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(duration.trim());

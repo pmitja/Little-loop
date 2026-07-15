@@ -20,7 +20,7 @@ Technically this means:
 2. **Playback uses the official YouTube IFrame embed inside a WebView**, locked down: navigation interception, no related-video taps, custom native controls overlaying the iframe. We never download or rehost video.
 3. **Child mode is an app-level state machine**, not just a route: `childMode.active === true` swaps the entire navigator, disables gestures back to parent routes, and re-locks on background/foreground.
 4. **Watch time is metered locally and synced to the server** — daily limit countdown, 2-minute warning, and the "Time for a break" screen (s16).
-5. **Monetization is entitlement-gated feature limits** (free: 1 profile / 1 playlist / 10 videos) enforced both client-side (UX) and server-side (authoritative), driven by RevenueCat.
+5. **Monetization is entitlement-gated feature limits** (free: 1 profile / 1 playlist / 15 videos) enforced both client-side (UX) and server-side (authoritative), driven by RevenueCat.
 
 Wording rules baked into all copy: "video link", "approved video", "embedded player — approved source only". Never "YouTube app", never "ad-free".
 
@@ -142,7 +142,7 @@ Also from the design: tab bar order/icons are Home, Playlist, Activity, Settings
 - **Entering child mode:** dashboard coral card or s11 "Preview Child Mode" → s12 gate (shows avatar, video count, limit) → "Start Child Mode" → store flips, navigator swaps to `(child)`, timer starts.
 - **Exiting child mode:** child taps padlock (s13 top-right) or "Parent unlock" (s15/s16) → `pin-unlock` modal → correct PIN or Face ID → store flips back → parent dashboard. Wrong PIN ×5 → 30 s cooldown.
 - **Timer ending:** at T−2 min the TimerBadge turns amber and pulses + gentle toast; at T=0 player pauses, navigate to s16 `times-up` — child mode remains active; only "Parent unlock" leads anywhere.
-- **Paywall triggers:** attempting 11th video, 2nd playlist, or 2nd child profile → `paywall` modal (s19); also Settings "Upgrade" banner. Purchase success → entitlement refresh → retry the gated action.
+- **Paywall triggers:** attempting 16th video, 2nd playlist, or 2nd child profile → `paywall` modal (s19); also Settings "Upgrade" banner. Purchase success → entitlement refresh → retry the gated action.
 - **Restore purchases:** s19 "Restore Purchases" → `Purchases.restorePurchases()` → entitlement update + confirmation toast.
 
 ## 6. State management plan
@@ -367,7 +367,8 @@ POST /api/v1/playlists/8f2.../videos
 ## 12. Subscription and paywall logic
 
 - **Products:** `ll_premium_monthly` $4.99, `ll_premium_yearly` $34.99, no free trial (yearly anchored as "BEST VALUE", per s19). One RevenueCat entitlement: `premium`.
-- **Free limits** (constants in `@littleloop/shared`): `{ childProfiles: 1, playlists: 1, videosPerPlaylist: 10, avatars: 6 basic }`. Premium: unlimited profiles/playlists/videos, advanced schedules, cloud sync of settings, extra avatars, activity insights (week+ history).
+- **Free limits** (constants in `@littleloop/shared`): `{ childProfiles: 1, playlists: 1, videosPerPlaylist: 15, avatars: 6 basic }`. Premium: additional profiles/playlists, unlimited videos, in-app search, synchronized activity, and caregiver sharing.
+- **Caregiver sharing:** each account starts with a personal family. Premium owners can invite caregivers with seven-day revocable links. Caregivers can manage profiles, rules, playlists, and activity, but only the owner can delete profiles, manage invitations, or control billing. RevenueCat remains attached to the owner; the API resolves the family entitlement through that owner.
 - **Integration:** `react-native-purchases`; `Purchases.logIn(clerkUserId)` so the RevenueCat app-user-id == our user; entitlement read from `customerInfo.entitlements.active.premium`. Paywall screen is fully custom (s19) using `getOfferings()` for localized prices.
 - **When shown:** hitting any free limit (client checks first for instant UX; server 402 is the backstop), Settings upgrade banner, optionally once post-onboarding (soft, dismissible).
 - **Restore:** s19 link → `restorePurchases()`; also automatic on `logIn`.
@@ -483,7 +484,7 @@ Components (all typed, in `src/components/`):
 - **Unit (Vitest, `packages/shared` + app logic):** `extractYouTubeId` (≥20 URL fixtures incl. shorts/music/embed/invalid/playlist), ISO-8601 duration parsing, free-limit calculators, timer reducer (tick/pause/day-rollover/warning threshold), PIN hash/verify/lockout state machine.
 - **API (Vitest + route-handler invocation against a Neon branch DB):** every endpoint: auth required, ownership enforced (user A can't touch user B's playlist), limit 402s, duplicate 409, reorder permutation validation, webhook idempotency + signature check, session seconds capping.
 - **Integration:** add-video happy path (mocked YouTube API), preview error mapping (private/quota/non-embeddable), entitlement change → limit behavior.
-- **Mobile E2E (Maestro):** onboarding→PIN→profile→empty playlist; add+approve video; enter child mode→play→locked modal on back→PIN exit; wrong PIN ×5 lockout; timer expiry → s16 (with a debug 1-minute limit); paywall on 11th video; restore purchases (sandbox).
+- **Mobile E2E (Maestro):** onboarding→PIN→profile→empty playlist; add+approve video; enter child mode→play→locked modal on back→PIN exit; wrong PIN ×5 lockout; timer expiry → s16 (with a debug 1-minute limit); paywall on 16th video; restore purchases (sandbox).
 - **Subscription cases (manual + RevenueCat sandbox):** initial purchase, cancellation, renewal, expiration, restore on fresh install, offline entitlement.
 - **Child-lock manual matrix:** Android hardware back, iOS swipe-back, app switcher kill/relaunch, deep link while locked, WebView tap on video title/logo/end screen, rotation to s14b.
 

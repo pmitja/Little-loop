@@ -4,7 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { storage } from '@/lib/storage';
 import { markHydrated } from '@/stores/appStore';
 
-export type SessionEndReason = 'parent_exit' | 'time_limit' | 'app_closed';
+export type SessionEndReason = 'parent_exit' | 'time_limit' | 'bedtime' | 'app_closed';
 
 export interface WatchSession {
   id: string;

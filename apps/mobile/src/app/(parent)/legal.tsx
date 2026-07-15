@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FREE_LIMITS } from '@littleloop/shared';
 import { ParentHeader, ScreenContainer, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 
@@ -11,7 +12,7 @@ interface Section {
 const PRIVACY: Section[] = [
   {
     heading: 'What we collect',
-    body: 'A parent account (email, via our sign-in provider Clerk) and the content you create: child profile nicknames, avatars, time-limit settings, and approved video links. Child profiles need no real names — a nickname is enough.',
+    body: 'A parent account (email, via our sign-in provider Clerk) and the content you create: child profile nicknames, avatars, time-limit settings, and approved video links. With Premium family sharing, invited caregivers can access the family’s profiles, playlists, settings, and watch activity, and family members can see each other’s account email.',
   },
   {
     heading: 'What stays on this device',
@@ -27,7 +28,7 @@ const PRIVACY: Section[] = [
   },
   {
     heading: 'Deleting your data',
-    body: 'Settings → Delete account & data removes everything from the device and your account. You can also email privacy@littleloopapp.com.',
+    body: 'For the main caregiver, Settings → Delete account & data removes the entire family. For an invited caregiver, it removes only their account and access; the family remains. You can also email privacy@littleloopapp.com.',
   },
 ];
 
@@ -42,7 +43,7 @@ const TERMS: Section[] = [
   },
   {
     heading: 'Subscriptions',
-    body: 'LittleLoop Premium renews automatically through your App Store or Google Play account until cancelled there. The free plan includes 1 child profile, 1 playlist, and up to 10 approved videos.',
+    body: `LittleLoop Premium renews automatically through your App Store or Google Play account until cancelled there. The free plan includes 1 child profile, 1 playlist, and up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`,
   },
   {
     heading: 'Limits of the lock',
@@ -61,7 +62,7 @@ export default function Legal() {
     <ScreenContainer scroll style={styles.container}>
       <ParentHeader title={isTerms ? 'Terms of use' : 'Privacy policy'} onBack={() => router.back()} />
       <Txt weight="semibold" size={12.5} color={colors.subtle} style={{ marginTop: 12 }}>
-        Last updated July 8, 2026
+        Last updated July 15, 2026
       </Txt>
       {sections.map((s) => (
         <View key={s.heading} style={styles.section}>

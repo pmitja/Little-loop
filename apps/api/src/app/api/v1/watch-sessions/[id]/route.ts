@@ -1,5 +1,5 @@
-import { securityEvents, watchSessions } from '@littleloop/db';
-import { eq } from 'drizzle-orm';
+import { securityEvents, videoMetadata, watchSessions } from '@littleloop/db';
+import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth';
 import { handle, HttpError, json, parseBody } from '@/lib/http';
@@ -13,6 +13,7 @@ const heartbeatSchema = z.object({
   videosWatched: z
     .array(z.object({ videoMetadataId: z.string(), seconds: z.number().int().min(0) }))
     .default([]),
+  providerVideoIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{11}$/)).optional(),
   endReason: z.enum(['parent_exit', 'time_limit', 'app_closed', 'unknown']).optional(),
 });
 
@@ -28,12 +29,24 @@ export const PATCH = handle<Ctx>(async (req, { params }) => {
 
   const totalSeconds = capTotalSeconds(body.totalSeconds, session.startedAt, session.totalSeconds);
   const ending = body.endReason !== undefined;
+  let videosWatched = body.videosWatched;
+  if (body.providerVideoIds?.length) {
+    const metadata = await db.query.videoMetadata.findMany({
+      where: inArray(videoMetadata.providerVideoId, body.providerVideoIds),
+      columns: { id: true },
+    });
+    const secondsPerVideo = Math.floor(totalSeconds / Math.max(1, metadata.length));
+    videosWatched = metadata.map((video) => ({
+      videoMetadataId: video.id,
+      seconds: secondsPerVideo,
+    }));
+  }
 
   const [updated] = await db
     .update(watchSessions)
     .set({
       totalSeconds,
-      videosWatched: body.videosWatched,
+      videosWatched,
       ...(ending ? { endedAt: new Date(), endReason: body.endReason } : {}),
     })
     .where(eq(watchSessions.id, id))

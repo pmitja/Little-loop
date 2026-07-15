@@ -5,12 +5,10 @@ import { markHydrated } from './appStore';
 
 interface LockState {
   pinSet: boolean;
-  biometricEnabled: boolean;
   childMode: { active: boolean; enteredAt: number | null };
   failedAttempts: number;
   lockoutUntil: number | null;
   setPinSet: (set: boolean) => void;
-  setBiometricEnabled: (enabled: boolean) => void;
   setChildMode: (active: boolean) => void;
   recordFailedAttempt: () => void;
   resetAttempts: () => void;
@@ -23,12 +21,10 @@ export const useLockStore = create<LockState>()(
   persist(
     (set) => ({
       pinSet: false,
-      biometricEnabled: false,
       childMode: { active: false, enteredAt: null },
       failedAttempts: 0,
       lockoutUntil: null,
       setPinSet: (pinSet) => set({ pinSet }),
-      setBiometricEnabled: (biometricEnabled) => set({ biometricEnabled }),
       setChildMode: (active) =>
         set({ childMode: { active, enteredAt: active ? Date.now() : null } }),
       recordFailedAttempt: () =>

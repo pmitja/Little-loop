@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -9,10 +9,10 @@ import {
   videoMetaSchema,
   type VideoMeta,
 } from '@littleloop/shared';
-import { Button, Card, ParentHeader, ScreenContainer, Txt } from '@/components';
+import { Button, Card, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
-import { usePlaylistStore } from '@/stores/playlistStore';
+import { commitApprovedVideo } from '@/features/family/playlistSync';
 
 function CheckMark({ on }: { on: boolean }) {
   return (
@@ -36,6 +36,7 @@ export default function ReviewVideo() {
   const router = useRouter();
   const params = useLocalSearchParams<{ video?: string; entryId?: string }>();
   const [approved, setApproved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const video: VideoMeta | null = useMemo(() => {
     try {
@@ -48,28 +49,29 @@ export default function ReviewVideo() {
   const profile = useAppStore((s) =>
     s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
-  const addVideo = usePlaylistStore((s) => s.addVideo);
-  const setVideoStatus = usePlaylistStore((s) => s.setVideoStatus);
-
   if (!video || !profile) {
     // Shouldn't happen in the normal flow; bail out gracefully.
     router.back();
     return null;
   }
 
-  const onAdd = () => {
-    if (params.entryId) {
-      setVideoStatus(profile.id, params.entryId, 'live');
-      router.replace('/(parent)/(tabs)/playlist');
+  const onAdd = async () => {
+    setSaving(true);
+    let result;
+    try {
+      result = await commitApprovedVideo(profile.id, video, params.entryId);
+    } catch {
+      setSaving(false);
+      showAppAlert('Couldn’t add video', 'Check your connection and try again.');
       return;
     }
-    const result = addVideo(profile.id, video, 'live');
+    setSaving(false);
     if (result === 'duplicate') {
-      Alert.alert('Already added', `This video is already in ${profile.nickname}’s playlist.`);
+      showAppAlert('Already added', `This video is already in ${profile.nickname}’s playlist.`);
       return;
     }
     if (result === 'limit') {
-      // 11th video on the free plan → paywall (PLAN §12); the approved video
+      // First video above the free-plan cap → paywall (PLAN §12); the approved video
       // stays on this screen so the add can be retried after purchase.
       router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: profile.nickname } });
       return;
@@ -119,7 +121,7 @@ export default function ReviewVideo() {
       </Pressable>
 
       <View style={{ flex: 1 }} />
-      <Button title="Add to Playlist" disabled={!approved} onPress={onAdd} />
+      <Button title="Add to Playlist" disabled={!approved} loading={saving} onPress={() => void onAdd()} />
       <Button title="Cancel" variant="ghost" size="md" onPress={() => router.back()} />
     </ScreenContainer>
   );

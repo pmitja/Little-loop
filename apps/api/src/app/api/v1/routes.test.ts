@@ -8,7 +8,9 @@ import {
 } from '@littleloop/db';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { FREE_LIMITS } from '@littleloop/shared';
 import { createTestDb } from '@/test/db';
+import { ensurePersonalFamily } from '@/lib/family';
 
 // Route handlers pull auth from @/lib/auth — swap in the test DB + user so the
 // free-limit / ownership logic runs against real Postgres (PGlite) unmocked.
@@ -48,6 +50,7 @@ async function actAs(clerkId: string): Promise<void> {
     .values({ clerkId, email: `${clerkId}@example.com` })
     .returning();
   ctx.user = row;
+  await ensurePersonalFamily(ctx.db, row.id);
 }
 
 /** Seed a fresh cached video_metadata row so the route never calls YouTube. */
@@ -111,8 +114,8 @@ describe('POST /playlists/:id/videos free limit + duplicates', () => {
 
   const routeCtx = () => ({ params: Promise.resolve({ id: playlistId }) });
 
-  it('accepts up to 10 videos with sequential positions', async () => {
-    for (let i = 0; i < 10; i++) {
+  it(`accepts up to ${FREE_LIMITS.videosPerPlaylist} videos with sequential positions`, async () => {
+    for (let i = 0; i < FREE_LIMITS.videosPerPlaylist; i++) {
       const providerVideoId = await seedVideo();
       const res = await addVideo(post({ providerVideoId }), routeCtx());
       expect(res.status).toBe(201);
@@ -131,14 +134,14 @@ describe('POST /playlists/:id/videos free limit + duplicates', () => {
     expect((await res.json()).error.code).toBe('DUPLICATE_VIDEO');
   });
 
-  it('402s on the 11th video for free users', async () => {
+  it(`402s on video ${FREE_LIMITS.videosPerPlaylist + 1} for free users`, async () => {
     const providerVideoId = await seedVideo();
     const res = await addVideo(post({ providerVideoId }), routeCtx());
     expect(res.status).toBe(402);
     expect((await res.json()).error.code).toBe('LIMIT_REACHED');
   });
 
-  it('allows the 11th video for premium users', async () => {
+  it(`allows video ${FREE_LIMITS.videosPerPlaylist + 1} for premium users`, async () => {
     await ctx.db.insert(subscriptionStatus).values({ userId: ctx.user.id, isPremium: true });
     const providerVideoId = await seedVideo();
     const res = await addVideo(post({ providerVideoId }), routeCtx());
@@ -178,6 +181,7 @@ describe('DELETE /users account deletion', () => {
     await actAs('clerk_gone');
     await createProfile(post(profileBody), {});
     const userId = ctx.user.id;
+    const familyId = (await ensurePersonalFamily(ctx.db, userId)).familyId;
 
     const res = await deleteAccount(new Request('http://test.local', { method: 'DELETE' }), {});
     expect(res.status).toBe(200);
@@ -185,7 +189,7 @@ describe('DELETE /users account deletion', () => {
     const [{ deleteClerkUser }, remainingUser, remainingProfiles] = await Promise.all([
       import('@/lib/auth'),
       ctx.db.query.users.findFirst({ where: eq(users.id, userId) }),
-      ctx.db.query.childProfiles.findMany({ where: eq(childProfiles.userId, userId) }),
+      ctx.db.query.childProfiles.findMany({ where: eq(childProfiles.familyId, familyId) }),
     ]);
     expect(deleteClerkUser).toHaveBeenCalledWith('clerk_gone');
     expect(remainingUser).toBeUndefined();

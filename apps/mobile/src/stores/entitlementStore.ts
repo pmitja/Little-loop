@@ -8,17 +8,36 @@ import { storage } from '@/lib/storage';
  */
 interface EntitlementState {
   premium: boolean;
+  storePremium: boolean;
+  familyPremium: boolean;
   /** ISO timestamp of the last confirmation from RevenueCat (null = never). */
   updatedAt: string | null;
   setPremium: (premium: boolean) => void;
+  setFamilyPremium: (premium: boolean) => void;
+  clearPremium: () => void;
 }
 
 export const useEntitlementStore = create<EntitlementState>()(
   persist(
     (set) => ({
       premium: false,
+      storePremium: false,
+      familyPremium: false,
       updatedAt: null,
-      setPremium: (premium) => set({ premium, updatedAt: new Date().toISOString() }),
+      setPremium: (storePremium) =>
+        set((state) => ({
+          storePremium,
+          premium: storePremium || (state.familyPremium ?? false),
+          updatedAt: new Date().toISOString(),
+        })),
+      setFamilyPremium: (familyPremium) =>
+        set((state) => ({
+          familyPremium,
+          premium: familyPremium || (state.storePremium ?? false),
+          updatedAt: new Date().toISOString(),
+        })),
+      clearPremium: () =>
+        set({ premium: false, storePremium: false, familyPremium: false, updatedAt: null }),
     }),
     { name: 'entitlement-store', storage: createJSONStorage(() => storage) },
   ),

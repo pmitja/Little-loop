@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  AccessibilityInfo,
   AppState,
+  BackHandler,
   Pressable,
   StyleSheet,
   View,
@@ -13,6 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { formatDuration } from '@littleloop/shared';
@@ -20,7 +23,7 @@ import { Txt } from '@/components';
 import { TimerBadge } from '@/components/TimerBadge';
 import { colors, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppStore } from '@/stores/appStore';
+import { useAppStore, useBedtimeReached } from '@/stores/appStore';
 import { useLivePlaylistVideos, usePlaylistStore } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday, useTimerStore } from '@/stores/timerStore';
 import {
@@ -113,6 +116,7 @@ export default function ChildPlayer() {
   const videos = useLivePlaylistVideos(profile?.id ?? null);
   const watched = useSecondsWatchedToday(profile?.id ?? null);
   const remaining = remainingSeconds(profile?.dailyLimitMinutes, watched);
+  const pastBedtime = useBedtimeReached(profile?.id ?? null);
 
   const initialIndex = Math.min(Math.max(Number(params.index ?? 0) || 0, 0), Math.max(videos.length - 1, 0));
   const [index, setIndex] = useState(initialIndex);
@@ -146,6 +150,7 @@ export default function ChildPlayer() {
   );
   const [progressTrackWidth, setProgressTrackWidth] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const playing = playerState === YT_STATE.playing;
   // Two-minute warning (PLAN §13): remaining only decreases, so this window
   // passes exactly once — a derived ~4-second toast with no extra state.
@@ -189,12 +194,21 @@ export default function ChildPlayer() {
   const revealControls = useCallback(() => {
     clearControlsHideTimer();
     setChromeVisible(true);
-    if (playing) {
+    if (playing && !screenReaderEnabled) {
       controlsHideTimer.current = setTimeout(() => {
         setChromeVisible(false);
       }, CONTROLS_AUTO_HIDE_MS);
     }
-  }, [clearControlsHideTimer, playing, setChromeVisible]);
+  }, [clearControlsHideTimer, playing, screenReaderEnabled, setChromeVisible]);
+
+  useEffect(() => {
+    void AccessibilityInfo.isScreenReaderEnabled().then(setScreenReaderEnabled);
+    const subscription = AccessibilityInfo.addEventListener(
+      'screenReaderChanged',
+      setScreenReaderEnabled,
+    );
+    return () => subscription.remove();
+  }, []);
 
   const persistCurrentProgress = useCallback(() => {
     const { childProfileId, providerVideoId } = currentIdentityRef.current;
@@ -310,7 +324,7 @@ export default function ChildPlayer() {
   // Paused/buffering states keep controls available.
   useEffect(() => {
     const id = setTimeout(() => {
-      if (playing) {
+      if (playing && !screenReaderEnabled) {
         revealControls();
         return;
       }
@@ -318,7 +332,7 @@ export default function ChildPlayer() {
       setChromeVisible(true);
     }, 0);
     return () => clearTimeout(id);
-  }, [playing, revealControls, clearControlsHideTimer, setChromeVisible]);
+  }, [playing, screenReaderEnabled, revealControls, clearControlsHideTimer, setChromeVisible]);
 
   useEffect(() => clearControlsHideTimer, [clearControlsHideTimer]);
 
@@ -331,14 +345,21 @@ export default function ChildPlayer() {
     [persistCurrentProgress],
   );
 
-  // T = 0 → pause, close the session, hand over to the break screen.
+  // T = 0 or bedtime → pause, close the session, hand over to the break screen.
+  // Bedtime cuts in mid-video regardless of how many minutes are left.
   useEffect(() => {
+    if (pastBedtime) {
+      command('pause');
+      useTimerStore.getState().endSession('bedtime');
+      router.replace({ pathname: '/(child)/times-up', params: { reason: 'bedtime' } });
+      return;
+    }
     if (remaining !== null && remaining <= 0) {
       command('pause');
       useTimerStore.getState().endSession('time_limit');
       router.replace('/(child)/times-up');
     }
-  }, [remaining, command, router]);
+  }, [pastBedtime, remaining, command, router]);
 
   // Backgrounding pauses playback (PLAN §10).
   useEffect(() => {
@@ -362,6 +383,22 @@ export default function ChildPlayer() {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
   const exitFullscreen = () =>
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+
+  // Android back mirrors the "My videos" pill: it leaves the player instead of
+  // raising the child lock. Registered after the child layout's guard, so it
+  // runs first (handlers fire newest-first) and the guard still owns the
+  // playlist root. In fullscreen, back exits landscape rather than the video.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isLandscape) {
+        exitFullscreen();
+        return true;
+      }
+      router.back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isLandscape, router]);
 
   if (!current) {
     // Playlist emptied out from under us — nothing to play.
@@ -390,15 +427,16 @@ export default function ChildPlayer() {
         style={{ backgroundColor: '#000' }}
       />
       {/* Transparent shield: raw touches never reach the iframe UI (PLAN §9). */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={revealControls} />
+      <Pressable accessible={false} style={StyleSheet.absoluteFill} onPress={revealControls} />
     </View>
   );
 
-  const transportControls = (gap: number, mainSize: number, sideSize: number) => (
+  const transportControls = (gap: number, mainSize: number, sideSize: number, lightSurface = false) => (
     <View style={[styles.controlsRow, { gap }]}>
       <RoundButton
         accessibilityLabel="Previous video"
-        size={sideSize - 10}
+        size={sideSize}
+        style={lightSurface ? styles.playerSideButton : undefined}
         disabled={prevIndex === null}
         onPress={() => {
           if (prevIndex !== null) goTo(prevIndex);
@@ -406,13 +444,15 @@ export default function ChildPlayer() {
       >
         <SkipIcon direction="previous" />
       </RoundButton>
-      <RoundButton
-        accessibilityLabel="Go back 10 seconds"
-        size={sideSize}
-        onPress={() => seekTo(position - 10)}
-      >
-        <SeekIcon direction="back" />
-      </RoundButton>
+      {!lightSurface ? (
+        <RoundButton
+          accessibilityLabel="Go back 10 seconds"
+          size={sideSize}
+          onPress={() => seekTo(position - 10)}
+        >
+          <SeekIcon direction="back" />
+        </RoundButton>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={playing ? 'Pause video' : 'Play video'}
@@ -434,16 +474,19 @@ export default function ChildPlayer() {
       >
         <PlayPauseIcon playing={playing} />
       </Pressable>
-      <RoundButton
-        accessibilityLabel="Go forward 10 seconds"
-        size={sideSize}
-        onPress={() => seekTo(position + 10)}
-      >
-        <SeekIcon direction="forward" />
-      </RoundButton>
+      {!lightSurface ? (
+        <RoundButton
+          accessibilityLabel="Go forward 10 seconds"
+          size={sideSize}
+          onPress={() => seekTo(position + 10)}
+        >
+          <SeekIcon direction="forward" />
+        </RoundButton>
+      ) : null}
       <RoundButton
         accessibilityLabel="Next video"
-        size={sideSize - 10}
+        size={sideSize}
+        style={lightSurface ? styles.playerSideButton : undefined}
         disabled={nextIndex === null}
         onPress={() => {
           if (nextIndex !== null) goTo(nextIndex);
@@ -454,9 +497,9 @@ export default function ChildPlayer() {
     </View>
   );
 
-  const progressBar = (light?: boolean) => (
+  const progressBar = (lightSurface = false) => (
     <View style={styles.progressRow}>
-      <Txt weight="bold" size={12} color={light ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.6)'}>
+      <Txt weight="bold" size={12} color={lightSurface ? colors.parent.muted : 'rgba(255,255,255,.7)'}>
         {formatDuration(Math.floor(position))}
       </Txt>
       <Pressable
@@ -482,37 +525,39 @@ export default function ChildPlayer() {
         }}
         style={styles.trackTouch}
       >
-        <View style={styles.track}>
+        <View style={[styles.track, lightSurface && styles.trackLight]}>
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
           <View style={[styles.scrubber, { left: `${progress * 100}%` }]} />
         </View>
       </Pressable>
-      <Txt weight="bold" size={12} color={light ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.6)'}>
+      <Txt weight="bold" size={12} color={lightSurface ? colors.parent.muted : 'rgba(255,255,255,.7)'}>
         {formatDuration(Math.floor(duration))}
       </Txt>
     </View>
   );
 
-  const backPill = (onPress: () => void) => (
+  const backPill = (onPress: () => void, lightSurface = false) => (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back to my videos"
       onPress={() => {
         revealControls();
         onPress();
       }}
-      style={styles.backPill}
+      style={[styles.backPill, lightSurface && styles.backPillLight]}
     >
       <Svg width={10} height={16} viewBox="0 0 10 16">
         <Path
           d="M8 2 L2 8 L8 14"
-          stroke="rgba(255,255,255,.85)"
+          stroke={lightSurface ? colors.parent.night : 'rgba(255,255,255,.85)'}
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
         />
       </Svg>
-      <Txt weight="extrabold" size={14} color="rgba(255,255,255,.9)">
-        My videos
+      <Txt weight="extrabold" size={14} color={lightSurface ? colors.parent.night : 'rgba(255,255,255,.9)'}>
+        Videos
       </Txt>
     </Pressable>
   );
@@ -553,8 +598,10 @@ export default function ChildPlayer() {
             {transportControls(36, 76, 56)}
           </View>
           <View style={[styles.landscapeBottom, { bottom: insets.bottom + 14, left: insets.left + 16, right: insets.right + 16 }]}>
-            <View style={{ flex: 1 }}>{progressBar(true)}</View>
+            <View style={{ flex: 1 }}>{progressBar()}</View>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Exit full screen"
               onPress={() => {
                 revealControls();
                 exitFullscreen();
@@ -572,9 +619,10 @@ export default function ChildPlayer() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 16 }]}>
+      <StatusBar style="dark" />
       <View style={styles.headerRow}>
-        {backPill(() => router.back())}
-        <TimerBadge remainingSeconds={remaining} variant="dark" />
+        {backPill(() => router.back(), true)}
+        <TimerBadge remainingSeconds={remaining} variant="compact" />
       </View>
 
       <View style={styles.videoBox}>
@@ -584,6 +632,8 @@ export default function ChildPlayer() {
           style={[styles.cornerInVideo, { opacity: controlsOpacity }]}
         >
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Enter full screen"
             onPress={() => {
               revealControls();
               enterFullscreen();
@@ -595,21 +645,23 @@ export default function ChildPlayer() {
         </Animated.View>
       </View>
 
-      <Txt weight="extrabold" size={18} color="#FFFFFF" style={{ marginTop: 18 }} numberOfLines={2}>
+      <Txt weight="extrabold" size={19} color={colors.parent.night} style={{ marginTop: 18 }} numberOfLines={2}>
         {current.video.title}
       </Txt>
-      <View style={{ marginTop: 14 }}>{progressBar()}</View>
+      <View style={{ marginTop: 12 }}>{progressBar(true)}</View>
 
-      <View style={{ marginTop: 26 }}>{transportControls(16, 72, 52)}</View>
+      <View style={{ marginTop: 20 }}>{transportControls(20, 72, 52, true)}</View>
 
       <View style={{ flex: 1 }} />
 
       {next ? (
         <>
-          <Txt weight="extrabold" size={12} color="rgba(255,255,255,.45)" style={styles.upNextLabel}>
+          <Txt weight="extrabold" size={12} color={colors.parent.muted} style={styles.upNextLabel}>
             {`Up next in ${profile?.nickname ?? 'the'}’s playlist`.toUpperCase()}
           </Txt>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Play next video, ${next.video.title}`}
             onPress={() => {
               if (nextIndex !== null) goTo(nextIndex);
             }}
@@ -623,10 +675,10 @@ export default function ChildPlayer() {
               />
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Txt weight="extrabold" size={13.5} color="#FFFFFF" numberOfLines={1}>
+              <Txt weight="extrabold" size={13.5} color={colors.parent.night} numberOfLines={1}>
                 {next.video.title}
               </Txt>
-              <Txt weight="bold" size={11.5} color={colors.child.grass} style={{ marginTop: 2 }}>
+              <Txt weight="bold" size={11.5} color={colors.greenDark} style={{ marginTop: 2 }}>
                 {next.video.durationSeconds
                   ? `✓ parent-approved · ${formatDuration(next.video.durationSeconds)}`
                   : '✓ parent-approved'}
@@ -680,7 +732,7 @@ function RoundButton({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.playerBg, paddingHorizontal: 24 },
+  root: { flex: 1, backgroundColor: colors.child.cream, paddingHorizontal: 24 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -696,6 +748,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 16,
   },
+  backPillLight: { backgroundColor: '#FFFFFF', ...shadows.card },
   videoBox: {
     aspectRatio: 16 / 9,
     borderRadius: 20,
@@ -719,6 +772,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,.14)',
   },
+  trackLight: { backgroundColor: '#DED8CE' },
   fill: { height: '100%', borderRadius: 4, backgroundColor: colors.child.sun },
   scrubber: {
     position: 'absolute',
@@ -732,6 +786,7 @@ const styles = StyleSheet.create({
     borderColor: colors.child.sun,
   },
   controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  playerSideButton: { backgroundColor: colors.parent.night },
   pauseBar: { width: 7, height: 26, borderRadius: 3, backgroundColor: '#FFFFFF' },
   seekIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   upNextLabel: { letterSpacing: 0.84, marginBottom: 10 },
@@ -739,7 +794,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(255,255,255,.07)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.parent.hairline,
     borderRadius: 18,
     padding: 10,
   },
@@ -748,7 +805,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 11,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,138,122,.25)',
+    backgroundColor: colors.coralTint,
   },
   warningToast: {
     position: 'absolute',

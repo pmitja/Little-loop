@@ -1,7 +1,6 @@
-import { View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import type { AvatarId } from '@littleloop/shared';
-import { colors } from '@/theme/tokens';
-import { Txt } from './Txt';
 
 interface ChildAvatarProps {
   avatar: AvatarId;
@@ -9,38 +8,28 @@ interface ChildAvatarProps {
   selected?: boolean;
 }
 
-/** iOS emoji per avatar id (concept: animal faces, not custom art). */
-const EMOJI: Record<AvatarId, string> = {
-  bear: '🐻',
-  fox: '🦊',
-  bunny: '🐰',
-  dino: '🦕',
-  star: '⭐',
-  rocket: '🚀',
+const AVATAR_ART: Record<AvatarId, number> = {
+  bear: require('../../assets/images/characters/bear-transparent.png'),
+  fox: require('../../assets/images/characters/fox-transparent.png'),
+  bunny: require('../../assets/images/characters/bunny-transparent.png'),
+  dino: require('../../assets/images/characters/dino-transparent.png'),
+  star: require('../../assets/images/characters/star-transparent.png'),
+  rocket: require('../../assets/images/characters/rocket-transparent.png'),
 };
 
-/** Child avatar rendered as a native emoji; `selected` adds the primary ring. */
-export function ChildAvatar({ avatar, size = 48, selected }: ChildAvatarProps) {
-  const face = (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Txt size={size * 0.68} style={{ lineHeight: size * 0.94 }}>
-        {EMOJI[avatar] ?? '🦊'}
-      </Txt>
-    </View>
-  );
-
-  if (!selected) return face;
+/** A background-free character icon. Selection is shown by the owning control. */
+export function ChildAvatar({ avatar, size = 48 }: ChildAvatarProps) {
   return (
-    <View
-      style={{
-        padding: 3,
-        borderRadius: (size + 12) / 2,
-        borderWidth: 2,
-        borderColor: colors.primary,
-        backgroundColor: colors.primaryTint,
-      }}
-    >
-      {face}
-    </View>
+    <Image
+      source={AVATAR_ART[avatar] ?? AVATAR_ART.fox}
+      style={[styles.icon, { width: size, height: size }]}
+      contentFit="contain"
+      transition={120}
+      accessible={false}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  icon: { flexShrink: 0 },
+});

@@ -1,24 +1,30 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
+  Easing,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { colors, fonts, shadows } from '@/theme/tokens';
+import { colors, fonts } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 interface PINBoxesProps {
   length?: number;
   filled: number;
   error?: boolean;
+  /** The full PIN is in and is being checked — pulse rather than sit dead. */
+  checking?: boolean;
 }
 
 /** Row of bordered PIN boxes above the keypad — same look as the parent unlock gate; shakes on `error`. */
-export function PINBoxes({ length = 4, filled, error }: PINBoxesProps) {
+export function PINBoxes({ length = 4, filled, error, checking }: PINBoxesProps) {
   const shake = useSharedValue(0);
+  const pulse = useSharedValue(1);
 
   useEffect(() => {
     if (error) {
@@ -33,12 +39,30 @@ export function PINBoxes({ length = 4, filled, error }: PINBoxesProps) {
     }
   }, [error, shake]);
 
+  useEffect(() => {
+    if (!checking) {
+      cancelAnimation(pulse);
+      pulse.value = withTiming(1, { duration: 120 });
+      return;
+    }
+    pulse.value = withRepeat(
+      withTiming(0.45, { duration: 480, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+  }, [checking, pulse]);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shake.value }],
+    opacity: pulse.value,
   }));
 
   return (
-    <Animated.View style={[styles.boxRow, animatedStyle]}>
+    <Animated.View
+      accessibilityRole="progressbar"
+      accessibilityLabel={checking ? 'Checking your PIN' : undefined}
+      style={[styles.boxRow, animatedStyle]}
+    >
       {Array.from({ length }).map((_, i) => {
         const isFilled = i < filled;
         return (
@@ -78,6 +102,8 @@ export function PINKeypad({ onDigit, onDelete, disabled }: PINKeypadProps) {
         return (
           <Pressable
             key={i}
+            accessibilityRole="button"
+            accessibilityLabel={isDelete ? 'Delete last digit' : `Digit ${key}`}
             disabled={disabled}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -106,7 +132,6 @@ export function PINKeypad({ onDigit, onDelete, disabled }: PINKeypadProps) {
   );
 }
 
-const KEY_W = 96;
 const KEY_H = 58;
 
 const styles = StyleSheet.create({
@@ -125,13 +150,14 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: KEY_W * 3 + 20,
+    width: '100%',
+    maxWidth: 326,
     columnGap: 10,
     rowGap: 10,
     justifyContent: 'center',
   },
   key: {
-    width: KEY_W,
+    width: '30%',
     height: KEY_H,
     borderRadius: 16,
     alignItems: 'center',

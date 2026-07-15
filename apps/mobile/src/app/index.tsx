@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useShareIntentContext } from 'expo-share-intent';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +17,10 @@ import { useAppStore, useStoresHydrated } from '@/stores/appStore';
 import { useLockStore } from '@/stores/lockStore';
 import { useTimerStore } from '@/stores/timerStore';
 import { useAuthStatus } from '@/lib/auth';
+import { syncChildProfiles } from '@/features/family/syncChildProfiles';
+
+/** The splash waits this long at most for server profiles before routing anyway. */
+const PROFILE_SYNC_TIMEOUT_MS = 4000;
 
 function PulsingDot({ delay }: { delay: number }) {
   const progress = useSharedValue(0.25);
@@ -40,22 +45,47 @@ export default function Splash() {
   const router = useRouter();
   const hydrated = useStoresHydrated();
   const { isLoaded, isSignedIn } = useAuthStatus();
+  const { hasShareIntent } = useShareIntentContext();
   const onboardingComplete = useAppStore((s) => s.onboardingComplete);
   const pinSet = useLockStore((s) => s.pinSet);
   const childModeActive = useLockStore((s) => s.childMode.active);
+  const pendingFamilyInvite = useAppStore((s) => s.pendingFamilyInvite);
 
   useEffect(() => {
     if (!hydrated || !isLoaded) return;
     // Close any session left open by an app kill before anything can start a new one.
     useTimerStore.getState().reconcile();
+    // Authentication is the outermost gate. Do not hold a signed-out user on
+    // the branded splash when the only valid destinations are sign in/sign up.
+    if (!isSignedIn) {
+      router.replace('/(auth)/sign-in');
+      return;
+    }
+    // AppStack owns signed-in share launches. In particular, do not let this
+    // splash timer replace the PIN modal with the restored Child Mode route.
+    if (hasShareIntent) return;
+    let cancelled = false;
     // Give the splash one beat so first launch doesn't flash past the brand.
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
       if (childModeActive) {
         // Killed during child mode → restore into child mode, never flash parent UI.
         router.replace('/(child)');
-      } else if (!isSignedIn) {
-        router.replace('/(auth)/sign-in');
-      } else if (!onboardingComplete) {
+        return;
+      }
+      if (pendingFamilyInvite) {
+        router.replace({ pathname: '/accept-invite', params: { token: pendingFamilyInvite } });
+        return;
+      }
+      // Adopt the account's server profiles before routing, so a reinstall lands
+      // on its existing child instead of an onboarding step that can't complete.
+      // Capped: the API client has no timeout and the splash must never hang.
+      await Promise.race([
+        syncChildProfiles(),
+        new Promise((resolve) => setTimeout(resolve, PROFILE_SYNC_TIMEOUT_MS)),
+      ]);
+      if (cancelled) return;
+
+      if (!onboardingComplete) {
         router.replace('/(onboarding)/welcome');
       } else if (!pinSet) {
         router.replace('/(onboarding)/pin-setup');
@@ -65,8 +95,21 @@ export default function Splash() {
         router.replace('/whos-watching');
       }
     }, 700);
-    return () => clearTimeout(t);
-  }, [hydrated, isLoaded, isSignedIn, onboardingComplete, pinSet, childModeActive, router]);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    hydrated,
+    isLoaded,
+    isSignedIn,
+    hasShareIntent,
+    onboardingComplete,
+    pinSet,
+    childModeActive,
+    pendingFamilyInvite,
+    router,
+  ]);
 
   return (
     <ScreenContainer>

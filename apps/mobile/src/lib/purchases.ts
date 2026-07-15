@@ -189,10 +189,11 @@ export async function restorePurchases(): Promise<boolean> {
  */
 export async function logOutPurchases(): Promise<void> {
   if (!Purchases) {
-    useEntitlementStore.getState().setPremium(false);
+    useEntitlementStore.getState().clearPremium();
     return;
   }
-  syncEntitlement(await Purchases.logOut());
+  await Purchases.logOut();
+  useEntitlementStore.getState().clearPremium();
 }
 
 function loadUiModule(): RCUI | null {

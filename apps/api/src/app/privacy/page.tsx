@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalPage title="LittleLoop Privacy Policy" updated="July 8, 2026">
+    <LegalPage title="LittleLoop Privacy Policy" updated="July 15, 2026">
       <LegalSection heading="Who we are">
         <p>
           LittleLoop (&ldquo;we&rdquo;) is a parent-controlled video playlist app. Parents review
@@ -33,6 +33,12 @@ export default function PrivacyPolicyPage() {
           <strong>Subscription status.</strong> Whether your account has an active LittleLoop
           Premium subscription, processed by RevenueCat and the Apple App Store / Google Play. We
           never see your payment details.
+        </p>
+        <p>
+          <strong>Family sharing.</strong> When the main caregiver invites another caregiver,
+          family members can see each other&rsquo;s account email and access the shared child
+          profiles, settings, approved playlists, and watch activity. Invitation links expire
+          after seven days and can be revoked by the main caregiver.
         </p>
         <p>
           <strong>Crash reports.</strong> Technical crash data via Sentry: device model, OS
@@ -106,8 +112,9 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection id="deletion" heading="Data retention & deletion">
         <p>
-          Account data is retained while your account exists. <strong>Settings → Delete account
-          &amp; data</strong> in the app removes all local data and your account. You can also
+          Account data is retained while your account exists. For the main caregiver,
+          <strong> Settings → Delete account &amp; data</strong> removes the entire family. For an
+          invited caregiver, it removes only their account and family access. You can also
           request deletion at{' '}
           <a href="/delete-account">littleloopapp.com/delete-account</a> or by emailing{' '}
           <a href="mailto:privacy@littleloopapp.com">privacy@littleloopapp.com</a>; we complete requests

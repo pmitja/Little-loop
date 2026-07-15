@@ -1,11 +1,16 @@
+import { useEffect, useState } from 'react';
+import { AppState as RNAppState } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { ChildProfile } from '@littleloop/shared';
+import type { ChildProfile, FamilyRole } from '@littleloop/shared';
+import { isPastBedtime } from '@/lib/bedtime';
 import { storage } from '@/lib/storage';
 
 interface AppState {
   onboardingComplete: boolean;
   activeChildProfileId: string | null;
+  familyRole: FamilyRole | null;
+  pendingFamilyInvite: string | null;
   /**
    * Local cache of profiles so the first-run flow works before/without the API
    * (server truth moves to TanStack Query once /child-profiles is live in Phase 0/2).
@@ -13,6 +18,10 @@ interface AppState {
   childProfiles: ChildProfile[];
   childRules: Record<string, ChildRules>;
   setOnboardingComplete: (done: boolean) => void;
+  setFamilyRole: (role: FamilyRole | null) => void;
+  setPendingFamilyInvite: (token: string | null) => void;
+  /** Replace the local cache with the server's profiles (login / reinstall). */
+  setChildProfiles: (profiles: ChildProfile[]) => void;
   addChildProfile: (profile: ChildProfile) => void;
   updateChildProfile: (id: string, patch: Partial<ChildProfile>) => void;
   removeChildProfile: (id: string) => void;
@@ -35,6 +44,33 @@ export const DEFAULT_CHILD_RULES: ChildRules = {
   warningEnabled: true,
   kidProofExit: true,
 };
+
+/**
+ * Live bedtime gate. Unlike the daily limit — which only moves while a video
+ * ticks — bedtime passes on its own, so it needs a clock, not a render.
+ */
+export function useBedtimeReached(childProfileId: string | null): boolean {
+  const rules = useAppStore((s) =>
+    childProfileId ? (s.childRules[childProfileId] ?? DEFAULT_CHILD_RULES) : DEFAULT_CHILD_RULES,
+  );
+  const [reached, setReached] = useState(() => isPastBedtime(rules));
+
+  useEffect(() => {
+    const check = () => setReached(isPastBedtime(rules));
+    check();
+    const id = setInterval(check, 15_000);
+    // A device asleep past bedtime doesn't fire timers: re-check on foreground.
+    const sub = RNAppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [rules]);
+
+  return childProfileId ? reached : false;
+}
 
 /**
  * Hydration gate: the splash screen waits until every persisted store has loaded
@@ -70,9 +106,32 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       onboardingComplete: false,
       activeChildProfileId: null,
+      familyRole: null,
+      pendingFamilyInvite: null,
       childProfiles: [],
       childRules: {},
       setOnboardingComplete: (done) => set({ onboardingComplete: done }),
+      setFamilyRole: (familyRole) => set({ familyRole }),
+      setPendingFamilyInvite: (pendingFamilyInvite) => set({ pendingFamilyInvite }),
+      setChildProfiles: (childProfiles) =>
+        set((s) => ({
+          childProfiles,
+          childRules: Object.fromEntries(
+            childProfiles.map((profile) => [
+              profile.id,
+              {
+                weekendBonus: profile.weekendBonus ?? s.childRules[profile.id]?.weekendBonus ?? DEFAULT_CHILD_RULES.weekendBonus,
+                bedtimeEnabled: profile.bedtimeEnabled ?? s.childRules[profile.id]?.bedtimeEnabled ?? DEFAULT_CHILD_RULES.bedtimeEnabled,
+                bedtime: profile.bedtime ?? s.childRules[profile.id]?.bedtime ?? DEFAULT_CHILD_RULES.bedtime,
+                warningEnabled: profile.warningEnabled ?? s.childRules[profile.id]?.warningEnabled ?? DEFAULT_CHILD_RULES.warningEnabled,
+                kidProofExit: profile.kidProofExit ?? s.childRules[profile.id]?.kidProofExit ?? DEFAULT_CHILD_RULES.kidProofExit,
+              },
+            ]),
+          ),
+          activeChildProfileId: childProfiles.some((p) => p.id === s.activeChildProfileId)
+            ? s.activeChildProfileId
+            : (childProfiles[0]?.id ?? null),
+        })),
       addChildProfile: (profile) =>
         set((s) => ({
           childProfiles: [...s.childProfiles, profile],
@@ -108,4 +167,3 @@ export const useAppStore = create<AppState>()(
     },
   ),
 );
-

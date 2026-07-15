@@ -1,54 +1,24 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Rect } from 'react-native-svg';
 import { colors } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { AppIcon } from './AppIcon';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 
 const TABS: Record<string, { label: string; icon: (active: boolean) => React.ReactNode }> = {
   index: {
-    label: 'Today',
-    icon: (active) => (
-      <Svg width={18} height={18} viewBox="0 0 18 18">
-        <Rect
-          x={1.5}
-          y={1.5}
-          width={15}
-          height={15}
-          rx={5}
-          stroke={active ? colors.primary : colors.subtle}
-          strokeWidth={2.5}
-          fill={active ? colors.primaryTint : 'none'}
-        />
-      </Svg>
-    ),
+    label: 'Home',
+    icon: (active) => <AppIcon name="home" size={25} muted={!active} />,
   },
   playlist: {
-    label: 'Playlist',
-    icon: (active) => (
-      <Svg width={18} height={18} viewBox="0 0 18 18">
-        {[3, 8, 13].map((y) => (
-          <Rect key={y} x={1} y={y} width={16} height={3} rx={1.5} fill={active ? colors.primary : colors.subtle} />
-        ))}
-      </Svg>
-    ),
+    label: 'Videos',
+    icon: (active) => <AppIcon name="videos" size={25} muted={!active} />,
   },
   settings: {
     label: 'Settings',
-    icon: (active) => (
-      <Svg width={18} height={18} viewBox="0 0 18 18">
-        <Circle
-          cx={9}
-          cy={9}
-          r={6.5}
-          stroke={active ? colors.primary : colors.subtle}
-          strokeWidth={3}
-          fill="none"
-        />
-      </Svg>
-    ),
+    icon: (active) => <AppIcon name="settings" size={25} muted={!active} />,
   },
 };
 
@@ -56,7 +26,7 @@ const TABS: Record<string, { label: string; icon: (active: boolean) => React.Rea
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const childId = useAppStore(s => s.activeChildProfileId);
-  const pending = usePlaylistVideos(childId).length;
+  const pending = usePlaylistVideos(childId).filter((video) => video.status === 'review').length;
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {state.routes.map((route, index) => {
@@ -66,6 +36,9 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         return (
           <Pressable
             key={route.key}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: active }}
             onPress={() => {
               const event = navigation.emit({
                 type: 'tabPress',
@@ -101,7 +74,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     shadowColor: colors.ink, shadowOpacity: .12, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 5,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 48, borderRadius: 12, position: 'relative' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 54, borderRadius: 12, position: 'relative' },
   activeTab: { backgroundColor: '#DCEFF6' },
   badge: { position:'absolute', top:2, right:'24%', minWidth:16, height:16, borderRadius:8, alignItems:'center', justifyContent:'center', backgroundColor:colors.child.coral },
 });
