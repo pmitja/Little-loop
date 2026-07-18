@@ -20,11 +20,13 @@ export function MarketingAnimations() {
           {
             reduceMotion: '(prefers-reduced-motion: reduce)',
             mobile: '(max-width: 800px)',
+            desktop: '(min-width: 801px)',
           },
           (match) => {
             const { reduceMotion, mobile } = match.conditions as {
               reduceMotion: boolean;
               mobile: boolean;
+              desktop: boolean;
             };
 
             if (reduceMotion) return;
