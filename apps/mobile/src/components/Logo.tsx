@@ -4,7 +4,7 @@ import { colors } from '@/theme/tokens';
 
 const APP_ICON = require('../../assets/images/icon.png');
 
-/** The same LittleLoop mark used by the installed app icon. */
+/** The same LittleLoop mark used by the installed app icon and native splash. */
 export function Logo({ size = 96 }: { size?: number }) {
   return (
     <View
@@ -26,8 +26,8 @@ export function Logo({ size = 96 }: { size?: number }) {
 
 const styles = StyleSheet.create({
   shadow: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
+    backgroundColor: colors.child.cream,
+    shadowColor: '#58B6A9',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.28,
     shadowRadius: 24,

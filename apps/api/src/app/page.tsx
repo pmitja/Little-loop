@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { MarketingAnimations } from '@/components/MarketingAnimations';
 
 const Check = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.2 3.6 3.6L16 5.9" /></svg>
@@ -67,8 +68,14 @@ function StoreButtons({ centered = false }: { centered?: boolean }) {
 
 const Brand = () => (
   <span className="brand" aria-label="LittleLoop home">
-    <span className="brand-mark" aria-hidden="true"><span /></span>
-    <span>LittleLoop</span>
+    <Image
+      className="brand-logo"
+      src="/marketing/little-loop-logo.png"
+      alt=""
+      width={310}
+      height={90}
+      priority
+    />
   </span>
 );
 
@@ -85,6 +92,7 @@ function MiniVideo({ color, title, channel }: { color: string; title: string; ch
 export default function MarketingPage() {
   return (
     <main>
+      <MarketingAnimations />
       <a className="skip-link" href="#content">Skip to content</a>
 
       <header className="site-header">
@@ -150,15 +158,15 @@ export default function MarketingPage() {
 
       <section className="pain-section" id="safety">
         <div className="section-kicker light">THE REAL PROBLEM</div>
-        <div className="pain-heading">
+        <div className="pain-heading" data-reveal>
           <h2>You can&apos;t preview an<br /><span>endless feed.</span></h2>
           <p>
             YouTube Kids offers a huge world of video. But recommendations are still recommendations —
             not your personal choices. And most parents don&apos;t have time to verify every possible next tap.
           </p>
         </div>
-        <div className="contrast-grid">
-          <article className="contrast-card contrast-before">
+        <div className="contrast-grid" data-stagger>
+          <article className="contrast-card contrast-before" data-stagger-item>
             <div className="contrast-top"><span className="contrast-icon"><Play /></span><span>OPEN VIDEO FEED</span></div>
             <h3>“What did they click now?”</h3>
             <div className="feed-stack">
@@ -171,7 +179,7 @@ export default function MarketingPage() {
               <li><span>×</span> “One more” can keep going</li>
             </ul>
           </article>
-          <article className="contrast-card contrast-after">
+          <article className="contrast-card contrast-after" data-stagger-item>
             <div className="contrast-top"><span className="contrast-icon"><Lock /></span><span>THE LITTLELOOP WAY</span></div>
             <h3>“I chose every video here.”</h3>
             <div className="loop-stack">
@@ -187,17 +195,17 @@ export default function MarketingPage() {
             </ul>
           </article>
         </div>
-        <p className="safety-note">LittleLoop is a parent-controlled player for approved video links. Videos play through an embedded approved source.</p>
+        <p className="safety-note" data-reveal>LittleLoop is a parent-controlled player for approved video links. Videos play through an embedded approved source.</p>
       </section>
 
       <section className="steps-section" id="how-it-works">
-        <div className="center-heading">
+        <div className="center-heading" data-reveal>
           <div className="section-kicker">SO SIMPLE IT BECOMES A HABIT</div>
           <h2>Find it once. Share it.<br />It&apos;s in their loop.</h2>
           <p>No copying long links. No rebuilding playlists. Just use the share button you already know.</p>
         </div>
-        <div className="steps">
-          <article className="step-card">
+        <div className="steps" data-stagger>
+          <article className="step-card" data-stagger-item>
             <div className="step-number">1</div>
             <div className="step-visual browser-card">
               <div className="browser-bar"><i /><i /><i /></div>
@@ -207,21 +215,21 @@ export default function MarketingPage() {
             <h3>Find a video you trust</h3>
             <p>Preview it in the app you already use. When it feels right, tap Share.</p>
           </article>
-          <article className="step-card featured-step">
+          <article className="step-card featured-step" data-stagger-item>
             <div className="step-number">2</div>
             <div className="step-visual share-sheet">
               <span className="sheet-handle" />
               <strong>Share to…</strong>
               <div className="app-row">
                 <span className="other-app" /><span className="other-app" />
-                <span className="littleloop-app"><span className="brand-mark"><span /></span><small>LittleLoop</small></span>
+                <span className="littleloop-app"><Image className="share-app-icon" src="/marketing/app-icon.png" alt="" width={54} height={54} /><small>LittleLoop</small></span>
                 <span className="other-app" />
               </div>
             </div>
             <h3>Share it to LittleLoop</h3>
             <p>LittleLoop opens the video preview, ready for your quick approval.</p>
           </article>
-          <article className="step-card">
+          <article className="step-card" data-stagger-item>
             <div className="step-number">3</div>
             <div className="step-visual child-picker">
               <small>ADD TO A LOOP</small>
@@ -236,12 +244,12 @@ export default function MarketingPage() {
       </section>
 
       <section className="features-section" id="family">
-        <div className="features-heading">
+        <div className="features-heading" data-reveal>
           <div><div className="section-kicker">ONE FAMILY. ONE CALMER SYSTEM.</div><h2>Control that fits real family life.</h2></div>
           <p>Different kids need different rules. And caring for them is rarely a one-person job.</p>
         </div>
-        <div className="feature-grid">
-          <article className="feature-card family-card">
+        <div className="feature-grid" data-stagger>
+          <article className="feature-card family-card" data-stagger-item>
             <span className="feature-icon coral"><People /></span>
             <h3>Caregivers stay in sync</h3>
             <p>Invite a partner, grandparent or babysitter. Everyone can add approved videos and see the same family setup.</p>
@@ -253,7 +261,7 @@ export default function MarketingPage() {
               <span className="invite-badge"><Check /> Family updated</span>
             </div>
           </article>
-          <article className="feature-card profiles-card">
+          <article className="feature-card profiles-card" data-stagger-item>
             <span className="feature-icon sky"><Clock /></span>
             <h3>A limit for each child</h3>
             <p>Give Mia 30 minutes and Leo 45. Each profile gets its own videos, timer and watch activity.</p>
@@ -263,13 +271,13 @@ export default function MarketingPage() {
               <div><span className="picker-avatar bunny"><Image src="/marketing/bunny.png" alt="" width={52} height={52} /></span><span><strong>Nora</strong><small>20 minutes daily</small></span><em>20m</em></div>
             </div>
           </article>
-          <article className="feature-card lock-card">
+          <article className="feature-card lock-card" data-stagger-item>
             <span className="feature-icon yellow"><Lock /></span>
             <h3>A child mode that stays child mode</h3>
             <p>No search bar. No links out. No settings to change. Leaving the loop takes your parent PIN.</p>
             <div className="pin-visual"><span>•</span><span>•</span><span>•</span><span>•</span><i><Lock /></i></div>
           </article>
-          <article className="feature-card activity-card">
+          <article className="feature-card activity-card" data-stagger-item>
             <span className="feature-icon green"><Play /></span>
             <h3>See what actually played</h3>
             <p>A simple activity view shows what they watched and how much of today&apos;s time they used.</p>
@@ -278,7 +286,7 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      <section className="promise-section">
+      <section className="promise-section" data-reveal>
         <Image src="/marketing/star.png" alt="LittleLoop star character" width={160} height={160} />
         <div>
           <div className="section-kicker">THE LITTLELOOP PROMISE</div>

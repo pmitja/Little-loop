@@ -14,6 +14,7 @@
     "@littleloop/db": "workspace:*",
     "@littleloop/shared": "workspace:*",
     "drizzle-orm": "^0.44.0",
+    "gsap": "^3.15.0",
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
