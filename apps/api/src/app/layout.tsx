@@ -14,6 +14,23 @@ export const metadata: Metadata = {
     description:
       'Share a video to LittleLoop, choose a child, and build a calm, parent-approved loop.',
     type: 'website',
+    url: '/',
+    siteName: 'LittleLoop',
+    images: [
+      {
+        url: '/marketing/little-loop-opengraph.png',
+        width: 1536,
+        height: 1024,
+        alt: 'LittleLoop — parent-approved videos, screen-time limits, PIN protection, and caregiver sharing.',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LittleLoop — You choose what they watch',
+    description:
+      'Share a video to LittleLoop, choose a child, and build a calm, parent-approved loop.',
+    images: ['/marketing/little-loop-opengraph.png'],
   },
 };
 
