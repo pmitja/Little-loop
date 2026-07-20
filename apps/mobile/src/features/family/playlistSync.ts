@@ -25,15 +25,32 @@ export async function syncFamilyPlaylists(profiles: ChildProfile[]): Promise<voi
       const { videos } = await api<{ videos: ServerPlaylistVideo[] }>(
         `/playlists/${playlist.id}/videos`,
       );
+      const serverVideos: PlaylistVideo[] = videos.map((entry) => ({
+        id: entry.id,
+        addedAt: entry.addedAt ?? new Date().toISOString(),
+        status: 'live',
+        video: entry.video,
+      }));
+      const serverProviderIds = new Set(
+        serverVideos.map((entry) => entry.video.providerVideoId),
+      );
+
+      // Review entries currently live only in the persisted device store. A
+      // server refresh must therefore merge them into the approved server
+      // playlist instead of replacing the whole local list. Drop a review
+      // entry if that same video is now on the server (it was approved on
+      // another path/device) so the merge cannot create a duplicate.
+      const localReviewVideos = (
+        usePlaylistStore.getState().videosByChild[profile.id] ?? []
+      ).filter(
+        (entry) =>
+          entry.status === 'review' &&
+          !serverProviderIds.has(entry.video.providerVideoId),
+      );
       usePlaylistStore.getState().setServerPlaylist(
         profile.id,
         playlist.id,
-        videos.map((entry) => ({
-          id: entry.id,
-          addedAt: entry.addedAt ?? new Date().toISOString(),
-          status: 'live',
-          video: entry.video,
-        })),
+        [...serverVideos, ...localReviewVideos],
       );
     }),
   );
