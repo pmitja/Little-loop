@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ParentHeader, showAppAlert, Txt } from '@/components';
+import { AppIcon, ParentHeader, showAppAlert, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { listChannels, removeChannel, type ApprovedChannel } from '@/features/channels/channelsApi';
@@ -77,9 +77,7 @@ export default function ChannelsTab() {
         ListEmptyComponent={
           loaded ? (
             <View style={styles.emptyCard}>
-              <Txt weight="black" size={30}>
-                📺
-              </Txt>
+              <AppIcon name="channels" size={64} />
               <Txt weight="black" size={16} center>
                 No channels yet
               </Txt>
