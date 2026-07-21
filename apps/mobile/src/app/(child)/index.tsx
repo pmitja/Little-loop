@@ -195,6 +195,11 @@ export default function ChildHome() {
 
   const openGrownups = useCallback(() => router.push('/pin-unlock'), [router]);
 
+  const askForMore = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(child)/request');
+  }, [router]);
+
   const loadMoreVideos = useCallback(() => {
     setVisibleVideoCount((current) => Math.min(current + VIDEO_PAGE_SIZE, videoChoices.length));
   }, [videoChoices.length]);
@@ -225,6 +230,21 @@ export default function ChildHome() {
         initialNumToRender={VIDEO_PAGE_SIZE - 1}
         maxToRenderPerBatch={VIDEO_PAGE_SIZE}
         windowSize={5}
+        ListFooterComponent={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ask a grown-up for more videos"
+            onPress={askForMore}
+            style={({ pressed }) => [styles.askMore, pressed && styles.cardPressed]}
+          >
+            <Txt weight="black" size={22}>
+              💛
+            </Txt>
+            <Txt weight="black" size={15} color={colors.parent.night}>
+              Want more? Ask a grown-up
+            </Txt>
+          </Pressable>
+        }
         ListHeaderComponent={(
           <View style={styles.listHeader}>
             <View style={styles.header}>
@@ -334,6 +354,19 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   videoSeparator: { height: 12 },
+  askMore: {
+    minHeight: controls.minTouchChild,
+    marginTop: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    ...shadows.card,
+  },
   cardPressed: { opacity: 0.84, transform: [{ scale: 0.985 }] },
   thumbnailWrap: {
     width: '100%',

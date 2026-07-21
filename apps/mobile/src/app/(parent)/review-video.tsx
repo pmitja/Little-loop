@@ -12,7 +12,10 @@ import {
 import { Button, Card, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
+import { usePremium } from '@/stores/entitlementStore';
 import { commitApprovedVideo } from '@/features/family/playlistSync';
+import { approveChannel } from '@/features/channels/channelsApi';
+import { useChannelSuggestionStore } from '@/features/channels/channelSuggestionStore';
 
 function CheckMark({ on }: { on: boolean }) {
   return (
@@ -37,6 +40,8 @@ export default function ReviewVideo() {
   const params = useLocalSearchParams<{ video?: string; entryId?: string }>();
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [approvingChannel, setApprovingChannel] = useState(false);
+  const premium = usePremium();
 
   const video: VideoMeta | null = useMemo(() => {
     try {
@@ -77,6 +82,22 @@ export default function ReviewVideo() {
       return;
     }
     router.replace('/(parent)/(tabs)/playlist');
+  };
+
+  const onApproveChannel = async () => {
+    if (!premium) {
+      router.push({ pathname: '/paywall', params: { trigger: 'channels', child: profile.nickname } });
+      return;
+    }
+    setApprovingChannel(true);
+    try {
+      const res = await approveChannel(profile.id, video.providerVideoId);
+      useChannelSuggestionStore.getState().set(profile.id, res.channel.channelTitle, res.suggestions);
+      router.replace('/(parent)/channel-approved');
+    } catch {
+      setApprovingChannel(false);
+      showAppAlert('Couldn’t approve channel', 'Check your connection and try again.');
+    }
   };
 
   return (
@@ -120,6 +141,21 @@ export default function ReviewVideo() {
         </Txt>
       </Pressable>
 
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Approve ${video.channelTitle}'s whole channel`}
+        onPress={() => void onApproveChannel()}
+        disabled={approvingChannel}
+        style={({ pressed }) => [styles.channelRow, pressed && { opacity: 0.7 }]}
+      >
+        <Txt weight="extrabold" size={13.5} color={colors.child.skyDeep}>
+          ＋ Approve {video.channelTitle}’s whole channel
+        </Txt>
+        <Txt weight="semibold" size={11.5} color={colors.muted} style={{ marginTop: 2 }}>
+          Add its popular videos now; new uploads arrive for review.
+        </Txt>
+      </Pressable>
+
       <View style={{ flex: 1 }} />
       <Button title="Add to Playlist" disabled={!approved} loading={saving} onPress={() => void onAdd()} />
       <Button title="Cancel" variant="ghost" size="md" onPress={() => router.back()} />
@@ -155,6 +191,13 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   approveRowOn: { backgroundColor: colors.greenTint, borderColor: colors.green },
+  channelRow: {
+    marginTop: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: radii.input,
+    backgroundColor: colors.primaryTint,
+  },
   checkBox: {
     width: 26,
     height: 26,

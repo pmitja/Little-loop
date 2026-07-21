@@ -126,6 +126,7 @@ export const videoMetadata = pgTable(
     providerVideoId: text('provider_video_id').notNull(),
     title: text('title').notNull(),
     channelTitle: text('channel_title').notNull(),
+    channelId: text('channel_id'), // provider channel id; needed to pull a channel's uploads
     durationSeconds: integer('duration_seconds').notNull(),
     thumbnailUrl: text('thumbnail_url').notNull(),
     embeddable: boolean('embeddable').notNull().default(true),
@@ -137,33 +138,6 @@ export const videoMetadata = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex('uq_video_provider').on(t.provider, t.providerVideoId)],
-);
-
-// Shared cache of search results — one row per normalized query across all
-// users. search.list costs 100 quota units, so cache hits are what make the
-// feature viable at scale.
-export const searchCache = pgTable(
-  'search_cache',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    provider: text('provider').notNull().default('youtube'),
-    query: text('query').notNull(),
-    results: jsonb('results')
-      .$type<
-        {
-          providerVideoId: string;
-          title: string;
-          channelTitle: string;
-          durationSeconds: number;
-          thumbnailUrl: string;
-        }[]
-      >()
-      .notNull()
-      .default([]),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-    ...timestamps,
-  },
-  (t) => [uniqueIndex('uq_search_cache_query').on(t.provider, t.query)],
 );
 
 export const playlistVideos = pgTable(
@@ -186,6 +160,57 @@ export const playlistVideos = pgTable(
   (t) => [
     uniqueIndex('uq_playlist_video').on(t.playlistId, t.videoMetadataId),
     index('idx_playlist_videos_playlist_pos').on(t.playlistId, t.position),
+  ],
+);
+
+// A whole channel a parent trusts for one child. A nightly cron pulls new
+// uploads into pending_videos for review — new content never auto-reaches a kid.
+export const approvedChannels = pgTable(
+  'approved_channels',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    childProfileId: uuid('child_profile_id')
+      .notNull()
+      .references(() => childProfiles.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull().default('youtube'),
+    channelId: text('channel_id').notNull(),
+    channelTitle: text('channel_title').notNull(),
+    uploadsPlaylistId: text('uploads_playlist_id'), // UU… playlist; playlistItems.list = 1 unit
+    addedByUserId: uuid('added_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    lastPulledAt: timestamp('last_pulled_at', { withTimezone: true }),
+    lastPublishedAt: timestamp('last_published_at', { withTimezone: true }), // newest upload watermark
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('uq_approved_channel').on(t.childProfileId, t.provider, t.channelId),
+    index('idx_approved_channels_child').on(t.childProfileId),
+  ],
+);
+
+// Server-side review queue: auto-pulled uploads awaiting a parent's approval.
+// Kept separate from playlist_videos so that table's "always live" invariant holds.
+export const pendingVideos = pgTable(
+  'pending_videos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    playlistId: uuid('playlist_id')
+      .notNull()
+      .references(() => playlists.id, { onDelete: 'cascade' }),
+    videoMetadataId: uuid('video_metadata_id')
+      .notNull()
+      .references(() => videoMetadata.id),
+    approvedChannelId: uuid('approved_channel_id').references(() => approvedChannels.id, {
+      onDelete: 'set null',
+    }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('uq_pending_video').on(t.playlistId, t.videoMetadataId),
+    index('idx_pending_videos_playlist').on(t.playlistId),
   ],
 );
 
@@ -298,6 +323,29 @@ export const playlistsRelations = relations(playlists, ({ one, many }) => ({
 export const childProfilesRelations = relations(childProfiles, ({ one, many }) => ({
   family: one(families, { fields: [childProfiles.familyId], references: [families.id] }),
   playlists: many(playlists),
+  approvedChannels: many(approvedChannels),
+}));
+
+export const approvedChannelsRelations = relations(approvedChannels, ({ one }) => ({
+  childProfile: one(childProfiles, {
+    fields: [approvedChannels.childProfileId],
+    references: [childProfiles.id],
+  }),
+}));
+
+export const pendingVideosRelations = relations(pendingVideos, ({ one }) => ({
+  video: one(videoMetadata, {
+    fields: [pendingVideos.videoMetadataId],
+    references: [videoMetadata.id],
+  }),
+  playlist: one(playlists, {
+    fields: [pendingVideos.playlistId],
+    references: [playlists.id],
+  }),
+  approvedChannel: one(approvedChannels, {
+    fields: [pendingVideos.approvedChannelId],
+    references: [approvedChannels.id],
+  }),
 }));
 
 export const familiesRelations = relations(families, ({ one, many }) => ({

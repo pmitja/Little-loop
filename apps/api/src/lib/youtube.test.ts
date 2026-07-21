@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HttpError } from './http';
-import { parseIsoDuration, searchVideos } from './youtube';
+import { fetchChannelUploads, parseIsoDuration, resolveChannel } from './youtube';
 
 describe('parseIsoDuration', () => {
   it('parses typical video durations', () => {
@@ -28,46 +27,74 @@ function videoItem(id: string, overrides: Record<string, unknown> = {}) {
     id,
     snippet: {
       title: `Video ${id}`,
+      channelId: 'UC_channel',
       channelTitle: 'Kids Channel',
       liveBroadcastContent: 'none',
       thumbnails: { high: { url: `https://i.ytimg.com/vi/${id}/hq.jpg` } },
       ...(overrides.snippet as object),
     },
     contentDetails: { duration: 'PT2M', ...(overrides.contentDetails as object) },
-    status: {
-      embeddable: true,
-      privacyStatus: 'public',
-      madeForKids: true,
-      ...(overrides.status as object),
-    },
+    status: { embeddable: true, privacyStatus: 'public', madeForKids: true, ...(overrides.status as object) },
   };
 }
 
-describe('searchVideos', () => {
+describe('resolveChannel', () => {
   const fetchMock = vi.fn();
-
   beforeEach(() => {
     vi.stubEnv('YOUTUBE_API_KEY', 'test-key');
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
   });
-
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
-  it('searches, then resolves details, filtering unplayable videos', async () => {
+  it('returns title + uploads playlist', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          { id: 'UC_abc', snippet: { title: 'Ms Rachel' }, contentDetails: { relatedPlaylists: { uploads: 'UU_abc' } } },
+        ],
+      }),
+    });
+    await expect(resolveChannel('UC_abc')).resolves.toEqual({
+      channelId: 'UC_abc',
+      channelTitle: 'Ms Rachel',
+      uploadsPlaylistId: 'UU_abc',
+    });
+  });
+
+  it('404s when the channel is missing', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ items: [] }) });
+    await expect(resolveChannel('UC_none')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('fetchChannelUploads', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    vi.stubEnv('YOUTUBE_API_KEY', 'test-key');
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('lists playable uploads, filtering unplayable ones, newest first', async () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => ({
           items: [
-            { id: { videoId: 'aaaaaaaaaaa' } },
-            { id: { videoId: 'bbbbbbbbbbb' } },
-            { id: { videoId: 'ccccccccccc' } },
-            { id: { videoId: 'ddddddddddd' } },
+            { contentDetails: { videoId: 'aaaaaaaaaaa', videoPublishedAt: '2026-01-02T00:00:00Z' } },
+            { contentDetails: { videoId: 'bbbbbbbbbbb', videoPublishedAt: '2026-01-03T00:00:00Z' } },
+            { contentDetails: { videoId: 'ccccccccccc', videoPublishedAt: '2026-01-04T00:00:00Z' } },
           ],
         }),
       })
@@ -78,45 +105,25 @@ describe('searchVideos', () => {
           items: [
             videoItem('aaaaaaaaaaa'),
             videoItem('bbbbbbbbbbb', { status: { embeddable: false } }),
-            videoItem('ccccccccccc', { snippet: { liveBroadcastContent: 'live' } }),
-            videoItem('ddddddddddd', {
-              contentDetails: { duration: 'PT2M', contentRating: { ytRating: 'ytAgeRestricted' } },
-            }),
+            videoItem('ccccccccccc'),
           ],
         }),
       });
 
-    const results = await searchVideos('peppa pig');
-    expect(results).toHaveLength(1);
-    expect(results[0]).toMatchObject({
-      providerVideoId: 'aaaaaaaaaaa',
-      title: 'Video aaaaaaaaaaa',
-      channelTitle: 'Kids Channel',
-      durationSeconds: 120,
-      embeddable: true,
-      madeForKids: true,
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const searchUrl = fetchMock.mock.calls[0][0] as string;
-    expect(searchUrl).toContain('safeSearch=strict');
-    expect(searchUrl).toContain('videoEmbeddable=true');
-    expect(searchUrl).toContain('q=peppa%20pig');
+    const results = await fetchChannelUploads('UU_abc');
+    expect(results.map((r) => r.providerVideoId)).toEqual(['ccccccccccc', 'aaaaaaaaaaa']);
+    expect(results[0].publishedAt).toBeInstanceOf(Date);
   });
 
-  it('returns [] without a details call when search finds nothing', async () => {
+  it('skips the videos.list call when everything is at/before the watermark', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: async () => ({ items: [] }),
+      json: async () => ({
+        items: [{ contentDetails: { videoId: 'aaaaaaaaaaa', videoPublishedAt: '2026-01-01T00:00:00Z' } }],
+      }),
     });
-    await expect(searchVideos('zzzz')).resolves.toEqual([]);
+    await expect(fetchChannelUploads('UU_abc', new Date('2026-01-01T00:00:00Z'))).resolves.toEqual([]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('maps quota exhaustion to a 503 contract error', async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({}) });
-    await expect(searchVideos('peppa pig')).rejects.toMatchObject(
-      new HttpError(503, 'QUOTA_EXCEEDED', 'Video search is temporarily unavailable'),
-    );
   });
 });

@@ -24,7 +24,7 @@ export const VIDEO_ERROR_MESSAGES: Record<VideoErrorCode, string> = {
   DUPLICATE_VIDEO: 'This video is already in the playlist',
   QUOTA_EXCEEDED: 'Video preview is temporarily busy — try again in a few minutes',
   OFFLINE: "You're offline — connect to the internet to add videos",
-  PREMIUM_REQUIRED: 'Searching YouTube is a Premium feature — paste a video link instead',
+  PREMIUM_REQUIRED: 'This is a Premium feature',
 };
 
 /**
@@ -71,59 +71,6 @@ export async function previewVideo(url: string): Promise<VideoMeta> {
   }
 
   return previewViaOEmbed(providerVideoId);
-}
-
-/** Search is API-only (no keyless fallback) — hide the affordance without it. */
-export function searchAvailable(): boolean {
-  return apiConfigured();
-}
-
-interface SearchResponse {
-  results: {
-    providerVideoId: string;
-    title: string;
-    channelTitle: string;
-    durationSeconds: number;
-    thumbnailUrl: string;
-  }[];
-}
-
-/**
- * Search YouTube through the API (auth + shared server-side cache). Every
- * result already passed the same playability gates as a link preview.
- */
-export async function searchVideos(query: string): Promise<VideoMeta[]> {
-  let body: SearchResponse;
-  try {
-    body = await api<SearchResponse>(`/videos/search?q=${encodeURIComponent(query.trim())}`);
-  } catch (err) {
-    if (err instanceof ApiError) {
-      if (err.code === VIDEO_ERROR_CODES.quotaExceeded) {
-        throw new VideoPreviewError(
-          VIDEO_ERROR_CODES.quotaExceeded,
-          'Search is busy right now — paste a video link instead, or try again later',
-        );
-      }
-      // Server backstop for a client whose cached entitlement says premium (§12).
-      if (err.code === VIDEO_ERROR_CODES.premiumRequired) {
-        throw new VideoPreviewError(
-          VIDEO_ERROR_CODES.premiumRequired,
-          VIDEO_ERROR_MESSAGES.PREMIUM_REQUIRED,
-        );
-      }
-      throw new VideoPreviewError(VIDEO_ERROR_CODES.unavailable, err.message);
-    }
-    throw new VideoPreviewError(VIDEO_ERROR_CODES.offline, VIDEO_ERROR_MESSAGES.OFFLINE);
-  }
-  return body.results.map((r) => ({
-    provider: 'youtube' as const,
-    providerVideoId: r.providerVideoId,
-    title: r.title,
-    channelTitle: r.channelTitle,
-    durationSeconds: r.durationSeconds,
-    thumbnailUrl: r.thumbnailUrl,
-    embeddable: true,
-  }));
 }
 
 interface OEmbedResponse {

@@ -1,6 +1,7 @@
 import { api, apiConfigured } from '@/lib/api';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
+import { useRequestStore } from '@/stores/requestStore';
 import { useTimerStore } from '@/stores/timerStore';
 
 /**
@@ -18,4 +19,5 @@ export async function deleteChildProfile(id: string): Promise<void> {
   useAppStore.getState().removeChildProfile(id);
   usePlaylistStore.getState().removeChildData(id);
   useTimerStore.getState().removeChildData(id);
+  useRequestStore.getState().removeChildData(id);
 }

@@ -40,6 +40,7 @@ export default function ChildLayout() {
         }}
       >
         <Stack.Screen name="index" />
+        <Stack.Screen name="request" />
         <Stack.Screen name="player" options={{ contentStyle: { backgroundColor: '#111B31' } }} />
         <Stack.Screen name="times-up" options={{ contentStyle: { backgroundColor: '#1C2B4E' } }} />
       </Stack>

@@ -81,7 +81,7 @@ export function useBedtimeReached(childProfileId: string | null): boolean {
  * store were declared below, that call would hit it in the temporal dead zone,
  * persist would swallow the ReferenceError, and 'app' would never flip.
  */
-const HYDRATION_KEYS = ['app', 'lock', 'playlist', 'timer'] as const;
+const HYDRATION_KEYS = ['app', 'lock', 'playlist', 'timer', 'request'] as const;
 type HydrationKey = (typeof HYDRATION_KEYS)[number];
 
 interface HydrationState {
@@ -89,7 +89,7 @@ interface HydrationState {
 }
 
 export const useHydrationStore = create<HydrationState>(() => ({
-  hydrated: { app: false, lock: false, playlist: false, timer: false },
+  hydrated: { app: false, lock: false, playlist: false, timer: false, request: false },
 }));
 
 export function markHydrated(key: HydrationKey) {

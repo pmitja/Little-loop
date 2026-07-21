@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FREE_LIMITS } from '@littleloop/shared';
-import { showAppAlert, Txt, ScreenContainer } from '@/components';
+import { AppIcon, showAppAlert, Txt, ScreenContainer, type AppIconName } from '@/components';
 import { colors } from '@/theme/tokens';
 import {
   getPlans,
@@ -15,22 +15,41 @@ import {
 import { usePremium } from '@/stores/entitlementStore';
 import { useAppStore } from '@/stores/appStore';
 
-const FEATURES = [
-  'Share management with another caregiver',
-  'Search YouTube from inside the app',
-  'Unlimited videos per playlist',
-  'Up to 4 child profiles',
-  'Multiple playlists per child',
-  'Everything in Free, forever',
+const BENEFITS: { icon: AppIconName; title: string; detail: string }[] = [
+  {
+    icon: 'pin',
+    title: 'Hand over your phone with confidence',
+    detail: 'PIN-locked child mode shows only the videos you approved.',
+  },
+  {
+    icon: 'add-video',
+    title: 'Approve whole channels',
+    detail: 'New videos from creators you trust arrive automatically — always reviewed by you first.',
+  },
+  {
+    icon: 'profile',
+    title: 'Care together',
+    detail: 'Invite another caregiver to help manage playlists and limits.',
+  },
+  {
+    icon: 'time',
+    title: 'See the whole picture',
+    detail: 'Know what they watched and how their screen time adds up.',
+  },
 ];
 
-function FeatureCheck({ label }: { label: string }) {
+function BenefitRow({ icon, title, detail }: (typeof BENEFITS)[number]) {
   return (
-    <View style={styles.featureRow}>
-      <Txt weight="black" size={13} color={colors.child.sun}>✓</Txt>
-      <Txt weight="bold" size={13.5} color="#FFFFFF">
-        {label}
-      </Txt>
+    <View style={styles.benefitRow}>
+      <View style={styles.benefitIcon}>
+        <AppIcon name={icon} size={27} />
+      </View>
+      <View style={styles.benefitCopy}>
+        <Txt weight="black" size={13.5} color="#FFFFFF">{title}</Txt>
+        <Txt weight="semibold" size={11.5} color="rgba(255,255,255,.72)" lineHeight={16}>
+          {detail}
+        </Txt>
+      </View>
     </View>
   );
 }
@@ -38,7 +57,7 @@ function FeatureCheck({ label }: { label: string }) {
 /** s19 — paywall: fully custom plan cards over the RevenueCat offering (PLAN §12). */
 export default function Paywall() {
   const router = useRouter();
-  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'search' | 'settings'; child?: string }>();
+  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'channels' | 'settings'; child?: string }>();
   const premium = usePremium();
   const canManageBilling = useAppStore((state) => state.familyRole !== 'caregiver');
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -112,12 +131,18 @@ export default function Paywall() {
 
   const ctaTitle = premium ? 'Premium active' : 'Subscribe now';
 
-  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: `${FREE_LIMITS.videosPerPlaylist} of ${FREE_LIMITS.videosPerPlaylist} videos`, post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'search' ? { pre: '', hl: 'Searching YouTube in-app', post: ' is part of Premium — free plans can paste or share any YouTube link.' } : null;
+  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: `${FREE_LIMITS.videosPerPlaylist} of ${FREE_LIMITS.videosPerPlaylist} videos`, post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'channels' ? { pre: '', hl: 'Approving whole channels', post: ' is part of Premium — new uploads arrive automatically, always reviewed by you.' } : null;
   if (!canManageBilling) {
     return (
       <ScreenContainer mode="plum" style={styles.container}>
         <View style={styles.closeRow}>
-          <Pressable onPress={dismiss} hitSlop={8} style={styles.closeCircle}>
+          <Pressable
+            onPress={dismiss}
+            hitSlop={8}
+            style={styles.closeCircle}
+            accessibilityRole="button"
+            accessibilityLabel="Close Premium"
+          >
             <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
           </Pressable>
         </View>
@@ -127,7 +152,7 @@ export default function Paywall() {
           <Txt weight="bold" size={14} color="rgba(255,255,255,.78)" center lineHeight={21}>
             Only the main caregiver can start or manage LittleLoop Premium for this family.
           </Txt>
-          <Pressable onPress={dismiss} style={styles.cta}>
+          <Pressable onPress={dismiss} style={styles.cta} accessibilityRole="button">
             <Txt weight="black" size={16} color="#4A3A20">Got it</Txt>
           </Pressable>
         </View>
@@ -135,16 +160,25 @@ export default function Paywall() {
     );
   }
   return (
-    <ScreenContainer mode="plum" style={styles.container}>
+    <ScreenContainer mode="plum" scroll style={styles.container}>
       <View style={styles.closeRow}>
-        <Pressable onPress={dismiss} hitSlop={8} style={styles.closeCircle}>
+        <Pressable
+          onPress={dismiss}
+          hitSlop={8}
+          style={styles.closeCircle}
+          accessibilityRole="button"
+          accessibilityLabel="Close Premium"
+        >
           <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
         </Pressable>
       </View>
 
       <View style={styles.hero}>
-        <Txt size={44}>🦉</Txt>
-        <Txt weight="black" size={24} color="#FFFFFF" center>LittleLoop Premium</Txt>
+        <AppIcon name="premium" size={48} />
+        <Txt weight="black" size={24} color="#FFFFFF" center>Less setup. More peace of mind.</Txt>
+        <Txt weight="bold" size={12.5} color="rgba(255,255,255,.76)" center lineHeight={18}>
+          Keep their little world simple while you stay in control.
+        </Txt>
       </View>
 
       {context ? (
@@ -157,10 +191,15 @@ export default function Paywall() {
         </View>
       ) : null}
 
-      <View style={styles.features}>
-        {FEATURES.map((f) => (
-          <FeatureCheck key={f} label={f} />
+      <View style={styles.benefits}>
+        {BENEFITS.map((benefit) => (
+          <BenefitRow key={benefit.title} {...benefit} />
         ))}
+        <View style={styles.moreRow}>
+          <Txt weight="black" size={11.5} color={colors.child.sun} center>
+            Plus unlimited videos, multiple playlists, and up to 4 child profiles
+          </Txt>
+        </View>
       </View>
 
       <View style={styles.planRow}>
@@ -172,17 +211,25 @@ export default function Paywall() {
               key={id}
               onPress={() => setSelected(id)}
               style={[styles.planCard, isSelected ? styles.planCardSelected : null]}
+              accessibilityRole="radio"
+              accessibilityLabel={`${id === 'yearly' ? 'Yearly' : 'Monthly'} plan, ${plan?.priceString ?? 'price unavailable'}`}
+              accessibilityState={{ selected: isSelected }}
             >
               {id === 'yearly' && savings !== null ? (
                 <View style={styles.saveBadge}>
                   <Txt weight="black" size={9.5} color="#4A3A20">SAVE {savings}%</Txt>
                 </View>
               ) : null}
+              <Txt weight="black" size={10.5} color={colors.parent.muted}>
+                {id === 'yearly' ? 'YEARLY' : 'MONTHLY'}
+              </Txt>
               <Txt weight="black" size={20} color={colors.parent.night}>
                 {plan?.priceString ?? '—'}
               </Txt>
               <Txt weight="bold" size={11} color={colors.parent.muted}>
-                {plan?.subline ?? (id === 'yearly' ? 'per year' : 'per month')}
+                {id === 'yearly'
+                  ? `per year${plan?.subline ? ` · ${plan.subline}` : ''}`
+                  : (plan?.subline ?? 'per month')}
               </Txt>
             </Pressable>
           );
@@ -193,6 +240,9 @@ export default function Paywall() {
         onPress={buy}
         disabled={premium || !selectedPlan || busy}
         style={({ pressed }) => [styles.cta, (premium || !selectedPlan) && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
+        accessibilityRole="button"
+        accessibilityLabel={ctaTitle}
+        accessibilityState={{ disabled: premium || !selectedPlan || busy }}
       >
         {busy ? (
           <ActivityIndicator color="#4A3A20" />
@@ -204,31 +254,29 @@ export default function Paywall() {
       </Pressable>
 
       <View style={styles.linkRow}>
-        <Pressable onPress={dismiss} hitSlop={8} disabled={busy}>
+        <Pressable onPress={dismiss} hitSlop={8} disabled={busy} accessibilityRole="button">
           <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Not now</Txt>
         </Pressable>
-        <Pressable onPress={restore} hitSlop={8} disabled={busy}>
+        <Pressable onPress={restore} hitSlop={8} disabled={busy} accessibilityRole="button">
           <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Restore purchase</Txt>
         </Pressable>
       </View>
 
-      <View style={{ flex: 1 }} />
-
       {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
           what renews, how often, and at what price, and must link to the EULA
           and privacy policy from the screen itself — not only from Settings. */}
-      <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5}>
+      <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5} style={styles.legalCopy}>
         {purchasesLive
           ? `LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`
           : `Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`}
       </Txt>
 
       <View style={styles.legalRow}>
-        <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8}>
+        <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8} accessibilityRole="link">
           <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Terms of Use</Txt>
         </Pressable>
         <Txt weight="bold" size={11} color="rgba(255,255,255,.45)">·</Txt>
-        <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8}>
+        <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8} accessibilityRole="link">
           <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Privacy Policy</Txt>
         </Pressable>
       </View>
@@ -247,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: { alignItems: 'center', gap: 4, marginBottom: 14 },
+  hero: { alignItems: 'center', gap: 5, marginBottom: 14, paddingHorizontal: 8 },
   contextBanner: {
     backgroundColor: 'rgba(255,255,255,.14)',
     borderRadius: 14,
@@ -255,15 +303,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 12,
   },
-  features: {
+  benefits: {
     backgroundColor: 'rgba(255,255,255,.1)',
     borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
     marginBottom: 14,
   },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  benefitIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  benefitCopy: { flex: 1, gap: 1 },
+  moreRow: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,.18)',
+    paddingTop: 8,
+    paddingHorizontal: 4,
+  },
   planRow: { flexDirection: 'row', gap: 10 },
   planCard: {
     flex: 1,
@@ -271,10 +334,10 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: 'transparent',
     borderRadius: 16,
-    paddingVertical: 15,
+    paddingVertical: 13,
     paddingHorizontal: 10,
     alignItems: 'center',
-    gap: 2,
+    gap: 1,
   },
   planCardSelected: {
     borderColor: colors.child.sun,
@@ -297,6 +360,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   linkRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 14 },
-  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8 },
+  legalCopy: { marginTop: 18 },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 4 },
   legalLink: { textDecorationLine: 'underline' },
 });
