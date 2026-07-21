@@ -7,7 +7,6 @@ export default function ParentLayout() {
       <Stack.Screen name="add-video" options={{ presentation: 'modal' }} />
       <Stack.Screen name="review-video" options={{ presentation: 'modal' }} />
       <Stack.Screen name="channel-approved" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="channels" />
       <Stack.Screen name="add-child" />
       <Stack.Screen name="edit-child" />
       <Stack.Screen name="caregivers" />
