@@ -51,6 +51,11 @@ function useNextRoute() {
   return '/(parent)/(tabs)' as const;
 }
 
+function getPendingInviteRoute() {
+  const token = useAppStore.getState().pendingFamilyInvite;
+  return token ? ({ pathname: '/accept-invite', params: { token } } as const) : null;
+}
+
 export default function SignIn() {
   if (!clerkEnabled) return <DevBypass />;
   return <ClerkSignIn />;
@@ -136,7 +141,7 @@ function ClerkSignIn() {
       }
 
       await result.setActive({ session: result.createdSessionId });
-      router.replace(nextRoute);
+      router.replace(getPendingInviteRoute() ?? nextRoute);
     } catch (cause: unknown) {
       const clerkError = cause as { errors?: { longMessage?: string; message?: string }[] };
       setError(
@@ -157,7 +162,7 @@ function ClerkSignIn() {
       const result = await signIn.create({ identifier: email.trim(), password });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace(nextRoute);
+        router.replace(getPendingInviteRoute() ?? nextRoute);
       } else {
         setError('Additional verification is required to finish signing in.');
       }

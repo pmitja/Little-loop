@@ -24,17 +24,10 @@ vi.mock('@/lib/auth', () => ({
   deleteClerkUser: vi.fn(async () => {}),
 }));
 
-// Search would hit YouTube on a cache miss; the gate must run before it does.
-vi.mock('@/lib/search-cache', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/search-cache')>()),
-  getOrFetchSearch: vi.fn(async () => []),
-}));
-
-import { getOrFetchSearch } from '@/lib/search-cache';
 import { POST as createProfile } from './child-profiles/route';
 import { POST as addVideo } from './playlists/[id]/videos/route';
+import { POST as approveChannel } from './channels/route';
 import { DELETE as deleteAccount } from './users/route';
-import { GET as searchVideos } from './videos/search/route';
 
 function post(body: unknown): Request {
   return new Request('http://test.local', {
@@ -99,6 +92,17 @@ describe('POST /child-profiles free limit', () => {
   });
 });
 
+describe('POST /channels premium gate', () => {
+  it('402s for free users before touching YouTube', async () => {
+    await actAs('clerk_channels_free');
+    const created = await createProfile(post(profileBody), {});
+    const { childProfile } = await created.json();
+    const res = await approveChannel(post({ childProfileId: childProfile.id, providerVideoId: 'vid99999999' }), {});
+    expect(res.status).toBe(402);
+    expect((await res.json()).error.code).toBe('PREMIUM_REQUIRED');
+  });
+});
+
 describe('POST /playlists/:id/videos free limit + duplicates', () => {
   let playlistId: string;
 
@@ -153,26 +157,6 @@ describe('POST /playlists/:id/videos free limit + duplicates', () => {
     const providerVideoId = await seedVideo();
     const res = await addVideo(post({ providerVideoId }), routeCtx());
     expect(res.status).toBe(404);
-  });
-});
-
-describe('GET /videos/search premium gate', () => {
-  const search = (q: string) =>
-    searchVideos(new Request(`http://test.local?q=${encodeURIComponent(q)}`), {});
-
-  it('402s for free users without spending YouTube quota', async () => {
-    await actAs('clerk_search_free');
-    const res = await search('peppa pig');
-    expect(res.status).toBe(402);
-    expect((await res.json()).error.code).toBe('PREMIUM_REQUIRED');
-    expect(getOrFetchSearch).not.toHaveBeenCalled();
-  });
-
-  it('allows premium users', async () => {
-    await ctx.db.insert(subscriptionStatus).values({ userId: ctx.user.id, isPremium: true });
-    const res = await search('peppa pig');
-    expect(res.status).toBe(200);
-    expect(getOrFetchSearch).toHaveBeenCalled();
   });
 });
 

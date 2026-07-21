@@ -28,6 +28,7 @@ export async function getOrFetchVideo(db: Db, providerVideoId: string) {
       provider: 'youtube',
       providerVideoId,
       title: resolved.title,
+      channelId: resolved.channelId,
       channelTitle: resolved.channelTitle,
       durationSeconds: resolved.durationSeconds,
       thumbnailUrl: resolved.thumbnailUrl,
@@ -40,6 +41,7 @@ export async function getOrFetchVideo(db: Db, providerVideoId: string) {
       target: [videoMetadata.provider, videoMetadata.providerVideoId],
       set: {
         title: resolved.title,
+        channelId: resolved.channelId,
         channelTitle: resolved.channelTitle,
         durationSeconds: resolved.durationSeconds,
         thumbnailUrl: resolved.thumbnailUrl,

@@ -10,6 +10,7 @@ import { usePlaylistStore } from '@/stores/playlistStore';
 import { useTimerStore } from '@/stores/timerStore';
 
 const INSTALL_ID_KEY = 'littleloop.installId';
+let currentSync: Promise<void> | null = null;
 
 export async function getInstallId(): Promise<string> {
   const existing = await storage.getItem(INSTALL_ID_KEY);
@@ -20,10 +21,7 @@ export async function getInstallId(): Promise<string> {
   return created;
 }
 
-/** Create/update the API user row required by every authenticated endpoint. */
-export async function syncCurrentUser(): Promise<void> {
-  if (!apiConfigured() || Platform.OS === 'web') return;
-
+async function performCurrentUserSync(): Promise<void> {
   const result = await api<{
     family: { id: string; role: FamilyRole };
     entitlement: { isPremium: boolean };
@@ -43,4 +41,19 @@ export async function syncCurrentUser(): Promise<void> {
     usePlaylistStore.setState({ videosByChild: {}, playlistIdByChild: {} });
     useTimerStore.setState({ secondsByChild: {}, sessions: [], activeSessionId: null });
   }
+}
+
+/** Create/update the API user row required by every authenticated endpoint. */
+export function syncCurrentUser(): Promise<void> {
+  if (!apiConfigured() || Platform.OS === 'web') return Promise.resolve();
+
+  // Signing in can mount ApiTokenBridge and an authenticated destination in
+  // the same render. Share one request so those callers cannot race the user
+  // upsert or continue before it has completed.
+  if (!currentSync) {
+    currentSync = performCurrentUserSync().finally(() => {
+      currentSync = null;
+    });
+  }
+  return currentSync;
 }

@@ -41,8 +41,9 @@ export default function PinSetup() {
       await savePin(next);
       setPinSet(true);
       setSaving(false);
-      if (useAppStore.getState().childProfiles.length > 0) {
-        useAppStore.getState().setOnboardingComplete(true);
+      const app = useAppStore.getState();
+      if (app.familyRole === 'caregiver' || app.childProfiles.length > 0) {
+        app.setOnboardingComplete(true);
         router.replace('/whos-watching');
       } else {
         router.replace('/(onboarding)/child-profile');

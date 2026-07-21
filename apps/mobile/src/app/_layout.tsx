@@ -29,6 +29,7 @@ import { useTimerStore } from '@/stores/timerStore';
 import { syncCompletedWatchSessions } from '@/features/family/watchSessionSync';
 // Load every persisted store at startup so the splash hydration gate can resolve.
 import '@/stores/playlistStore';
+import '@/stores/requestStore';
 
 SplashScreen.preventAutoHideAsync();
 initMonitoring();

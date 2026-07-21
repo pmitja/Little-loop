@@ -14,6 +14,7 @@ interface YouTubeItem {
   id: string;
   snippet: {
     title: string;
+    channelId: string;
     channelTitle: string;
     liveBroadcastContent: 'none' | 'live' | 'upcoming';
     thumbnails: Record<string, { url: string } | undefined>;
@@ -27,11 +28,13 @@ interface YouTubeItem {
     privacyStatus: 'public' | 'unlisted' | 'private';
     madeForKids?: boolean;
   };
+  statistics?: { viewCount?: string };
 }
 
 export interface ResolvedVideo {
   providerVideoId: string;
   title: string;
+  channelId: string;
   channelTitle: string;
   durationSeconds: number;
   thumbnailUrl: string;
@@ -54,7 +57,7 @@ async function fetchItems(ids: string[]): Promise<YouTubeItem[]> {
   if (!key) throw new HttpError(500, 'MISCONFIGURED', 'YOUTUBE_API_KEY is not set');
   const url =
     'https://www.googleapis.com/youtube/v3/videos' +
-    `?part=snippet,contentDetails,status&id=${ids.join(',')}&key=${key}`;
+    `?part=snippet,contentDetails,status,statistics&id=${ids.join(',')}&key=${key}`;
   const res = await fetch(url);
   if (res.status === 403) {
     throw new HttpError(503, 'QUOTA_EXCEEDED', 'Video lookups are temporarily unavailable');
@@ -91,6 +94,7 @@ export async function resolveVideo(providerVideoId: string): Promise<ResolvedVid
   return {
     providerVideoId,
     title: item.snippet.title,
+    channelId: item.snippet.channelId,
     channelTitle: item.snippet.channelTitle,
     durationSeconds,
     thumbnailUrl: bestThumbnail(item.snippet.thumbnails, providerVideoId),
@@ -99,50 +103,112 @@ export async function resolveVideo(providerVideoId: string): Promise<ResolvedVid
   };
 }
 
-/**
- * Search YouTube and return only videos that pass the same PLAN §9 gates as
- * resolveVideo (embeddable, not live, not age-restricted, real duration).
- * Quota: search.list = 100 units + one videos.list call = 1 unit, so callers
- * MUST cache results (see search-cache) — this is ~100x a preview lookup.
- */
-export async function searchVideos(query: string, maxResults = 20): Promise<ResolvedVideo[]> {
+interface YouTubeChannel {
+  id: string;
+  snippet: { title: string };
+  contentDetails: { relatedPlaylists: { uploads?: string } };
+}
+
+export interface ResolvedChannel {
+  channelId: string;
+  channelTitle: string;
+  uploadsPlaylistId: string | null;
+}
+
+/** Resolve a channel's title + uploads playlist (the UU… list). Quota: 1 unit. */
+export async function resolveChannel(channelId: string): Promise<ResolvedChannel> {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) throw new HttpError(500, 'MISCONFIGURED', 'YOUTUBE_API_KEY is not set');
   const url =
-    'https://www.googleapis.com/youtube/v3/search' +
-    `?part=id&type=video&videoEmbeddable=true&safeSearch=strict` +
-    `&maxResults=${maxResults}&q=${encodeURIComponent(query)}&key=${key}`;
+    'https://www.googleapis.com/youtube/v3/channels' +
+    `?part=snippet,contentDetails&id=${channelId}&key=${key}`;
   const res = await fetch(url);
   if (res.status === 403) {
-    throw new HttpError(503, 'QUOTA_EXCEEDED', 'Video search is temporarily unavailable');
+    throw new HttpError(503, 'QUOTA_EXCEEDED', 'Channel lookups are temporarily unavailable');
   }
   if (!res.ok) {
     throw new HttpError(502, 'PROVIDER_ERROR', `YouTube API error (${res.status})`);
   }
-  const body = (await res.json()) as { items?: { id?: { videoId?: string } }[] };
-  const ids = (body.items ?? [])
-    .map((item) => item.id?.videoId)
-    .filter((id): id is string => Boolean(id));
+  const body = (await res.json()) as { items?: YouTubeChannel[] };
+  const channel = body.items?.[0];
+  if (!channel) {
+    throw new HttpError(404, 'VIDEO_UNAVAILABLE', 'That channel could not be found');
+  }
+  return {
+    channelId: channel.id,
+    channelTitle: channel.snippet.title,
+    uploadsPlaylistId: channel.contentDetails.relatedPlaylists.uploads ?? null,
+  };
+}
+
+export interface ChannelUpload extends ResolvedVideo {
+  publishedAt: Date | null;
+  viewCount: number;
+}
+
+/**
+ * Recent playable uploads for a channel, newest first, published after
+ * `publishedAfter`. Quota: playlistItems.list (1 unit) + videos.list (1 unit
+ * per 50) — cheap, but callers still cap volume per run.
+ */
+export async function fetchChannelUploads(
+  uploadsPlaylistId: string,
+  publishedAfter?: Date | null,
+  maxResults = 25,
+): Promise<ChannelUpload[]> {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) throw new HttpError(500, 'MISCONFIGURED', 'YOUTUBE_API_KEY is not set');
+  const url =
+    'https://www.googleapis.com/youtube/v3/playlistItems' +
+    `?part=contentDetails&maxResults=${maxResults}&playlistId=${uploadsPlaylistId}&key=${key}`;
+  const res = await fetch(url);
+  if (res.status === 403) {
+    throw new HttpError(503, 'QUOTA_EXCEEDED', 'Channel uploads are temporarily unavailable');
+  }
+  if (!res.ok) {
+    throw new HttpError(502, 'PROVIDER_ERROR', `YouTube API error (${res.status})`);
+  }
+  const body = (await res.json()) as {
+    items?: { contentDetails?: { videoId?: string; videoPublishedAt?: string } }[];
+  };
+  const publishedById = new Map<string, string | undefined>();
+  for (const item of body.items ?? []) {
+    const id = item.contentDetails?.videoId;
+    if (id) publishedById.set(id, item.contentDetails?.videoPublishedAt);
+  }
+  // Drop anything at or before the watermark before spending a videos.list unit.
+  const ids = [...publishedById.keys()].filter((id) => {
+    const at = publishedById.get(id);
+    if (publishedAfter && at) return new Date(at).getTime() > publishedAfter.getTime();
+    return true;
+  });
   if (ids.length === 0) return [];
 
   const items = await fetchItems(ids);
-  const results: ResolvedVideo[] = [];
+  const results: ChannelUpload[] = [];
   for (const item of items) {
     if (item.status.privacyStatus === 'private' || !item.status.embeddable) continue;
     if (item.snippet.liveBroadcastContent !== 'none') continue;
     if (item.contentDetails.contentRating?.ytRating === 'ytAgeRestricted') continue;
     const durationSeconds = parseIsoDuration(item.contentDetails.duration);
     if (!durationSeconds) continue;
+    const at = publishedById.get(item.id);
     results.push({
       providerVideoId: item.id,
       title: item.snippet.title,
+      channelId: item.snippet.channelId,
       channelTitle: item.snippet.channelTitle,
       durationSeconds,
       thumbnailUrl: bestThumbnail(item.snippet.thumbnails, item.id),
       embeddable: true,
       madeForKids: item.status.madeForKids ?? null,
+      publishedAt: at ? new Date(at) : null,
+      viewCount: Number(item.statistics?.viewCount ?? 0),
     });
   }
+  results.sort(
+    (a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
+  );
   return results;
 }
 

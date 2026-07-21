@@ -71,9 +71,10 @@ function ClerkSignUp() {
       const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace(
-          onboardingComplete ? '/(onboarding)/pin-setup' : '/(onboarding)/welcome',
-        );
+        const token = useAppStore.getState().pendingFamilyInvite;
+        router.replace(token
+          ? { pathname: '/accept-invite', params: { token } }
+          : onboardingComplete ? '/(onboarding)/pin-setup' : '/(onboarding)/welcome');
       } else {
         setError('Verification incomplete — try again.');
       }
