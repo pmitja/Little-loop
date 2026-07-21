@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -62,6 +62,7 @@ export default function ChannelApproved() {
         }
         renderItem={({ item }) => {
           const isAdded = added[item.providerVideoId];
+          const isBusy = busy === item.providerVideoId;
           return (
             <View style={styles.row}>
               <Image source={{ uri: item.thumbnailUrl }} style={styles.thumb} />
@@ -76,7 +77,7 @@ export default function ChannelApproved() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={isAdded ? `${item.title} added` : `Add ${item.title}`}
-                disabled={isAdded || busy === item.providerVideoId}
+                disabled={isAdded || isBusy}
                 onPress={() => void onAdd(item)}
                 style={({ pressed }) => [
                   styles.addBtn,
@@ -84,9 +85,13 @@ export default function ChannelApproved() {
                   pressed && !isAdded && { opacity: 0.7 },
                 ]}
               >
-                <Txt weight="extrabold" size={13} color={isAdded ? colors.child.grass : '#FFFFFF'}>
-                  {isAdded ? '✓ Added' : 'Add'}
-                </Txt>
+                {isBusy ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Txt weight="extrabold" size={13} color={isAdded ? colors.child.grass : '#FFFFFF'}>
+                    {isAdded ? '✓ Added' : 'Add'}
+                  </Txt>
+                )}
               </Pressable>
             </View>
           );

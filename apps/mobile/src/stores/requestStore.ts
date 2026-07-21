@@ -27,9 +27,24 @@ interface RequestOptions {
   sampleVideoId?: string;
 }
 
+/** The minimal video shape a heart-tap needs to raise a channel request. */
+interface LikeableVideo {
+  providerVideoId: string;
+  channelTitle?: string;
+  thumbnailUrl?: string;
+}
+
 interface RequestState {
   requestsByChild: Record<string, WatchRequest[]>;
+  /** providerVideoIds the child has hearted, per child — drives the filled state. */
+  likedByChild: Record<string, string[]>;
   addRequest: (childProfileId: string, kind: WatchRequest['kind'], opts?: RequestOptions) => void;
+  /**
+   * Child taps the heart on a video. Toggles the local liked state and, when
+   * newly liked, raises the same "more from this creator" request the parent
+   * already handles. Returns the new liked state so callers can react.
+   */
+  toggleLike: (childProfileId: string, video: LikeableVideo) => boolean;
   resolveRequest: (childProfileId: string, requestId: string) => void;
   removeRequest: (childProfileId: string, requestId: string) => void;
   /** Drop everything stored for a child (profile deleted). */
@@ -40,6 +55,37 @@ export const useRequestStore = create<RequestState>()(
   persist(
     (set, get) => ({
       requestsByChild: {},
+      likedByChild: {},
+      toggleLike: (childProfileId, video) => {
+        const liked = get().likedByChild[childProfileId] ?? [];
+        const alreadyLiked = liked.includes(video.providerVideoId);
+        if (alreadyLiked) {
+          set((s) => ({
+            likedByChild: {
+              ...s.likedByChild,
+              [childProfileId]: (s.likedByChild[childProfileId] ?? []).filter(
+                (id) => id !== video.providerVideoId,
+              ),
+            },
+          }));
+          return false;
+        }
+        set((s) => ({
+          likedByChild: {
+            ...s.likedByChild,
+            [childProfileId]: [...(s.likedByChild[childProfileId] ?? []), video.providerVideoId],
+          },
+        }));
+        // A heart is a concrete "I like this creator" — raise the same channel
+        // request the parent approves. Coalescing (one row per channel) lives in
+        // addRequest, so hearting several videos from one creator stays tidy.
+        get().addRequest(childProfileId, 'channel', {
+          channelTitle: video.channelTitle,
+          thumbnailUrl: video.thumbnailUrl,
+          sampleVideoId: video.providerVideoId,
+        });
+        return true;
+      },
       addRequest: (childProfileId, kind, opts = {}) =>
         set((s) => {
           const current = s.requestsByChild[childProfileId] ?? [];
@@ -104,7 +150,8 @@ export const useRequestStore = create<RequestState>()(
       removeChildData: (childProfileId) =>
         set((s) => {
           const { [childProfileId]: _dropped, ...requestsByChild } = s.requestsByChild;
-          return { requestsByChild };
+          const { [childProfileId]: _likes, ...likedByChild } = s.likedByChild;
+          return { requestsByChild, likedByChild };
         }),
     }),
     {
@@ -133,4 +180,13 @@ export function usePendingRequests(childProfileId: string | null): WatchRequest[
 
 export function usePendingRequestCount(childProfileId: string | null): number {
   return usePendingRequests(childProfileId).length;
+}
+
+const EMPTY_LIKES: string[] = [];
+
+/** The set of providerVideoIds a child has hearted (stable reference). */
+export function useLikedVideoIds(childProfileId: string | null): string[] {
+  return useRequestStore((s) =>
+    childProfileId ? (s.likedByChild[childProfileId] ?? EMPTY_LIKES) : EMPTY_LIKES,
+  );
 }

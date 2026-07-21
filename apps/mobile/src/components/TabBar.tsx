@@ -16,6 +16,10 @@ const TABS: Record<string, { label: string; icon: (active: boolean) => React.Rea
     label: 'Videos',
     icon: (active) => <AppIcon name="videos" size={25} muted={!active} />,
   },
+  channels: {
+    label: 'Channels',
+    icon: (active) => <AppIcon name="channels" size={25} muted={!active} />,
+  },
   settings: {
     label: 'Settings',
     icon: (active) => <AppIcon name="settings" size={25} muted={!active} />,

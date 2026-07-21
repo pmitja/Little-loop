@@ -6,8 +6,9 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChildAvatar, LockGlyph, TimerBadge, Txt } from '@/components';
+import { ChildAvatar, HeartButton, LikeToast, LockGlyph, TimerBadge, Txt } from '@/components';
 import { useAppStore, useBedtimeReached } from '@/stores/appStore';
+import { useLikedVideoIds, useRequestStore } from '@/stores/requestStore';
 import { useLivePlaylistVideos, usePlaybackProgress } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday } from '@/stores/timerStore';
 import { colors, controls, shadows } from '@/theme/tokens';
@@ -17,6 +18,8 @@ const VIDEO_PAGE_SIZE = 6;
 interface VideoChoice {
   id: string;
   originalIndex: number;
+  providerVideoId: string;
+  channelTitle: string;
   title: string;
   thumbnailUrl: string;
   hasSavedProgress: boolean;
@@ -34,11 +37,16 @@ function PlayGlyph({ size, color }: { size: number; color: string }) {
 const VideoRow = memo(function VideoRow({
   item,
   onPlay,
+  liked,
+  onToggleLike,
 }: {
   item: VideoChoice;
   onPlay: (index: number) => void;
+  liked: boolean;
+  onToggleLike: (item: VideoChoice) => void;
 }) {
   const handlePress = useCallback(() => onPlay(item.originalIndex), [item.originalIndex, onPlay]);
+  const handleLike = useCallback(() => onToggleLike(item), [item, onToggleLike]);
 
   return (
     <Pressable
@@ -72,12 +80,26 @@ const VideoRow = memo(function VideoRow({
           {item.hasSavedProgress ? 'Continue watching' : 'Ready to watch'}
         </Txt>
       </View>
+      <View style={styles.rowHeart}>
+        <HeartButton liked={liked} onToggle={handleLike} />
+      </View>
     </Pressable>
   );
 });
 
-function FeaturedVideo({ item, onPlay }: { item: VideoChoice; onPlay: (index: number) => void }) {
+function FeaturedVideo({
+  item,
+  onPlay,
+  liked,
+  onToggleLike,
+}: {
+  item: VideoChoice;
+  onPlay: (index: number) => void;
+  liked: boolean;
+  onToggleLike: (item: VideoChoice) => void;
+}) {
   const handlePress = useCallback(() => onPlay(item.originalIndex), [item.originalIndex, onPlay]);
+  const handleLike = useCallback(() => onToggleLike(item), [item, onToggleLike]);
 
   return (
     <Pressable
@@ -97,6 +119,9 @@ function FeaturedVideo({ item, onPlay }: { item: VideoChoice; onPlay: (index: nu
         />
         <View style={styles.playButton}>
           <PlayGlyph size={22} color="#FFFFFF" />
+        </View>
+        <View style={styles.featuredHeart}>
+          <HeartButton liked={liked} onToggle={handleLike} />
         </View>
         {item.hasSavedProgress ? (
           <View style={styles.continueBadge}>
@@ -128,6 +153,9 @@ export default function ChildHome() {
   );
   const videos = useLivePlaylistVideos(profile?.id ?? null);
   const playbackProgress = usePlaybackProgress(profile?.id ?? null);
+  const likedVideoIds = useLikedVideoIds(profile?.id ?? null);
+  const likedSet = useMemo(() => new Set(likedVideoIds), [likedVideoIds]);
+  const [likeToast, setLikeToast] = useState(false);
   const watched = useSecondsWatchedToday(profile?.id ?? null);
   const remaining = remainingSeconds(profile?.dailyLimitMinutes, watched);
   const pastBedtime = useBedtimeReached(profile?.id ?? null);
@@ -159,6 +187,8 @@ export default function ChildHome() {
         return {
           id: entry.id,
           originalIndex,
+          providerVideoId: entry.video.providerVideoId,
+          channelTitle: entry.video.channelTitle,
           title: entry.video.title,
           thumbnailUrl: entry.video.thumbnailUrl,
           hasSavedProgress: Boolean(saved),
@@ -188,6 +218,22 @@ export default function ChildHome() {
     router.push({ pathname: '/(child)/player', params: { index: String(index) } });
   }, [router]);
 
+  const toggleLike = useCallback(
+    (item: VideoChoice) => {
+      if (!profile) return;
+      const nowLiked = useRequestStore.getState().toggleLike(profile.id, {
+        providerVideoId: item.providerVideoId,
+        channelTitle: item.channelTitle,
+        thumbnailUrl: item.thumbnailUrl,
+      });
+      if (nowLiked) {
+        setLikeToast(true);
+        setTimeout(() => setLikeToast(false), 1800);
+      }
+    },
+    [profile],
+  );
+
   const switchProfile = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.replace('/whos-watching');
@@ -205,8 +251,15 @@ export default function ChildHome() {
   }, [videoChoices.length]);
 
   const renderVideo = useCallback(
-    ({ item }: ListRenderItemInfo<VideoChoice>) => <VideoRow item={item} onPlay={play} />,
-    [play],
+    ({ item }: ListRenderItemInfo<VideoChoice>) => (
+      <VideoRow
+        item={item}
+        onPlay={play}
+        liked={likedSet.has(item.providerVideoId)}
+        onToggleLike={toggleLike}
+      />
+    ),
+    [play, likedSet, toggleLike],
   );
 
   const keyExtractor = useCallback((item: VideoChoice) => item.id, []);
@@ -283,7 +336,12 @@ export default function ChildHome() {
             />
 
             {featuredVideo ? (
-              <FeaturedVideo item={featuredVideo} onPlay={play} />
+              <FeaturedVideo
+                item={featuredVideo}
+                onPlay={play}
+                liked={likedSet.has(featuredVideo.providerVideoId)}
+                onToggleLike={toggleLike}
+              />
             ) : (
               <View style={styles.emptyCard}>
                 <Txt weight="black" size={20} color={colors.parent.night} center>
@@ -303,6 +361,11 @@ export default function ChildHome() {
           </View>
         )}
       />
+      {likeToast ? (
+        <View pointerEvents="none" style={[styles.toastWrap, { bottom: insets.bottom + 28 }]}>
+          <LikeToast text="Told your grown-up 💛" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -413,6 +476,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowCopy: { flex: 1, minWidth: 0, gap: 6 },
+  rowHeart: { alignSelf: 'center' },
+  featuredHeart: { position: 'absolute', top: 10, right: 10 },
+  toastWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   continueBadge: {
     position: 'absolute',
     left: 10,

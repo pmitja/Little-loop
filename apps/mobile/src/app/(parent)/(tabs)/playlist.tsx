@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -58,6 +58,7 @@ export default function Playlist() {
   const premium = usePremium();
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<PendingVideo[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const refreshPending = useCallback(async () => {
     if (!profile?.id) return;
@@ -77,12 +78,13 @@ export default function Playlist() {
   );
 
   const onApproveChannel = async (req: WatchRequest) => {
-    if (!profile) return;
+    if (!profile || approvingId) return;
     if (!premium) {
       router.push({ pathname: '/paywall', params: { trigger: 'channels', child: name } });
       return;
     }
     if (!req.sampleVideoId) return;
+    setApprovingId(req.id);
     try {
       const res = await approveChannel(profile.id, req.sampleVideoId);
       resolveRequest(profile.id, req.id);
@@ -90,6 +92,8 @@ export default function Playlist() {
       router.push('/(parent)/channel-approved');
     } catch {
       showAppAlert('Couldn’t approve channel', 'Check your connection and try again.');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -270,18 +274,6 @@ export default function Playlist() {
                 </Txt>
               </Pressable>
             ) : null}
-            {!editing ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Manage approved channels"
-                onPress={() => router.push('/(parent)/channels')}
-                style={({ pressed }) => [styles.channelsLink, pressed && { opacity: 0.6 }]}
-              >
-                <Txt weight="bold" size={13.5} color={colors.parent.muted}>
-                  Approved channels ›
-                </Txt>
-              </Pressable>
-            ) : null}
             {requests.length > 0 && !editing
               ? requests.map((req) => (
                   <View key={req.id} style={styles.requestCard}>
@@ -294,13 +286,22 @@ export default function Playlist() {
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Approve ${req.channelTitle} channel`}
+                        disabled={approvingId === req.id}
                         onPress={() => void onApproveChannel(req)}
                         hitSlop={6}
-                        style={({ pressed }) => [styles.requestApprove, pressed && { opacity: 0.7 }]}
+                        style={({ pressed }) => [
+                          styles.requestApprove,
+                          approvingId === req.id && styles.requestApproveBusy,
+                          pressed && { opacity: 0.7 },
+                        ]}
                       >
-                        <Txt weight="extrabold" size={12} color="#FFFFFF">
-                          Approve channel
-                        </Txt>
+                        {approvingId === req.id ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Txt weight="extrabold" size={12} color="#FFFFFF">
+                            Approve channel
+                          </Txt>
+                        )}
                       </Pressable>
                     ) : null}
                     <Pressable
@@ -414,7 +415,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  channelsLink: { alignSelf: 'flex-start', paddingVertical: 4, paddingHorizontal: 2 },
   reviewNote: { borderRadius: 14, backgroundColor: colors.amberTint, paddingHorizontal: 14, paddingVertical: 10 },
   requestCard: {
     borderRadius: 14,
@@ -430,7 +430,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.child.skyDeep,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    minWidth: 116,
+    minHeight: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  requestApproveBusy: { opacity: 0.85 },
   requestDismiss: {
     width: 30,
     height: 30,

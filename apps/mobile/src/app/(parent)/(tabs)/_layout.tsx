@@ -31,6 +31,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="playlist" />
+      <Tabs.Screen name="channels" />
       <Tabs.Screen name="settings" />
       <Tabs.Screen name="activity" options={{ href: null }} />
     </Tabs>

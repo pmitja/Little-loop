@@ -19,11 +19,12 @@ import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { formatDuration } from '@littleloop/shared';
-import { Txt } from '@/components';
+import { HeartButton, LikeToast, Txt } from '@/components';
 import { TimerBadge } from '@/components/TimerBadge';
 import { colors, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, useBedtimeReached } from '@/stores/appStore';
+import { useLikedVideoIds, useRequestStore } from '@/stores/requestStore';
 import { useLivePlaylistVideos, usePlaylistStore } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday, useTimerStore } from '@/stores/timerStore';
 import {
@@ -151,6 +152,9 @@ export default function ChildPlayer() {
   const [progressTrackWidth, setProgressTrackWidth] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
+  const [likeToast, setLikeToast] = useState(false);
+  const likedVideoIds = useLikedVideoIds(profile?.id ?? null);
+  const liked = current ? likedVideoIds.includes(current.video.providerVideoId) : false;
   const playing = playerState === YT_STATE.playing;
   // Two-minute warning (PLAN §13): remaining only decreases, so this window
   // passes exactly once — a derived ~4-second toast with no extra state.
@@ -223,6 +227,20 @@ export default function ChildPlayer() {
       );
     lastProgressSaveRef.current = Date.now();
   }, []);
+
+  const onToggleLike = useCallback(() => {
+    const active = currentIdentityRef.current;
+    if (!active.childProfileId || !current) return;
+    const nowLiked = useRequestStore.getState().toggleLike(active.childProfileId, {
+      providerVideoId: current.video.providerVideoId,
+      channelTitle: current.video.channelTitle,
+      thumbnailUrl: current.video.thumbnailUrl,
+    });
+    if (nowLiked) {
+      setLikeToast(true);
+      setTimeout(() => setLikeToast(false), 1800);
+    }
+  }, [current]);
 
   const seekTo = useCallback(
     (seconds: number) => {
@@ -652,6 +670,16 @@ export default function ChildPlayer() {
 
       <View style={{ marginTop: 20 }}>{transportControls(20, 72, 52, true)}</View>
 
+      <View style={styles.likeRow}>
+        <HeartButton
+          liked={liked}
+          onToggle={onToggleLike}
+          variant="pill"
+          label="I like this!"
+          likedLabel="You liked this 💛"
+        />
+      </View>
+
       <View style={{ flex: 1 }} />
 
       {next ? (
@@ -688,6 +716,11 @@ export default function ChildPlayer() {
         </>
       ) : null}
       {warningOverlay}
+      {likeToast ? (
+        <View pointerEvents="none" style={styles.likeToastWrap}>
+          <LikeToast text="Told your grown-up 💛" />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -789,6 +822,8 @@ const styles = StyleSheet.create({
   playerSideButton: { backgroundColor: colors.parent.night },
   pauseBar: { width: 7, height: 26, borderRadius: 3, backgroundColor: '#FFFFFF' },
   seekIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  likeRow: { marginTop: 18, alignItems: 'center' },
+  likeToastWrap: { position: 'absolute', left: 0, right: 0, bottom: 120, alignItems: 'center' },
   upNextLabel: { letterSpacing: 0.84, marginBottom: 10 },
   upNextCard: {
     flexDirection: 'row',

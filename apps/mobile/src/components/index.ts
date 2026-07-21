@@ -17,6 +17,7 @@ export { EmptyState, AddVideoIllustration } from './EmptyState';
 export { LockedModal, LockGlyph } from './LockedModal';
 export { NoVideosModal } from './NoVideosModal';
 export { TimerBadge } from './TimerBadge';
+export { HeartButton, LikeToast } from './HeartButton';
 export { ParentHeader } from './ParentHeader';
 export { PINBoxes, PINKeypad } from './PINKeypad';
 export { ScreenContainer } from './ScreenContainer';

@@ -1,15 +1,16 @@
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ParentHeader, showAppAlert, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { listChannels, removeChannel, type ApprovedChannel } from '@/features/channels/channelsApi';
 
 /** Manage the channels a parent has approved for the active child (PLAN §12). */
-export default function Channels() {
-  const router = useRouter();
+export default function ChannelsTab() {
+  const insets = useSafeAreaInsets();
   const profile = useAppStore(
     (s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
@@ -57,8 +58,13 @@ export default function Channels() {
   };
 
   return (
-    <ScreenContainer style={styles.container}>
-      <ParentHeader title="Approved channels" onBack={() => router.back()} />
+    <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
+      <View style={styles.header}>
+        <ParentHeader
+          title="Channels"
+          subtitle={channels.length > 0 ? `${channels.length} approved` : undefined}
+        />
+      </View>
       <FlatList
         data={channels}
         keyExtractor={(item) => item.id}
@@ -70,9 +76,17 @@ export default function Channels() {
         }
         ListEmptyComponent={
           loaded ? (
-            <Txt weight="semibold" size={13.5} color={colors.parent.muted} style={styles.empty}>
-              No channels approved yet. Approve a channel from a video review or a “more from…” request.
-            </Txt>
+            <View style={styles.emptyCard}>
+              <Txt weight="black" size={30}>
+                📺
+              </Txt>
+              <Txt weight="black" size={16} center>
+                No channels yet
+              </Txt>
+              <Txt weight="semibold" size={13.5} color={colors.parent.muted} center lineHeight={19}>
+                When {name} taps the ♥ on a video, you’ll see a request to approve that creator’s channel here.
+              </Txt>
+            </View>
           ) : null
         }
         renderItem={({ item }) => (
@@ -105,15 +119,25 @@ export default function Channels() {
           </View>
         )}
       />
-    </ScreenContainer>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: 16 },
-  list: { paddingBottom: 32, gap: 10 },
-  intro: { marginTop: 12, marginBottom: 8, marginHorizontal: 4 },
-  empty: { marginTop: 24, textAlign: 'center', marginHorizontal: 8 },
+  root: { flex: 1, backgroundColor: colors.bg },
+  header: { paddingHorizontal: 20 },
+  list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, gap: 10 },
+  intro: { marginTop: 8, marginBottom: 8, marginHorizontal: 4 },
+  emptyCard: {
+    marginTop: 24,
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: colors.parent.card,
+    borderWidth: 1,
+    borderColor: colors.parent.hairline,
+    alignItems: 'center',
+    gap: 8,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

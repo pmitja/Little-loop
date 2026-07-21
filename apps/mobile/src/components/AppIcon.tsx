@@ -13,6 +13,7 @@ export type AppIconName =
   | 'delete'
   | 'home'
   | 'settings'
+  | 'channels'
   | 'add-video'
   | 'parent-hq'
   | 'weekend'
@@ -30,6 +31,7 @@ const ICONS: Record<AppIconName, number> = {
   delete: require('../../assets/images/icons/delete.png'),
   home: require('../../assets/images/icons/home.png'),
   settings: require('../../assets/images/icons/settings.png'),
+  channels: require('../../assets/images/icons/channels.png'),
   'add-video': require('../../assets/images/icons/add-video.png'),
   'parent-hq': require('../../assets/images/icons/parent-hq.png'),
   weekend: require('../../assets/images/icons/weekend.png'),
