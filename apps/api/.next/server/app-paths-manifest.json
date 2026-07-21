@@ -1,9 +1,0 @@
-{
-  "/api/v1/playlists/[id]/videos/route": "app/api/v1/playlists/[id]/videos/route.js",
-  "/api/v1/family/route": "app/api/v1/family/route.js",
-  "/api/v1/family/invites/[id]/route": "app/api/v1/family/invites/[id]/route.js",
-  "/api/v1/family/invites/route": "app/api/v1/family/invites/route.js",
-  "/api/v1/playlists/route": "app/api/v1/playlists/route.js",
-  "/api/v1/child-profiles/route": "app/api/v1/child-profiles/route.js",
-  "/invite/page": "app/invite/page.js"
-}
