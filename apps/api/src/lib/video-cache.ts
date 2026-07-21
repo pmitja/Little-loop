@@ -18,6 +18,9 @@ export async function getOrFetchVideo(db: Db, providerVideoId: string) {
   const fresh =
     cached &&
     cached.status === 'available' &&
+    // Legacy rows resolved before channel support lack channelId; refetch them
+    // so channel approval (which needs it) can't fail on a stale cache hit.
+    cached.channelId &&
     Date.now() - cached.lastCheckedAt.getTime() < CACHE_TTL_MS;
   if (fresh) return cached;
 
