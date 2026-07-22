@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -21,14 +21,17 @@ import {
 import { colors, controls, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
-import { usePendingRequests, useRequestStore } from '@/stores/requestStore';
+import { usePendingRequests } from '@/stores/requestStore';
 import { usePremium } from '@/stores/entitlementStore';
 import { removeSharedVideo, reorderSharedVideos, syncFamilyPlaylists } from '@/features/family/playlistSync';
+import { resolveSharedRequest, syncFamilyRequests } from '@/features/family/requestSync';
 import {
   approveChannel,
   approvePending,
+  listChannels,
   listPendingVideos,
   rejectPending,
+  type ApprovedChannel,
   type PendingVideo,
 } from '@/features/channels/channelsApi';
 import { useChannelSuggestionStore } from '@/features/channels/channelSuggestionStore';
@@ -54,10 +57,10 @@ export default function Playlist() {
   );
   const videos = usePlaylistVideos(profile?.id ?? null);
   const requests = usePendingRequests(profile?.id ?? null);
-  const resolveRequest = useRequestStore((s) => s.resolveRequest);
   const premium = usePremium();
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<PendingVideo[]>([]);
+  const [channels, setChannels] = useState<ApprovedChannel[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const refreshPending = useCallback(async () => {
@@ -69,13 +72,52 @@ export default function Playlist() {
     }
   }, [profile?.id]);
 
+  const refreshChannels = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
+      setChannels(await listChannels(profile.id));
+    } catch {
+      // Offline or local-only — keep what we have.
+    }
+  }, [profile?.id]);
+
   useFocusEffect(
     useCallback(() => {
       const latest = useAppStore.getState().childProfiles.find((item) => item.id === profile?.id);
-      if (latest) void syncFamilyPlaylists([latest]).catch(() => {});
+      if (latest) {
+        void syncFamilyPlaylists([latest]).catch(() => {});
+        void syncFamilyRequests([latest]).catch(() => {});
+      }
       void refreshPending();
-    }, [profile?.id, refreshPending]),
+      void refreshChannels();
+    }, [profile?.id, refreshPending, refreshChannels]),
   );
+
+  // A creator the parent already follows shouldn't surface an "approve channel"
+  // ask — new uploads already flow through the review queue. Hide those requests
+  // and resolve them everywhere so they clear on every family device.
+  const approvedTitles = useMemo(
+    () => new Set(channels.map((c) => c.channelTitle.trim().toLowerCase())),
+    [channels],
+  );
+  const isAlreadyApproved = useCallback(
+    (req: WatchRequest) =>
+      req.kind === 'channel' &&
+      !!req.channelTitle &&
+      approvedTitles.has(req.channelTitle.trim().toLowerCase()),
+    [approvedTitles],
+  );
+  const visibleRequests = useMemo(
+    () => requests.filter((req) => !isAlreadyApproved(req)),
+    [requests, isAlreadyApproved],
+  );
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    for (const req of requests) {
+      if (isAlreadyApproved(req)) resolveSharedRequest(profile.id, req.id);
+    }
+  }, [profile?.id, requests, isAlreadyApproved]);
 
   const onApproveChannel = async (req: WatchRequest) => {
     if (!profile || approvingId) return;
@@ -87,7 +129,8 @@ export default function Playlist() {
     setApprovingId(req.id);
     try {
       const res = await approveChannel(profile.id, req.sampleVideoId);
-      resolveRequest(profile.id, req.id);
+      resolveSharedRequest(profile.id, req.id);
+      void refreshChannels();
       useChannelSuggestionStore.getState().set(profile.id, res.channel.channelTitle, res.suggestions);
       router.push('/(parent)/channel-approved');
     } catch {
@@ -274,8 +317,8 @@ export default function Playlist() {
                 </Txt>
               </Pressable>
             ) : null}
-            {requests.length > 0 && !editing
-              ? requests.map((req) => (
+            {visibleRequests.length > 0 && !editing
+              ? visibleRequests.map((req) => (
                   <View key={req.id} style={styles.requestCard}>
                     <Txt weight="bold" size={13} color={colors.child.skyDeep} style={{ flex: 1 }}>
                       🙋 {req.kind === 'channel' && req.channelTitle
@@ -308,7 +351,7 @@ export default function Playlist() {
                       accessibilityRole="button"
                       accessibilityLabel="Dismiss request"
                       onPress={() => {
-                        if (profile) resolveRequest(profile.id, req.id);
+                        if (profile) resolveSharedRequest(profile.id, req.id);
                       }}
                       hitSlop={8}
                       style={({ pressed }) => [styles.requestDismiss, pressed && { opacity: 0.6 }]}

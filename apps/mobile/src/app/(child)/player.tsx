@@ -24,7 +24,8 @@ import { TimerBadge } from '@/components/TimerBadge';
 import { colors, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, useBedtimeReached } from '@/stores/appStore';
-import { useLikedVideoIds, useRequestStore } from '@/stores/requestStore';
+import { useLikedVideoIds } from '@/stores/requestStore';
+import { toggleLikeAndSync } from '@/features/family/requestSync';
 import { useLivePlaylistVideos, usePlaylistStore } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday, useTimerStore } from '@/stores/timerStore';
 import {
@@ -231,7 +232,7 @@ export default function ChildPlayer() {
   const onToggleLike = useCallback(() => {
     const active = currentIdentityRef.current;
     if (!active.childProfileId || !current) return;
-    const nowLiked = useRequestStore.getState().toggleLike(active.childProfileId, {
+    const nowLiked = toggleLikeAndSync(active.childProfileId, {
       providerVideoId: current.video.providerVideoId,
       channelTitle: current.video.channelTitle,
       thumbnailUrl: current.video.thumbnailUrl,

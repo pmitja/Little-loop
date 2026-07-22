@@ -50,6 +50,13 @@
       "when": 1784635162047,
       "tag": "0006_absurd_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784702507666,
+      "tag": "0007_faulty_storm",
+      "breakpoints": true
     }
   ]
 }

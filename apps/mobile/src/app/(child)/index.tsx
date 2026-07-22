@@ -8,7 +8,8 @@ import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChildAvatar, HeartButton, LikeToast, LockGlyph, TimerBadge, Txt } from '@/components';
 import { useAppStore, useBedtimeReached } from '@/stores/appStore';
-import { useLikedVideoIds, useRequestStore } from '@/stores/requestStore';
+import { useLikedVideoIds } from '@/stores/requestStore';
+import { toggleLikeAndSync } from '@/features/family/requestSync';
 import { useLivePlaylistVideos, usePlaybackProgress } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday } from '@/stores/timerStore';
 import { colors, controls, shadows } from '@/theme/tokens';
@@ -221,7 +222,7 @@ export default function ChildHome() {
   const toggleLike = useCallback(
     (item: VideoChoice) => {
       if (!profile) return;
-      const nowLiked = useRequestStore.getState().toggleLike(profile.id, {
+      const nowLiked = toggleLikeAndSync(profile.id, {
         providerVideoId: item.providerVideoId,
         channelTitle: item.channelTitle,
         thumbnailUrl: item.thumbnailUrl,

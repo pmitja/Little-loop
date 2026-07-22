@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from '@/components';
 import { useAppStore } from '@/stores/appStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
-import { useRequestStore } from '@/stores/requestStore';
+import { raiseRequestAndSync } from '@/features/family/requestSync';
 import { colors, controls, shadows } from '@/theme/tokens';
 
 interface ChannelChoice {
@@ -24,7 +24,6 @@ export default function ChildRequest() {
     (s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
   const videos = useLivePlaylistVideos(profile?.id ?? null);
-  const addRequest = useRequestStore((s) => s.addRequest);
   const [done, setDone] = useState(false);
 
   // Distinct creators drawn from what the child already watches — never open YouTube.
@@ -45,7 +44,7 @@ export default function ChildRequest() {
   const submit = (kind: 'more' | 'channel', opts?: ChannelChoice) => {
     if (!profile || done) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addRequest(profile.id, kind, opts);
+    raiseRequestAndSync(profile.id, kind, opts);
     setDone(true);
     setTimeout(() => router.back(), 1100);
   };

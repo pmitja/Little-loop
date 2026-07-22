@@ -47,6 +47,8 @@ interface RequestState {
   toggleLike: (childProfileId: string, video: LikeableVideo) => boolean;
   resolveRequest: (childProfileId: string, requestId: string) => void;
   removeRequest: (childProfileId: string, requestId: string) => void;
+  /** Replace a child's request list with the family-shared server truth (see requestSync). */
+  setServerRequests: (childProfileId: string, requests: WatchRequest[]) => void;
   /** Drop everything stored for a child (profile deleted). */
   removeChildData: (childProfileId: string) => void;
 }
@@ -146,6 +148,10 @@ export const useRequestStore = create<RequestState>()(
               (r) => r.id !== requestId,
             ),
           },
+        })),
+      setServerRequests: (childProfileId, requests) =>
+        set((s) => ({
+          requestsByChild: { ...s.requestsByChild, [childProfileId]: requests },
         })),
       removeChildData: (childProfileId) =>
         set((s) => {

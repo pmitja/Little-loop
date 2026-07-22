@@ -27,6 +27,8 @@ vi.mock('@/lib/auth', () => ({
 import { POST as createProfile } from './child-profiles/route';
 import { POST as addVideo } from './playlists/[id]/videos/route';
 import { POST as approveChannel } from './channels/route';
+import { GET as listRequests, POST as createRequest } from './requests/route';
+import { DELETE as resolveRequest } from './requests/[id]/route';
 import { DELETE as deleteAccount } from './users/route';
 
 function post(body: unknown): Request {
@@ -35,6 +37,10 @@ function post(body: unknown): Request {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
+}
+
+function get(query = ''): Request {
+  return new Request(`http://test.local/?${query}`);
 }
 
 async function actAs(clerkId: string): Promise<void> {
@@ -156,6 +162,64 @@ describe('POST /playlists/:id/videos free limit + duplicates', () => {
     await actAs('clerk_intruder');
     const providerVideoId = await seedVideo();
     const res = await addVideo(post({ providerVideoId }), routeCtx());
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('/requests shared want-more queue', () => {
+  let childProfileId: string;
+
+  beforeAll(async () => {
+    await actAs('clerk_requests');
+    const res = await createProfile(post(profileBody), {});
+    childProfileId = (await res.json()).childProfile.id;
+  });
+
+  it('creates a pending channel request', async () => {
+    const res = await createRequest(
+      post({ childProfileId, kind: 'channel', channelTitle: 'Blippi', sampleVideoId: 'vidabc' }),
+      {},
+    );
+    expect(res.status).toBe(201);
+    expect((await res.json()).request.status).toBe('pending');
+  });
+
+  it('coalesces a repeat ask for the same channel (no duplicate row)', async () => {
+    const res = await createRequest(
+      post({ childProfileId, kind: 'channel', channelTitle: 'Blippi', sampleVideoId: 'vidxyz' }),
+      {},
+    );
+    expect(res.status).toBe(200);
+    const listed = await listRequests(get(`childProfileId=${childProfileId}`));
+    const blippi = (await listed.json()).requests.filter(
+      (r: { channelTitle?: string }) => r.channelTitle === 'Blippi',
+    );
+    expect(blippi).toHaveLength(1);
+  });
+
+  it('lists pending requests for the child', async () => {
+    const res = await listRequests(get(`childProfileId=${childProfileId}`));
+    expect(res.status).toBe(200);
+    expect((await res.json()).requests.length).toBeGreaterThan(0);
+  });
+
+  it('resolves a request so it drops off the queue', async () => {
+    const created = await createRequest(post({ childProfileId, kind: 'more' }), {});
+    const { request } = await created.json();
+    const res = await resolveRequest(new Request('http://test.local', { method: 'DELETE' }), {
+      params: Promise.resolve({ id: request.id }),
+    });
+    expect(res.status).toBe(200);
+    const listed = await listRequests(get(`childProfileId=${childProfileId}`));
+    const more = (await listed.json()).requests.filter(
+      (r: { kind: string }) => r.kind === 'more',
+    );
+    expect(more).toHaveLength(0);
+  });
+
+  it("404s listing another family's child", async () => {
+    await actAs('clerk_requests_intruder');
+    const res = await listRequests(get(`childProfileId=${childProfileId}`));
     expect(res.status).toBe(404);
   });
 });

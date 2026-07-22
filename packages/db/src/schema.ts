@@ -214,6 +214,32 @@ export const pendingVideos = pgTable(
   ],
 );
 
+// A child's "I want more" ask — raised by a heart-tap or the "want more" screen.
+// Family-scoped so every caregiver's device sees the same queue (PLAN §12). The
+// mobile store keeps a local optimistic copy; this table is the shared truth.
+export const watchRequests = pgTable(
+  'watch_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    childProfileId: uuid('child_profile_id')
+      .notNull()
+      .references(() => childProfiles.id, { onDelete: 'cascade' }),
+    // 'more' = generic "give me more"; 'channel' = "more from this creator".
+    kind: text('kind', { enum: ['more', 'channel'] }).notNull(),
+    channelTitle: text('channel_title'),
+    thumbnailUrl: text('thumbnail_url'),
+    sampleVideoId: text('sample_video_id'), // a providerVideoId from that channel
+    status: text('status', { enum: ['pending', 'resolved'] })
+      .notNull()
+      .default('pending'),
+    resolvedByUserId: uuid('resolved_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    ...timestamps,
+  },
+  (t) => [index('idx_watch_requests_child_status').on(t.childProfileId, t.status)],
+);
+
 export const parentSettings = pgTable('parent_settings', {
   userId: uuid('user_id')
     .primaryKey()
