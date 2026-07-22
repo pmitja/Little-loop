@@ -5,8 +5,8 @@ import { getOrFetchVideo, toVideoMeta } from '@/lib/video-cache';
 
 /** Resolve a pasted link into approved-video metadata (PLAN §8). */
 export const POST = handle(async (req) => {
-  // Preview metadata is not user-owned. Allow a valid Clerk session to use it
-  // while the first-login /users/sync request is still finishing.
+  // Preview metadata is not user-owned. Allow a valid session to use it while
+  // the first-login /users/sync request is still finishing.
   const { db } = await requireAuth(req, { allowUnsynced: true, limitPerMinute: 20 });
   const { url } = await parseBody(req, previewRequestSchema);
 

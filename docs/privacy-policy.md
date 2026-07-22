@@ -13,9 +13,8 @@ child mode. Contact: privacy@littleloopapp.com.
 
 ## What we collect
 
-**Parent account.** Email address and authentication data, processed by our
-sign-in provider Clerk. Used only to sign you in and sync your content between
-your devices.
+**Parent account.** Email address, obtained when you sign in with Google. Used
+only to sign you in and sync your content between your devices.
 
 **Content you create.** Child profile nickname, avatar choice, age range, and
 time-limit setting; the list of approved video links (video ID, title, channel
@@ -59,7 +58,7 @@ avatar, and settings a parent chooses to enter.
 
 | Service | Purpose | Data |
 |---|---|---|
-| Clerk | Parent sign-in | Email, auth tokens |
+| Google | Parent sign-in (OAuth) | Email address |
 | RevenueCat | Subscription management | Store receipt, anonymized user id |
 | Sentry | Crash reporting | Device/OS info, stack traces |
 | YouTube (Google) | Video playback, metadata, thumbnails | Video requests from the device |

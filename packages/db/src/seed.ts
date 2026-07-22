@@ -5,6 +5,7 @@
  */
 import { getDb } from './index';
 import {
+  authUser,
   childProfiles,
   families,
   familyMembers,
@@ -14,13 +15,22 @@ import {
   videoMetadata,
 } from './schema';
 
+const SEED_AUTH_USER_ID = 'seed_auth_user';
+
 async function seed() {
   const db = getDb();
 
+  // The dev seed has no real better-auth identity, so stand one up directly to
+  // satisfy the users.authUserId FK.
+  await db
+    .insert(authUser)
+    .values({ id: SEED_AUTH_USER_ID, email: 'seed@littleloop.dev' })
+    .onConflictDoNothing();
+
   const [user] = await db
     .insert(users)
-    .values({ clerkId: 'seed_clerk_user', email: 'seed@littleloop.dev' })
-    .onConflictDoUpdate({ target: users.clerkId, set: { email: 'seed@littleloop.dev' } })
+    .values({ authUserId: SEED_AUTH_USER_ID, email: 'seed@littleloop.dev' })
+    .onConflictDoUpdate({ target: users.authUserId, set: { email: 'seed@littleloop.dev' } })
     .returning();
 
   const [family] = await db

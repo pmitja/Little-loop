@@ -2,7 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
-import { schema, type Db } from '@littleloop/db';
+import { authUser, schema, users, type Db } from '@littleloop/db';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 
 const MIGRATIONS_DIR = join(
@@ -29,4 +30,23 @@ export async function createTestDb(): Promise<Db> {
     }
   }
   return drizzle(client, { schema }) as unknown as Db;
+}
+
+/**
+ * Seed a better-auth identity and its linked app `users` row. `users.authUserId`
+ * is a NOT NULL FK to `authUser`, so tests must create the identity first. `id`
+ * doubles as the better-auth user id (== RevenueCat app-user-id). Idempotent.
+ */
+export async function seedUser(db: Db, id: string): Promise<typeof users.$inferSelect> {
+  await db
+    .insert(authUser)
+    .values({ id, email: `${id}@example.com` })
+    .onConflictDoNothing();
+  const existing = await db.query.users.findFirst({ where: eq(users.authUserId, id) });
+  if (existing) return existing;
+  const [row] = await db
+    .insert(users)
+    .values({ authUserId: id, email: `${id}@example.com` })
+    .returning();
+  return row;
 }

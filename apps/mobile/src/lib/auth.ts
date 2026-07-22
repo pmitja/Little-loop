@@ -1,7 +1,6 @@
-import { useAuth, useUser } from '@clerk/clerk-expo';
+import { authClient, authConfigured } from '@/lib/authClient';
 
-export const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-export const clerkEnabled = CLERK_PUBLISHABLE_KEY.length > 0;
+export { authConfigured };
 
 interface AuthStatus {
   isLoaded: boolean;
@@ -9,32 +8,31 @@ interface AuthStatus {
 }
 
 /**
- * Clerk auth status, with a dev bypass when no publishable key is configured
- * (lets the first-run flow be exercised before the Clerk project is wired).
- * `clerkEnabled` is constant for the app's lifetime, so the conditional hook
+ * better-auth session status, with a dev bypass when no auth backend is
+ * configured (lets the first-run flow be exercised without a live server).
+ * `authConfigured` is constant for the app's lifetime, so the conditional hook
  * call is stable across renders.
  */
 export function useAuthStatus(): AuthStatus {
-  if (!clerkEnabled) {
+  if (!authConfigured) {
     return { isLoaded: true, isSignedIn: true };
   }
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { isLoaded, isSignedIn } = useAuth();
-  return { isLoaded, isSignedIn: isSignedIn ?? false };
+  const { data, isPending } = authClient.useSession();
+  return { isLoaded: !isPending, isSignedIn: Boolean(data?.session) };
 }
 
 /**
  * Signed-in parent's display identity, with the same dev bypass as
- * `useAuthStatus` — `useUser` throws outside <ClerkProvider>.
+ * `useAuthStatus`.
  */
 export function useParentIdentity(): { name: string | null; email: string | null } {
-  if (!clerkEnabled) {
+  if (!authConfigured) {
     return { name: null, email: null };
   }
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { user } = useUser();
+  const { data } = authClient.useSession();
+  const fullName = data?.user?.name ?? '';
   return {
-    name: user?.firstName ?? null,
-    email: user?.primaryEmailAddress?.emailAddress ?? null,
+    name: fullName ? (fullName.split(' ')[0] ?? null) : null,
+    email: data?.user?.email ?? null,
   };
 }

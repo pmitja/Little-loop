@@ -1,6 +1,6 @@
-import { childProfiles, playlists, users, type Db } from '@littleloop/db';
+import { childProfiles, playlists, type Db } from '@littleloop/db';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createTestDb } from '@/test/db';
+import { createTestDb, seedUser } from '@/test/db';
 import { HttpError } from './http';
 import { requireChildProfile, requirePlaylist } from './ownership';
 import { ensurePersonalFamily } from './family';
@@ -13,14 +13,8 @@ let playlistId: string;
 
 beforeAll(async () => {
   db = await createTestDb();
-  [owner] = await db
-    .insert(users)
-    .values({ clerkId: 'clerk_owner', email: 'owner@example.com' })
-    .returning();
-  [stranger] = await db
-    .insert(users)
-    .values({ clerkId: 'clerk_stranger', email: 'stranger@example.com' })
-    .returning();
+  owner = await seedUser(db, 'auth_owner');
+  stranger = await seedUser(db, 'auth_stranger');
   const ownerFamily = await ensurePersonalFamily(db, owner.id);
   await ensurePersonalFamily(db, stranger.id);
   const [profile] = await db

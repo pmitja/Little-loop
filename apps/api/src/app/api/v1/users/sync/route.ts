@@ -1,7 +1,7 @@
 import { childProfiles, devices, users } from '@littleloop/db';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import { fetchClerkEmail, requireAuth } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { getEntitlement } from '@/lib/entitlement';
 import { ensurePersonalFamily } from '@/lib/family';
 import { handle, json, parseBody } from '@/lib/http';
@@ -12,19 +12,23 @@ const syncSchema = z.object({
   appVersion: z.string().max(32).optional(),
 });
 
-/** Upsert user after Clerk sign-in + register the device (PLAN §8). */
+/** Upsert user after social sign-in + register the device (PLAN §8). */
 export const POST = handle(async (req) => {
   const ctx = await requireAuth(req, { allowUnsynced: true });
   const body = await parseBody(req, syncSchema);
 
   let user = ctx.user;
   if (!user) {
-    const email = await fetchClerkEmail(ctx.clerkId);
-    // logIn(clerkUserId) on the client makes the RevenueCat app-user-id == clerkId (PLAN §12).
+    // logIn(authUserId) on the client makes the RevenueCat app-user-id == the
+    // better-auth user id (PLAN §12), so the webhook can attribute purchases.
     [user] = await ctx.db
       .insert(users)
-      .values({ clerkId: ctx.clerkId, email, revenuecatAppUserId: ctx.clerkId })
-      .onConflictDoUpdate({ target: users.clerkId, set: { email } })
+      .values({
+        authUserId: ctx.authUserId,
+        email: ctx.email,
+        revenuecatAppUserId: ctx.authUserId,
+      })
+      .onConflictDoUpdate({ target: users.authUserId, set: { email: ctx.email } })
       .returning();
   }
 
