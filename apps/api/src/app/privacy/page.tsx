@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
         <p>
           LittleLoop (&ldquo;we&rdquo;) is a parent-controlled video playlist app. Parents review
           and approve individual videos; children watch only that approved list in a locked child
-          mode. Contact: <a href="mailto:privacy@littleloopapp.com">privacy@littleloopapp.com</a>.
+          mode. Contact: <a href="mailto:support@littleloopapp.com">support@littleloopapp.com</a>.
         </p>
       </LegalSection>
 
@@ -117,7 +117,7 @@ export default function PrivacyPolicyPage() {
           invited caregiver, it removes only their account and family access. You can also
           request deletion at{' '}
           <a href="/delete-account">littleloopapp.com/delete-account</a> or by emailing{' '}
-          <a href="mailto:privacy@littleloopapp.com">privacy@littleloopapp.com</a>; we complete requests
+          <a href="mailto:support@littleloopapp.com">support@littleloopapp.com</a>; we complete requests
           within 30 days.
         </p>
       </LegalSection>

@@ -48,7 +48,7 @@ export function LegalPage({
         <h1 className="legal-h1">{title}</h1>
         <p className="legal-updated">Last updated {updated}</p>
         {children}
-        <p className="legal-footer">LittleLoop &middot; privacy@littleloopapp.com</p>
+        <p className="legal-footer">LittleLoop &middot; support@littleloopapp.com</p>
       </div>
     </main>
   );

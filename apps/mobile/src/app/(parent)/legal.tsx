@@ -28,7 +28,7 @@ const PRIVACY: Section[] = [
   },
   {
     heading: 'Deleting your data',
-    body: 'For the main caregiver, Settings → Delete account & data removes the entire family. For an invited caregiver, it removes only their account and access; the family remains. You can also email privacy@littleloopapp.com.',
+    body: 'For the main caregiver, Settings → Delete account & data removes the entire family. For an invited caregiver, it removes only their account and access; the family remains. You can also email support@littleloopapp.com.',
   },
 ];
 

@@ -31,7 +31,7 @@ export default function DeleteAccountPage() {
       <LegalSection heading="Request deletion without the app">
         <p>
           If you no longer have the app installed or can&rsquo;t sign in, email{' '}
-          <a href="mailto:privacy@littleloopapp.com">privacy@littleloopapp.com</a> from the address
+          <a href="mailto:support@littleloopapp.com">support@littleloopapp.com</a> from the address
           registered to your account and ask us to delete it. We complete these requests within 30
           days and will confirm by email once it&rsquo;s done.
         </p>
@@ -63,7 +63,7 @@ export default function DeleteAccountPage() {
       <LegalSection heading="Questions">
         <p>
           See our <a href="/privacy">Privacy Policy</a> for what we collect, or email{' '}
-          <a href="mailto:privacy@littleloopapp.com">privacy@littleloopapp.com</a>.
+          <a href="mailto:support@littleloopapp.com">support@littleloopapp.com</a>.
         </p>
       </LegalSection>
     </LegalPage>
