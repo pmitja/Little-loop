@@ -4,8 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
-import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
-import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
@@ -16,8 +14,9 @@ import {
   Nunito_900Black,
   useFonts,
 } from '@expo-google-fonts/nunito';
-import { CLERK_PUBLISHABLE_KEY, clerkEnabled, useAuthStatus } from '@/lib/auth';
-import { setTokenGetter } from '@/lib/api';
+import { authConfigured, useAuthStatus } from '@/lib/auth';
+import { authClient, getSessionCookie } from '@/lib/authClient';
+import { setCookieGetter } from '@/lib/api';
 import { syncCurrentUser } from '@/lib/userSync';
 import { configurePurchases } from '@/lib/purchases';
 import { initMonitoring } from '@/lib/monitoring';
@@ -36,14 +35,16 @@ initMonitoring();
 
 const SHARE_INTENT_OPTIONS = { resetOnBackground: false } as const;
 
-/** Bridges Clerk's getToken into the non-hook API client + RevenueCat logIn. */
-function ApiTokenBridge() {
-  const { getToken, userId } = useAuth();
-  // Install the token getter before descendant passive effects can make an API
-  // request (notably a cold launch from the system share sheet).
+/** Bridges the better-auth session cookie into the non-hook API client + RevenueCat logIn. */
+function ApiSessionBridge() {
+  const { data } = authClient.useSession();
+  const userId = data?.user?.id ?? null;
+  // Install the cookie getter before descendant passive effects can make an API
+  // request (notably a cold launch from the system share sheet). getCookie reads
+  // synchronously from SecureStore's cache, so no dependency churn is needed.
   useLayoutEffect(() => {
-    setTokenGetter(() => getToken());
-  }, [getToken]);
+    setCookieGetter(getSessionCookie);
+  }, []);
   useEffect(() => {
     if (!userId) return;
     syncCurrentUser().catch((error) => {
@@ -51,7 +52,7 @@ function ApiTokenBridge() {
     });
   }, [userId]);
   useEffect(() => {
-    // logIn ties the RevenueCat app-user-id to our Clerk user (PLAN §12).
+    // logIn ties the RevenueCat app-user-id to our better-auth user (PLAN §12).
     configurePurchases(userId).catch(() => {});
   }, [userId]);
   return null;
@@ -179,12 +180,14 @@ export default function RootLayout() {
     </ShareIntentProvider>
   );
 
-  if (!clerkEnabled) return app;
+  if (!authConfigured) return app;
 
+  // better-auth's client is a standalone singleton — no provider to mount, just
+  // the bridge that wires its session into the API client and RevenueCat.
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
-      <ApiTokenBridge />
+    <>
+      <ApiSessionBridge />
       {app}
-    </ClerkProvider>
+    </>
   );
 }

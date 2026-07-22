@@ -19,9 +19,8 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection heading="What we collect">
         <p>
-          <strong>Parent account.</strong> Email address and authentication data, processed by our
-          sign-in provider Clerk. Used only to sign you in and sync your content between your
-          devices.
+          <strong>Parent account.</strong> Email address, obtained when you sign in with Google.
+          Used only to sign you in and sync your content between your devices.
         </p>
         <p>
           <strong>Content you create.</strong> Child profile nickname, avatar choice, age range,
@@ -83,9 +82,9 @@ export default function PrivacyPolicyPage() {
           </thead>
           <tbody>
             <tr>
-              <td>Clerk</td>
-              <td>Parent sign-in</td>
-              <td>Email, auth tokens</td>
+              <td>Google</td>
+              <td>Parent sign-in (OAuth)</td>
+              <td>Email address</td>
             </tr>
             <tr>
               <td>RevenueCat</td>

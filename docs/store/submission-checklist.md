@@ -95,7 +95,7 @@ The in-app copy lives in `apps/mobile/src/app/(parent)/legal.tsx` — keep them 
 
 ## 5. Store metadata **[you]**
 
-- **Apple:** App Privacy "nutrition labels" (declare Clerk auth data, RevenueCat
+- **Apple:** App Privacy "nutrition labels" (declare Google sign-in email, RevenueCat
   purchase data, Sentry diagnostics); age rating; screenshots for every required
   device size; subscription group + localized display name and duration; review notes
   with a **demo account** (reviewers cannot sign up past a PIN gate blindly) and an

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { useClerk } from '@clerk/clerk-expo';
 import { api, apiConfigured } from '@/lib/api';
-import { clerkEnabled } from '@/lib/auth';
+import { authConfigured } from '@/lib/auth';
+import { authClient } from '@/lib/authClient';
 import { clearPin } from '@/lib/pin';
 import { useAppStore } from '@/stores/appStore';
 import { useLockStore } from '@/stores/lockStore';
@@ -12,19 +12,17 @@ import { showAppAlert } from '@/components';
 
 /**
  * Account deletion (Apple requirement, PLAN Phase 5). Deletes the account
- * server-side (Neon rows + Clerk user via DELETE /users), then wipes
- * everything local — profiles, playlists, watch history, PIN, cached
- * entitlement — and signs out. Purchases are restorable through the store.
+ * server-side (Neon rows + better-auth user via DELETE /users, which cascades
+ * from the auth identity), then wipes everything local — profiles, playlists,
+ * watch history, PIN, cached entitlement — and signs out. Purchases are
+ * restorable through the store.
  */
 export function useDeleteAccount(): () => void {
   const router = useRouter();
-  // Stable conditional hook: clerkEnabled never changes at runtime.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const clerk = clerkEnabled ? useClerk() : null;
   const isOwner = useAppStore((state) => state.familyRole !== 'caregiver');
 
   const wipe = async () => {
-    if (clerkEnabled && apiConfigured()) {
+    if (authConfigured && apiConfigured()) {
       try {
         await api('/users', { method: 'DELETE' });
       } catch {
@@ -57,7 +55,7 @@ export function useDeleteAccount(): () => void {
       lockoutUntil: null,
     });
     useEntitlementStore.getState().clearPremium();
-    await clerk?.signOut().catch(() => {});
+    if (authConfigured) await authClient.signOut().catch(() => {});
     router.replace('/');
   };
 

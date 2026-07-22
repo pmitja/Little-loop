@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StoryIllustration, Txt } from '@/components';
 import { colors, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
-import { clerkEnabled, useAuthStatus } from '@/lib/auth';
+import { authConfigured, useAuthStatus } from '@/lib/auth';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PAGES = [
@@ -35,12 +35,12 @@ export default function Welcome() {
 
   const finish = () => {
     setOnboardingComplete(true);
-    router.replace(clerkEnabled && !isSignedIn ? '/(auth)/sign-up' : '/(onboarding)/pin-setup');
+    router.replace(authConfigured && !isSignedIn ? '/(auth)/sign-up' : '/(onboarding)/pin-setup');
   };
 
   const signIn = () => {
     setOnboardingComplete(true);
-    router.replace(clerkEnabled ? '/(auth)/sign-in' : '/(onboarding)/pin-setup');
+    router.replace(authConfigured ? '/(auth)/sign-in' : '/(onboarding)/pin-setup');
   };
 
   const goTo = (index: number) => {

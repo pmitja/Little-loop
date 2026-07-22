@@ -1,15 +1,16 @@
 /**
- * Authed API client. The Clerk getToken function is injected once from the root
- * layout (hooks can't be used here). All Phase 1 calls degrade gracefully when
- * the API isn't deployed yet — callers decide the offline/local fallback.
+ * Authed API client. The better-auth session-cookie getter is injected once
+ * from the root layout (hooks can't be used here). All Phase 1 calls degrade
+ * gracefully when the API isn't deployed yet — callers decide the offline/local
+ * fallback.
  */
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
-type GetToken = () => Promise<string | null>;
-let getToken: GetToken = async () => null;
+type GetCookie = () => string | null;
+let getCookie: GetCookie = () => null;
 
-export function setTokenGetter(fn: GetToken) {
-  getToken = fn;
+export function setCookieGetter(fn: GetCookie) {
+  getCookie = fn;
 }
 
 export class ApiError extends Error {
@@ -30,12 +31,16 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!BASE_URL) {
     throw new ApiError(0, 'NOT_CONFIGURED', 'EXPO_PUBLIC_API_URL is not set');
   }
-  const token = await getToken();
+  const cookie = getCookie();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
+    // better-auth validates the session from the Cookie header; the app talks to
+    // a separate origin, so the cookie is attached explicitly rather than by the
+    // platform cookie jar.
+    credentials: 'omit',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(cookie ? { Cookie: cookie } : {}),
       ...init?.headers,
     },
   });

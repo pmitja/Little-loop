@@ -29,7 +29,7 @@ export default function AcceptInvite() {
     setBusy(true);
     setError(null);
     try {
-      // This route can be reached immediately after Clerk activates a new
+      // This route can be reached immediately after better-auth activates a new
       // session, before the root auth bridge has finished creating the API
       // user row required by authenticated family endpoints.
       await syncCurrentUser();

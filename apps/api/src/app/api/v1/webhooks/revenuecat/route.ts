@@ -19,14 +19,14 @@ export const POST = handle(async (req) => {
   if (!event?.app_user_id) {
     return errorResponse(400, 'BAD_REQUEST', 'Missing event.app_user_id');
   }
-  // Purchases.logIn(clerkUserId) makes app_user_id == our clerk id. Anonymous
-  // RevenueCat ids ($RCAnonymousID:…) can't be attributed — acknowledge and skip.
+  // Purchases.logIn(authUserId) makes app_user_id == our better-auth user id.
+  // Anonymous RevenueCat ids ($RCAnonymousID:…) can't be attributed — ack + skip.
   if (event.app_user_id.startsWith('$RCAnonymousID')) {
     return json({ ok: true, skipped: 'anonymous_app_user_id' });
   }
 
   const db = getDb();
-  const user = await db.query.users.findFirst({ where: eq(users.clerkId, event.app_user_id) });
+  const user = await db.query.users.findFirst({ where: eq(users.authUserId, event.app_user_id) });
   if (!user) return json({ ok: true, skipped: 'unknown_user' });
 
   const mapped = mapEvent(event);

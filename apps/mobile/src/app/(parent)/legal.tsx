@@ -12,7 +12,7 @@ interface Section {
 const PRIVACY: Section[] = [
   {
     heading: 'What we collect',
-    body: 'A parent account (email, via our sign-in provider Clerk) and the content you create: child profile nicknames, avatars, time-limit settings, and approved video links. With Premium family sharing, invited caregivers can access the family’s profiles, playlists, settings, and watch activity, and family members can see each other’s account email.',
+    body: 'A parent account (email, via Google sign-in) and the content you create: child profile nicknames, avatars, time-limit settings, and approved video links. With Premium family sharing, invited caregivers can access the family’s profiles, playlists, settings, and watch activity, and family members can see each other’s account email.',
   },
   {
     heading: 'What stays on this device',
@@ -24,7 +24,7 @@ const PRIVACY: Section[] = [
   },
   {
     heading: 'Third parties',
-    body: 'Clerk (sign-in), RevenueCat (subscriptions), Sentry (crash reports, no personal data attached), and YouTube (video playback and thumbnails). We do not sell data and we do not use third-party advertising.',
+    body: 'Google (sign-in), RevenueCat (subscriptions), Sentry (crash reports, no personal data attached), and YouTube (video playback and thumbnails). We do not sell data and we do not use third-party advertising.',
   },
   {
     heading: 'Deleting your data',

@@ -3,7 +3,7 @@ import type { CustomerInfo, PurchasesError, PurchasesPackage } from 'react-nativ
 import { useEntitlementStore } from '@/stores/entitlementStore';
 
 /**
- * RevenueCat wrapper per PLAN §12, with the same dev-bypass pattern as Clerk/API:
+ * RevenueCat wrapper per PLAN §12, with the same dev-bypass pattern as auth/API:
  * no API key (or Expo Go without the native module) → a mock offering whose
  * "purchase" simply flips the cached entitlement, so the paywall and every
  * free-limit gate can be exercised before the RevenueCat project is wired.
@@ -82,7 +82,7 @@ export const purchasesLive = Purchases !== null;
 let configured = false;
 
 /** Idempotent SDK init; call before any purchase/restore. */
-export async function configurePurchases(clerkUserId?: string | null): Promise<void> {
+export async function configurePurchases(authUserId?: string | null): Promise<void> {
   if (!Purchases) return;
   if (!configured) {
     if (__DEV__) await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
@@ -93,8 +93,10 @@ export async function configurePurchases(clerkUserId?: string | null): Promise<v
     Purchases.addCustomerInfoUpdateListener(syncEntitlement);
     configured = true;
   }
-  if (clerkUserId) {
-    const { customerInfo } = await Purchases.logIn(clerkUserId);
+  if (authUserId) {
+    // Ties the RevenueCat app-user-id to our better-auth user id, so the
+    // webhook can attribute purchases (PLAN §12).
+    const { customerInfo } = await Purchases.logIn(authUserId);
     syncEntitlement(customerInfo);
   }
 }

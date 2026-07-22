@@ -9,8 +9,8 @@ Play Console (Data safety) verbatim unless the integrations change._
 show the ATT prompt.)
 
 **Data linked to you:**
-- Contact info → Email address (Clerk sign-in; app functionality)
-- Identifiers → User ID (Clerk user id, RevenueCat app-user id; app functionality)
+- Contact info → Email address (Google sign-in; app functionality)
+- Identifiers → User ID (better-auth user id, RevenueCat app-user id; app functionality)
 - Purchases → Purchase history (RevenueCat subscription status; app functionality)
 - User content → Other user content (child nickname/avatar/settings, approved
   video list, and Premium family watch activity; app functionality)
@@ -28,9 +28,9 @@ history, health, financial info, messages, audio.
   User IDs (app functionality, required), Purchase history (app functionality,
   required), Crash logs & diagnostics (app functionality, optional in effect
   but declared as collected).
-- Data shared with third parties: **No** (processors — Clerk, RevenueCat,
-  Sentry — act on our behalf; this counts as "collected", not "shared", per
-  Play policy).
+- Data shared with third parties: **No** (processors — Google (sign-in),
+  RevenueCat, Sentry — act on our behalf; this counts as "collected", not
+  "shared", per Play policy).
 - Data encrypted in transit: **Yes.**
 - Users can request deletion: **Yes** — in-app (Settings → Delete account &
   data) and via privacy@littleloopapp.com. Deletion URL for the form:

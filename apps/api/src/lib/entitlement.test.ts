@@ -1,15 +1,12 @@
-import { subscriptionStatus, users, type Db } from '@littleloop/db';
+import { subscriptionStatus, type Db } from '@littleloop/db';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createTestDb } from '@/test/db';
+import { createTestDb, seedUser } from '@/test/db';
 import { getEntitlement } from './entitlement';
 
 let db: Db;
 
-async function makeUser(clerkId: string): Promise<string> {
-  const [row] = await db
-    .insert(users)
-    .values({ clerkId, email: `${clerkId}@example.com` })
-    .returning();
+async function makeUser(authUserId: string): Promise<string> {
+  const row = await seedUser(db, authUserId);
   return row.id;
 }
 

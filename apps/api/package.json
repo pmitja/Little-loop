@@ -10,9 +10,10 @@
     "test": "vitest run --maxWorkers=1"
   },
   "dependencies": {
-    "@clerk/backend": "^2.4.0",
+    "@better-auth/expo": "^1.6.24",
     "@littleloop/db": "workspace:*",
     "@littleloop/shared": "workspace:*",
+    "better-auth": "^1.6.24",
     "drizzle-orm": "^0.44.0",
     "gsap": "^3.15.0",
     "next": "^15.5.0",

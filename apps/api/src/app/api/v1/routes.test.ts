@@ -1,4 +1,5 @@
 import {
+  authUser,
   childProfiles,
   playlists,
   subscriptionStatus,
@@ -9,7 +10,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { FREE_LIMITS } from '@littleloop/shared';
-import { createTestDb } from '@/test/db';
+import { createTestDb, seedUser } from '@/test/db';
 import { ensurePersonalFamily } from '@/lib/family';
 
 // Route handlers pull auth from @/lib/auth — swap in the test DB + user so the
@@ -20,8 +21,18 @@ const ctx = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({
-  requireAuth: async () => ({ db: ctx.db, user: ctx.user, clerkId: ctx.user.clerkId }),
-  deleteClerkUser: vi.fn(async () => {}),
+  requireAuth: async () => ({
+    db: ctx.db,
+    user: ctx.user,
+    authUserId: ctx.user.authUserId,
+    email: ctx.user.email,
+  }),
+  // Mirror the real cascade: deleting the authUser row wipes the app graph.
+  deleteAuthUser: vi.fn(async (db: Db, authUserId: string) => {
+    const { authUser } = await import('@littleloop/db');
+    const { eq } = await import('drizzle-orm');
+    await db.delete(authUser).where(eq(authUser.id, authUserId));
+  }),
 }));
 
 import { POST as createProfile } from './child-profiles/route';
@@ -43,11 +54,8 @@ function get(query = ''): Request {
   return new Request(`http://test.local/?${query}`);
 }
 
-async function actAs(clerkId: string): Promise<void> {
-  const [row] = await ctx.db
-    .insert(users)
-    .values({ clerkId, email: `${clerkId}@example.com` })
-    .returning();
+async function actAs(authUserId: string): Promise<void> {
+  const row = await seedUser(ctx.db, authUserId);
   ctx.user = row;
   await ensurePersonalFamily(ctx.db, row.id);
 }
@@ -190,7 +198,7 @@ describe('/requests shared want-more queue', () => {
       {},
     );
     expect(res.status).toBe(200);
-    const listed = await listRequests(get(`childProfileId=${childProfileId}`));
+    const listed = await listRequests(get(`childProfileId=${childProfileId}`), {});
     const blippi = (await listed.json()).requests.filter(
       (r: { channelTitle?: string }) => r.channelTitle === 'Blippi',
     );
@@ -198,7 +206,7 @@ describe('/requests shared want-more queue', () => {
   });
 
   it('lists pending requests for the child', async () => {
-    const res = await listRequests(get(`childProfileId=${childProfileId}`));
+    const res = await listRequests(get(`childProfileId=${childProfileId}`), {});
     expect(res.status).toBe(200);
     expect((await res.json()).requests.length).toBeGreaterThan(0);
   });
@@ -210,7 +218,7 @@ describe('/requests shared want-more queue', () => {
       params: Promise.resolve({ id: request.id }),
     });
     expect(res.status).toBe(200);
-    const listed = await listRequests(get(`childProfileId=${childProfileId}`));
+    const listed = await listRequests(get(`childProfileId=${childProfileId}`), {});
     const more = (await listed.json()).requests.filter(
       (r: { kind: string }) => r.kind === 'more',
     );
@@ -219,14 +227,14 @@ describe('/requests shared want-more queue', () => {
 
   it("404s listing another family's child", async () => {
     await actAs('clerk_requests_intruder');
-    const res = await listRequests(get(`childProfileId=${childProfileId}`));
+    const res = await listRequests(get(`childProfileId=${childProfileId}`), {});
     expect(res.status).toBe(404);
   });
 });
 
 describe('DELETE /users account deletion', () => {
-  it('cascades the whole account and deletes the Clerk user', async () => {
-    await actAs('clerk_gone');
+  it('cascades the whole account and deletes the auth user', async () => {
+    await actAs('auth_gone');
     await createProfile(post(profileBody), {});
     const userId = ctx.user.id;
     const familyId = (await ensurePersonalFamily(ctx.db, userId)).familyId;
@@ -234,13 +242,15 @@ describe('DELETE /users account deletion', () => {
     const res = await deleteAccount(new Request('http://test.local', { method: 'DELETE' }), {});
     expect(res.status).toBe(200);
 
-    const [{ deleteClerkUser }, remainingUser, remainingProfiles] = await Promise.all([
+    const [{ deleteAuthUser }, remainingUser, remainingProfiles, remainingAuth] = await Promise.all([
       import('@/lib/auth'),
       ctx.db.query.users.findFirst({ where: eq(users.id, userId) }),
       ctx.db.query.childProfiles.findMany({ where: eq(childProfiles.familyId, familyId) }),
+      ctx.db.query.authUser.findFirst({ where: eq(authUser.id, 'auth_gone') }),
     ]);
-    expect(deleteClerkUser).toHaveBeenCalledWith('clerk_gone');
+    expect(deleteAuthUser).toHaveBeenCalledWith(ctx.db, 'auth_gone');
     expect(remainingUser).toBeUndefined();
     expect(remainingProfiles).toHaveLength(0);
+    expect(remainingAuth).toBeUndefined();
   });
 });

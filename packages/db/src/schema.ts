@@ -19,9 +19,71 @@ const timestamps = {
     .$onUpdate(() => new Date()),
 };
 
+// ── better-auth core tables ──────────────────────────────────────────────
+// Owned and written exclusively by better-auth (identity, OAuth accounts,
+// sessions). The app's own `users` row links to `authUser` via `authUserId`.
+// Column property keys are the field names better-auth's Drizzle adapter maps
+// against — do not rename them; only the SQL column strings are ours to style.
+export const authUser = pgTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().default(''),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  image: text('image'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const authSession = pgTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id')
+    .notNull()
+    .references(() => authUser.id, { onDelete: 'cascade' }),
+});
+
+export const authAccount = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => authUser.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const authVerification = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── application tables ────────────────────────────────────────────────────
+// The app's user profile row, one per better-auth identity. Every other table
+// FKs to `users.id` (a uuid), never to the better-auth id, so switching the
+// auth provider only touches the `authUserId` link column.
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  clerkId: text('clerk_id').notNull().unique(),
+  authUserId: text('auth_user_id')
+    .notNull()
+    .unique()
+    .references(() => authUser.id, { onDelete: 'cascade' }),
   email: text('email').notNull(),
   revenuecatAppUserId: text('revenuecat_app_user_id').unique(),
   ...timestamps,

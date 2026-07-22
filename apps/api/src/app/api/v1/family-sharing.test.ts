@@ -1,7 +1,7 @@
 import { childProfiles, subscriptionStatus, users, type Db } from '@littleloop/db';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { createTestDb } from '@/test/db';
+import { createTestDb, seedUser } from '@/test/db';
 import { ensurePersonalFamily } from '@/lib/family';
 
 const ctx = vi.hoisted(() => ({
@@ -10,7 +10,12 @@ const ctx = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth', () => ({
-  requireAuth: async () => ({ db: ctx.db, user: ctx.user, clerkId: ctx.user.clerkId }),
+  requireAuth: async () => ({
+    db: ctx.db,
+    user: ctx.user,
+    authUserId: ctx.user.authUserId,
+    email: ctx.user.email,
+  }),
 }));
 
 import { PATCH as updateProfile, DELETE as deleteProfile } from './child-profiles/[id]/route';
@@ -27,16 +32,15 @@ function request(body?: unknown): Request {
   });
 }
 
-async function actAs(clerkId: string): Promise<typeof users.$inferSelect> {
-  const existing = await ctx.db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
+async function actAs(authUserId: string): Promise<typeof users.$inferSelect> {
+  const existing = await ctx.db.query.users.findFirst({
+    where: eq(users.authUserId, authUserId),
+  });
   if (existing) {
     ctx.user = existing;
     return existing;
   }
-  const [user] = await ctx.db
-    .insert(users)
-    .values({ clerkId, email: `${clerkId}@example.com` })
-    .returning();
+  const user = await seedUser(ctx.db, authUserId);
   ctx.user = user;
   await ensurePersonalFamily(ctx.db, user.id);
   return user;
@@ -67,7 +71,7 @@ beforeAll(async () => {
 
 describe('caregiver permissions', () => {
   it('lets a caregiver edit a shared child profile', async () => {
-    await actAs(caregiver.clerkId);
+    await actAs(caregiver.authUserId);
     const response = await updateProfile(
       request({ dailyLimitMinutes: 60, bedtime: '8:00 PM' }),
       { params: Promise.resolve({ id: profileId }) },
@@ -81,7 +85,7 @@ describe('caregiver permissions', () => {
   });
 
   it('inherits Premium from the main caregiver', async () => {
-    await actAs(caregiver.clerkId);
+    await actAs(caregiver.authUserId);
     const response = await createProfile(
       request({ nickname: 'Ben', ageRange: '2-4', avatar: 'bear' }),
       {},
@@ -90,7 +94,7 @@ describe('caregiver permissions', () => {
   });
 
   it('does not let a caregiver delete a child profile', async () => {
-    await actAs(caregiver.clerkId);
+    await actAs(caregiver.authUserId);
     const response = await deleteProfile(request(), {
       params: Promise.resolve({ id: profileId }),
     });
@@ -99,7 +103,7 @@ describe('caregiver permissions', () => {
   });
 
   it('does not let a caregiver invite other caregivers', async () => {
-    await actAs(caregiver.clerkId);
+    await actAs(caregiver.authUserId);
     const response = await createInvite(request(), {});
     expect(response.status).toBe(403);
     expect((await response.json()).error.code).toBe('OWNER_REQUIRED');
@@ -108,11 +112,7 @@ describe('caregiver permissions', () => {
 
 describe('family bootstrap', () => {
   it('self-heals an authenticated user whose family row is missing', async () => {
-    const [orphan] = await ctx.db
-      .insert(users)
-      .values({ clerkId: 'family_orphan', email: 'family_orphan@example.com' })
-      .returning();
-    ctx.user = orphan;
+    ctx.user = await seedUser(ctx.db, 'family_orphan');
 
     const response = await getFamily(request(), {});
     expect(response.status).toBe(200);

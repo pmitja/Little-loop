@@ -15,6 +15,11 @@
     "overrides": {
       "react": "19.1.0",
       "react-dom": "19.1.0"
-    }
+    },
+    "neverBuiltDependencies": [
+      "better-sqlite3",
+      "bufferutil",
+      "utf-8-validate"
+    ]
   }
 }
