@@ -55,6 +55,8 @@ h1, h2, h3, p { margin-top: 0; }
 .store-buttons { margin-top: 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: relative; }
 .store-badge { min-width: 158px; height: 52px; padding: 7px 13px; display: flex; align-items: center; gap: 9px; color: white; background: #101216; border: 1px solid #303238; border-radius: 11px; text-decoration: none; box-shadow: 0 8px 20px rgba(35,54,83,.13); transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
 .store-badge:hover { background: #24262b; transform: translateY(-2px); box-shadow: 0 12px 24px rgba(35,54,83,.2); }
+.store-badge-disabled { opacity: .5; cursor: not-allowed; pointer-events: none; box-shadow: none; }
+.store-badge-disabled:hover { background: #101216; transform: none; box-shadow: none; }
 .store-badge > span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
 .store-badge small { color: white; font-size: 8px; font-weight: 650; letter-spacing: .01em; }
 .store-badge strong { color: white; margin-top: 3px; font-size: 18px; line-height: 1; letter-spacing: -.035em; }
