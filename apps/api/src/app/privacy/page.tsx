@@ -19,8 +19,10 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection heading="What we collect">
         <p>
-          <strong>Parent account.</strong> Email address, obtained when you sign in with Google.
-          Used only to sign you in and sync your content between your devices.
+          <strong>Parent account.</strong> Email address, obtained when you sign in with Google or
+          Apple. Used only to sign you in and sync your content between your devices. If you use
+          Sign in with Apple and choose “Hide My Email”, we only ever receive Apple’s relay
+          address, never your real one.
         </p>
         <p>
           <strong>Content you create.</strong> Child profile nickname, avatar choice, age range,
@@ -85,6 +87,11 @@ export default function PrivacyPolicyPage() {
               <td>Google</td>
               <td>Parent sign-in (OAuth)</td>
               <td>Email address</td>
+            </tr>
+            <tr>
+              <td>Apple</td>
+              <td>Parent sign-in (Sign in with Apple)</td>
+              <td>Email address or Apple relay address</td>
             </tr>
             <tr>
               <td>RevenueCat</td>

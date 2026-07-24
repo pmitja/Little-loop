@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
+        "LITTLELOOP_BUILD_ENV": "development",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
@@ -24,6 +25,7 @@
         "buildType": "apk"
       },
       "env": {
+        "LITTLELOOP_BUILD_ENV": "preview",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
@@ -31,13 +33,16 @@
       "autoIncrement": true,
       "environment": "production",
       "env": {
+        "LITTLELOOP_BUILD_ENV": "production",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
   "submit": {
     "production": {
-      "ios": {}
+      "ios": {
+        "ascAppId": "6792684159"
+      }
     }
   }
 }

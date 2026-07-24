@@ -14,12 +14,13 @@
     "@littleloop/db": "workspace:*",
     "@littleloop/shared": "workspace:*",
     "better-auth": "^1.6.24",
-    "drizzle-orm": "^0.44.0",
+    "drizzle-orm": "^0.45.2",
     "gsap": "^3.15.0",
+    "jose": "^6.2.4",
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
