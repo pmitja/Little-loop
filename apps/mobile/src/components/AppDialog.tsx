@@ -1,3 +1,4 @@
+import { useEffect, useId } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
 import { colors, controls, shadows } from '@/theme/tokens';
@@ -22,14 +23,25 @@ export interface AppDialogOptions {
 
 interface DialogState {
   queue: AppDialogOptions[];
+  /** Ids of mounted nested hosts, outermost first; only the last one renders. */
+  nestedHosts: string[];
   show: (dialog: AppDialogOptions) => void;
   dismiss: () => void;
+  registerNested: (id: string) => void;
+  unregisterNested: (id: string) => void;
 }
 
 const useDialogStore = create<DialogState>((set) => ({
   queue: [],
+  nestedHosts: [],
   show: (dialog) => set((state) => ({ queue: [...state.queue, dialog] })),
   dismiss: () => set((state) => ({ queue: state.queue.slice(1) })),
+  registerNested: (id) =>
+    set((state) =>
+      state.nestedHosts.includes(id) ? state : { nestedHosts: [...state.nestedHosts, id] },
+    ),
+  unregisterNested: (id) =>
+    set((state) => ({ nestedHosts: state.nestedHosts.filter((entry) => entry !== id) })),
 }));
 
 /** Show a branded LittleLoop dialog from a component, hook, or async helper. */
@@ -69,12 +81,42 @@ const TONE_ART: Record<AppDialogTone, { icon: AppIconName; background: string }>
   destructive: { icon: 'delete', background: colors.coralTint },
 };
 
-/** Single root-level host for every alert/confirmation in the app. */
-export function AppDialogHost() {
+export interface AppDialogHostProps {
+  /**
+   * Render inside a screen that is itself presented with
+   * `presentation: 'modal'`.
+   *
+   * The root host draws with React Native's `<Modal>`, which iOS presents from
+   * the root view controller — i.e. *behind* an already-presented modal screen.
+   * A dialog raised from the paywall or the PIN unlock screen would then be
+   * invisible while its backdrop still swallowed every touch, which reads as a
+   * frozen app. A nested host draws as a plain overlay inside that screen's own
+   * hierarchy instead, so it sits above the screen that raised it.
+   *
+   * Mounting one takes over from the root host for as long as it is mounted;
+   * when several are mounted the innermost wins.
+   */
+  nested?: boolean;
+}
+
+/** Host for every alert/confirmation. Mounted once at the root, see `nested`. */
+export function AppDialogHost({ nested = false }: AppDialogHostProps = {}) {
   const dialog = useDialogStore((state) => state.queue[0]);
   const dismiss = useDialogStore((state) => state.dismiss);
+  const activeNestedHost = useDialogStore((state) => state.nestedHosts.at(-1));
+  const id = useId();
 
-  if (!dialog) return null;
+  useEffect(() => {
+    if (!nested) return;
+    const { registerNested, unregisterNested } = useDialogStore.getState();
+    registerNested(id);
+    return () => unregisterNested(id);
+  }, [nested, id]);
+
+  // Exactly one host may draw: the innermost nested one, or the root host when
+  // no nested host is mounted.
+  const shouldRender = nested ? activeNestedHost === id : activeNestedHost === undefined;
+  if (!dialog || !shouldRender) return null;
 
   const tone = dialog.tone ?? 'info';
   const art = TONE_ART[tone];
@@ -89,6 +131,73 @@ export function AppDialogHost() {
 
   const cancel = buttons.find((button) => button.style === 'cancel');
 
+  const content = (
+    <View style={styles.backdrop}>
+      <View
+        accessibilityRole="alert"
+        accessibilityViewIsModal
+        style={styles.card}
+      >
+        <View style={[styles.iconStage, { backgroundColor: art.background }]}>
+          <AppIcon name={art.icon} size={42} />
+        </View>
+        <Txt weight="black" size={22} lineHeight={28} center>
+          {dialog.title}
+        </Txt>
+        {dialog.message ? (
+          <ScrollView
+            style={styles.messageScroll}
+            contentContainerStyle={styles.messageContent}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
+            <Txt weight="semibold" size={14.5} lineHeight={21} color={colors.parent.muted} center>
+              {dialog.message}
+            </Txt>
+          </ScrollView>
+        ) : null}
+        <View style={styles.actions}>
+          {buttons.map((button) => {
+            const destructive = button.style === 'destructive';
+            const cancelButton = button.style === 'cancel';
+            return (
+              <Pressable
+                key={button.text}
+                accessibilityRole="button"
+                accessibilityLabel={button.text}
+                onPress={() => choose(button)}
+                style={({ pressed }) => [
+                  styles.button,
+                  destructive
+                    ? styles.destructiveButton
+                    : cancelButton
+                      ? styles.cancelButton
+                      : styles.defaultButton,
+                  pressed && styles.buttonPressed,
+                ]}
+              >
+                <Txt
+                  weight="extrabold"
+                  size={15}
+                  color={destructive || !cancelButton ? '#FFFFFF' : colors.parent.night}
+                  center
+                >
+                  {button.text}
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+
+  // Inside an already-presented modal screen, draw in that screen's own
+  // hierarchy; `<Modal>` there would be presented from the root and land behind.
+  if (nested) {
+    return <View style={[StyleSheet.absoluteFill, styles.nestedLayer]}>{content}</View>;
+  }
+
   return (
     <Modal
       visible
@@ -97,69 +206,14 @@ export function AppDialogHost() {
       statusBarTranslucent
       onRequestClose={() => (cancel ? choose(cancel) : dismiss())}
     >
-      <View style={styles.backdrop}>
-        <View
-          accessibilityRole="alert"
-          accessibilityViewIsModal
-          style={styles.card}
-        >
-          <View style={[styles.iconStage, { backgroundColor: art.background }]}>
-            <AppIcon name={art.icon} size={42} />
-          </View>
-          <Txt weight="black" size={22} lineHeight={28} center>
-            {dialog.title}
-          </Txt>
-          {dialog.message ? (
-            <ScrollView
-              style={styles.messageScroll}
-              contentContainerStyle={styles.messageContent}
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-            >
-              <Txt weight="semibold" size={14.5} lineHeight={21} color={colors.parent.muted} center>
-                {dialog.message}
-              </Txt>
-            </ScrollView>
-          ) : null}
-          <View style={styles.actions}>
-            {buttons.map((button) => {
-              const destructive = button.style === 'destructive';
-              const cancelButton = button.style === 'cancel';
-              return (
-                <Pressable
-                  key={button.text}
-                  accessibilityRole="button"
-                  accessibilityLabel={button.text}
-                  onPress={() => choose(button)}
-                  style={({ pressed }) => [
-                    styles.button,
-                    destructive
-                      ? styles.destructiveButton
-                      : cancelButton
-                        ? styles.cancelButton
-                        : styles.defaultButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                >
-                  <Txt
-                    weight="extrabold"
-                    size={15}
-                    color={destructive || !cancelButton ? '#FFFFFF' : colors.parent.night}
-                    center
-                  >
-                    {button.text}
-                  </Txt>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </View>
+      {content}
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // Above the host screen's content, including anything it renders after us.
+  nestedLayer: { zIndex: 999, elevation: 24 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(23,32,51,.48)',

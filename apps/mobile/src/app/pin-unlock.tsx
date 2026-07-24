@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useShareIntentContext } from 'expo-share-intent';
-import { PINBoxes, PINKeypad, ScreenContainer, StoryIllustration, Txt } from '@/components';
+import { AppDialogHost, PINBoxes, PINKeypad, ScreenContainer, StoryIllustration, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { verifyPin } from '@/lib/pin';
 import { recordSecurityEvent } from '@/lib/monitoring';
@@ -130,70 +130,75 @@ export default function PinUnlock() {
   }
 
   return (
-    <ScreenContainer scroll style={styles.container}>
-      <View style={styles.closeRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close grown-up unlock"
-          hitSlop={10}
-          onPress={dismiss}
-          style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
-        >
-          <Txt weight="bold" size={24} color={colors.parent.muted}>
-            ×
-          </Txt>
-        </Pressable>
-      </View>
-      <View style={{ flex: 0.7 }} />
-      <StoryIllustration scene="pin-safe" width={124} style={styles.lockStage} />
-      <Txt weight="black" size={23} color={colors.parent.night} center style={{ marginTop: 6 }}>
-        Enter parent PIN
-      </Txt>
-      <Txt weight="semibold" size={13.5} color={colors.parent.muted} center lineHeight={20} style={styles.sub}>
-        {lockedOut
-          ? `Too many tries. Wait ${lockoutSecondsLeft} s and try again.`
-          : shareFlow
-            ? childModeActive
-              ? 'Unlock Parent Hub to add this shared video.'
-              : 'Unlock parent controls to add this shared video.'
-            : childModeActive
-              ? 'This closes Child Mode and returns to parent controls.'
-              : 'Unlock parent controls.'}
-      </Txt>
-      <View style={styles.boxes}>
-        <PINBoxes
-          length={PIN_LENGTH}
-          filled={errorFlash ? PIN_LENGTH : pin.length}
-          error={errorFlash}
-          checking={checking}
-        />
-      </View>
-      <PINKeypad
-        onDigit={onDigit}
-        onDelete={() => setPin((p) => p.slice(0, -1))}
-        disabled={checking || lockedOut}
-      />
-      {checking ? (
-        <View style={styles.status}>
-          <ActivityIndicator size="small" color={colors.child.skyDeep} />
-          <Txt weight="bold" size={13} color={colors.parent.muted}>
-            Checking…
-          </Txt>
+    <>
+      <ScreenContainer scroll style={styles.container}>
+        <View style={styles.closeRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close grown-up unlock"
+            hitSlop={10}
+            onPress={dismiss}
+            style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
+          >
+            <Txt weight="bold" size={24} color={colors.parent.muted}>
+              ×
+            </Txt>
+          </Pressable>
         </View>
-      ) : !lockedOut && failedAttempts > 0 ? (
-        <Txt weight="bold" size={13} color={colors.red} center style={{ marginTop: 14 }}>
-          Wrong PIN — {attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left
+        <View style={{ flex: 0.7 }} />
+        <StoryIllustration scene="pin-safe" width={124} style={styles.lockStage} />
+        <Txt weight="black" size={23} color={colors.parent.night} center style={{ marginTop: 6 }}>
+          Enter parent PIN
         </Txt>
-      ) : null}
-      <View style={styles.links}>
-        <Pressable onPress={forgotPin} hitSlop={10}>
-          <Txt weight="extrabold" size={13.5} color={colors.child.skyDeep}>
-            Forgot PIN?
+        <Txt weight="semibold" size={13.5} color={colors.parent.muted} center lineHeight={20} style={styles.sub}>
+          {lockedOut
+            ? `Too many tries. Wait ${lockoutSecondsLeft} s and try again.`
+            : shareFlow
+              ? childModeActive
+                ? 'Unlock Parent Hub to add this shared video.'
+                : 'Unlock parent controls to add this shared video.'
+              : childModeActive
+                ? 'This closes Child Mode and returns to parent controls.'
+                : 'Unlock parent controls.'}
+        </Txt>
+        <View style={styles.boxes}>
+          <PINBoxes
+            length={PIN_LENGTH}
+            filled={errorFlash ? PIN_LENGTH : pin.length}
+            error={errorFlash}
+            checking={checking}
+          />
+        </View>
+        <PINKeypad
+          onDigit={onDigit}
+          onDelete={() => setPin((p) => p.slice(0, -1))}
+          disabled={checking || lockedOut}
+        />
+        {checking ? (
+          <View style={styles.status}>
+            <ActivityIndicator size="small" color={colors.child.skyDeep} />
+            <Txt weight="bold" size={13} color={colors.parent.muted}>
+              Checking…
+            </Txt>
+          </View>
+        ) : !lockedOut && failedAttempts > 0 ? (
+          <Txt weight="bold" size={13} color={colors.red} center style={{ marginTop: 14 }}>
+            Wrong PIN — {attemptsLeft} {attemptsLeft === 1 ? 'try' : 'tries'} left
           </Txt>
-        </Pressable>
-      </View>
-      <View style={{ flex: 1.4 }} />
-    </ScreenContainer>
+        ) : null}
+        <View style={styles.links}>
+          <Pressable onPress={forgotPin} hitSlop={10}>
+            <Txt weight="extrabold" size={13.5} color={colors.child.skyDeep}>
+              Forgot PIN?
+            </Txt>
+          </Pressable>
+        </View>
+        <View style={{ flex: 1.4 }} />
+      </ScreenContainer>
+      {/* This screen is presented as a modal, so dialogs must draw inside it;
+          a root-level <Modal> would be presented behind it and swallow taps. */}
+      <AppDialogHost nested />
+    </>
   );
 }
 

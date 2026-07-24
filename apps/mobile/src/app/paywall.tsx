@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FREE_LIMITS } from '@littleloop/shared';
-import { AppIcon, showAppAlert, Txt, ScreenContainer, type AppIconName } from '@/components';
+import { AppDialogHost, AppIcon, showAppAlert, Txt, ScreenContainer, type AppIconName } from '@/components';
 import { colors } from '@/theme/tokens';
 import {
   getPlans,
@@ -160,127 +160,132 @@ export default function Paywall() {
     );
   }
   return (
-    <ScreenContainer mode="plum" scroll style={styles.container}>
-      <View style={styles.closeRow}>
+    <>
+      <ScreenContainer mode="plum" scroll style={styles.container}>
+        <View style={styles.closeRow}>
+          <Pressable
+            onPress={dismiss}
+            hitSlop={8}
+            style={styles.closeCircle}
+            accessibilityRole="button"
+            accessibilityLabel="Close Premium"
+          >
+            <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
+          </Pressable>
+        </View>
+
+        <View style={styles.hero}>
+          <AppIcon name="premium" size={48} />
+          <Txt weight="black" size={24} color="#FFFFFF" center>Less setup. More peace of mind.</Txt>
+          <Txt weight="bold" size={12.5} color="rgba(255,255,255,.76)" center lineHeight={18}>
+            Keep their little world simple while you stay in control.
+          </Txt>
+        </View>
+
+        {context ? (
+          <View style={styles.contextBanner}>
+            <Txt weight="bold" size={12.5} color="#FFFFFF" center lineHeight={18}>
+              {context.pre}
+              <Txt weight="black" size={12.5} color={colors.child.sun}>{context.hl}</Txt>
+              {context.post}
+            </Txt>
+          </View>
+        ) : null}
+
+        <View style={styles.benefits}>
+          {BENEFITS.map((benefit) => (
+            <BenefitRow key={benefit.title} {...benefit} />
+          ))}
+          <View style={styles.moreRow}>
+            <Txt weight="black" size={11.5} color={colors.child.sun} center>
+              Plus unlimited videos, multiple playlists, and up to 4 child profiles
+            </Txt>
+          </View>
+        </View>
+
+        <View style={styles.planRow}>
+          {(['monthly', 'yearly'] as const).map((id) => {
+            const plan = plans.find((p) => p.id === id);
+            const isSelected = selected === id;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setSelected(id)}
+                style={[styles.planCard, isSelected ? styles.planCardSelected : null]}
+                accessibilityRole="radio"
+                accessibilityLabel={`${id === 'yearly' ? 'Yearly' : 'Monthly'} plan, ${plan?.priceString ?? 'price unavailable'}`}
+                accessibilityState={{ selected: isSelected }}
+              >
+                {id === 'yearly' && savings !== null ? (
+                  <View style={styles.saveBadge}>
+                    <Txt weight="black" size={9.5} color="#4A3A20">SAVE {savings}%</Txt>
+                  </View>
+                ) : null}
+                <Txt weight="black" size={10.5} color={colors.parent.muted}>
+                  {id === 'yearly' ? 'YEARLY' : 'MONTHLY'}
+                </Txt>
+                <Txt weight="black" size={20} color={colors.parent.night}>
+                  {plan?.priceString ?? '—'}
+                </Txt>
+                <Txt weight="bold" size={11} color={colors.parent.muted}>
+                  {id === 'yearly'
+                    ? `per year${plan?.subline ? ` · ${plan.subline}` : ''}`
+                    : (plan?.subline ?? 'per month')}
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Pressable
-          onPress={dismiss}
-          hitSlop={8}
-          style={styles.closeCircle}
+          onPress={buy}
+          disabled={premium || !selectedPlan || busy}
+          style={({ pressed }) => [styles.cta, (premium || !selectedPlan) && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
           accessibilityRole="button"
-          accessibilityLabel="Close Premium"
+          accessibilityLabel={ctaTitle}
+          accessibilityState={{ disabled: premium || !selectedPlan || busy }}
         >
-          <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
+          {busy ? (
+            <ActivityIndicator color="#4A3A20" />
+          ) : (
+            <Txt weight="black" size={16} color="#4A3A20">
+              {ctaTitle}
+            </Txt>
+          )}
         </Pressable>
-      </View>
 
-      <View style={styles.hero}>
-        <AppIcon name="premium" size={48} />
-        <Txt weight="black" size={24} color="#FFFFFF" center>Less setup. More peace of mind.</Txt>
-        <Txt weight="bold" size={12.5} color="rgba(255,255,255,.76)" center lineHeight={18}>
-          Keep their little world simple while you stay in control.
+        <View style={styles.linkRow}>
+          <Pressable onPress={dismiss} hitSlop={8} disabled={busy} accessibilityRole="button">
+            <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Not now</Txt>
+          </Pressable>
+          <Pressable onPress={restore} hitSlop={8} disabled={busy} accessibilityRole="button">
+            <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Restore purchase</Txt>
+          </Pressable>
+        </View>
+
+        {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
+            what renews, how often, and at what price, and must link to the EULA
+            and privacy policy from the screen itself — not only from Settings. */}
+        <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5} style={styles.legalCopy}>
+          {purchasesLive
+            ? `LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`
+            : `Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`}
         </Txt>
-      </View>
 
-      {context ? (
-        <View style={styles.contextBanner}>
-          <Txt weight="bold" size={12.5} color="#FFFFFF" center lineHeight={18}>
-            {context.pre}
-            <Txt weight="black" size={12.5} color={colors.child.sun}>{context.hl}</Txt>
-            {context.post}
-          </Txt>
+        <View style={styles.legalRow}>
+          <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8} accessibilityRole="link">
+            <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Terms of Use</Txt>
+          </Pressable>
+          <Txt weight="bold" size={11} color="rgba(255,255,255,.45)">·</Txt>
+          <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8} accessibilityRole="link">
+            <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Privacy Policy</Txt>
+          </Pressable>
         </View>
-      ) : null}
-
-      <View style={styles.benefits}>
-        {BENEFITS.map((benefit) => (
-          <BenefitRow key={benefit.title} {...benefit} />
-        ))}
-        <View style={styles.moreRow}>
-          <Txt weight="black" size={11.5} color={colors.child.sun} center>
-            Plus unlimited videos, multiple playlists, and up to 4 child profiles
-          </Txt>
-        </View>
-      </View>
-
-      <View style={styles.planRow}>
-        {(['monthly', 'yearly'] as const).map((id) => {
-          const plan = plans.find((p) => p.id === id);
-          const isSelected = selected === id;
-          return (
-            <Pressable
-              key={id}
-              onPress={() => setSelected(id)}
-              style={[styles.planCard, isSelected ? styles.planCardSelected : null]}
-              accessibilityRole="radio"
-              accessibilityLabel={`${id === 'yearly' ? 'Yearly' : 'Monthly'} plan, ${plan?.priceString ?? 'price unavailable'}`}
-              accessibilityState={{ selected: isSelected }}
-            >
-              {id === 'yearly' && savings !== null ? (
-                <View style={styles.saveBadge}>
-                  <Txt weight="black" size={9.5} color="#4A3A20">SAVE {savings}%</Txt>
-                </View>
-              ) : null}
-              <Txt weight="black" size={10.5} color={colors.parent.muted}>
-                {id === 'yearly' ? 'YEARLY' : 'MONTHLY'}
-              </Txt>
-              <Txt weight="black" size={20} color={colors.parent.night}>
-                {plan?.priceString ?? '—'}
-              </Txt>
-              <Txt weight="bold" size={11} color={colors.parent.muted}>
-                {id === 'yearly'
-                  ? `per year${plan?.subline ? ` · ${plan.subline}` : ''}`
-                  : (plan?.subline ?? 'per month')}
-              </Txt>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Pressable
-        onPress={buy}
-        disabled={premium || !selectedPlan || busy}
-        style={({ pressed }) => [styles.cta, (premium || !selectedPlan) && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
-        accessibilityRole="button"
-        accessibilityLabel={ctaTitle}
-        accessibilityState={{ disabled: premium || !selectedPlan || busy }}
-      >
-        {busy ? (
-          <ActivityIndicator color="#4A3A20" />
-        ) : (
-          <Txt weight="black" size={16} color="#4A3A20">
-            {ctaTitle}
-          </Txt>
-        )}
-      </Pressable>
-
-      <View style={styles.linkRow}>
-        <Pressable onPress={dismiss} hitSlop={8} disabled={busy} accessibilityRole="button">
-          <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Not now</Txt>
-        </Pressable>
-        <Pressable onPress={restore} hitSlop={8} disabled={busy} accessibilityRole="button">
-          <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Restore purchase</Txt>
-        </Pressable>
-      </View>
-
-      {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
-          what renews, how often, and at what price, and must link to the EULA
-          and privacy policy from the screen itself — not only from Settings. */}
-      <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5} style={styles.legalCopy}>
-        {purchasesLive
-          ? `LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`
-          : `Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`}
-      </Txt>
-
-      <View style={styles.legalRow}>
-        <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8} accessibilityRole="link">
-          <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Terms of Use</Txt>
-        </Pressable>
-        <Txt weight="bold" size={11} color="rgba(255,255,255,.45)">·</Txt>
-        <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8} accessibilityRole="link">
-          <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Privacy Policy</Txt>
-        </Pressable>
-      </View>
-    </ScreenContainer>
+      </ScreenContainer>
+      {/* This screen is presented as a modal, so dialogs must draw inside it;
+          a root-level <Modal> would be presented behind it and swallow taps. */}
+      <AppDialogHost nested />
+    </>
   );
 }
 

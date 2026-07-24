@@ -9,7 +9,7 @@ import {
   youtubeWatchUrl,
   type VideoMeta,
 } from '@littleloop/shared';
-import { Button, ChildAvatar, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
+import { AppDialogHost, Button, ChildAvatar, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
 import { colors, radii, shadows } from '@/theme/tokens';
 import { previewVideo, VideoPreviewError, VIDEO_ERROR_MESSAGES } from '@/lib/videos';
 import { useAppStore } from '@/stores/appStore';
@@ -167,124 +167,129 @@ export default function ShareVideo() {
   }
 
   return (
-    <ScreenContainer style={styles.root}>
-      <ParentHeader title="Add to LittleLoop" onBack={close} />
+    <>
+      <ScreenContainer style={styles.root}>
+        <ParentHeader title="Add to LittleLoop" onBack={close} />
 
-      {phase.kind === 'resolving' ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-          <Txt weight="semibold" size={14} color={colors.muted} style={{ marginTop: 12 }}>
-            Checking the video…
-          </Txt>
-        </View>
-      ) : null}
-
-      {phase.kind === 'error' ? (
-        <View style={styles.centered}>
-          <Txt size={40}>😕</Txt>
-          <Txt weight="black" size={19} style={{ marginTop: 12, textAlign: 'center' }}>
-            Can’t add this one
-          </Txt>
-          <Txt weight="semibold" size={14} color={colors.muted} style={styles.centeredCopy}>
-            {phase.message}
-          </Txt>
-          <Button
-            title="Back to playlist"
-            onPress={close}
-            style={{ alignSelf: 'stretch', marginTop: 20 }}
-          />
-        </View>
-      ) : null}
-
-      {phase.kind === 'ready' ? (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-          <View style={styles.preview}>
-            <View style={styles.thumb}>
-              <Image
-                source={{ uri: phase.video.thumbnailUrl }}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-              />
-              {phase.video.durationSeconds ? (
-                <View style={styles.durationBadge}>
-                  <Txt weight="extrabold" size={10} color="#FFFFFF">
-                    {formatDuration(phase.video.durationSeconds)}
-                  </Txt>
-                </View>
-              ) : null}
-            </View>
-            <Txt weight="extrabold" size={15} lineHeight={20} numberOfLines={3} style={{ marginTop: 12 }}>
-              {phase.video.title}
-            </Txt>
-            <Txt weight="semibold" size={12.5} color={colors.muted} numberOfLines={1} style={{ marginTop: 3 }}>
-              {phase.video.channelTitle}
+        {phase.kind === 'resolving' ? (
+          <View style={styles.centered}>
+            <ActivityIndicator color={colors.primary} />
+            <Txt weight="semibold" size={14} color={colors.muted} style={{ marginTop: 12 }}>
+              Checking the video…
             </Txt>
           </View>
+        ) : null}
 
-          <SectionLabel style={{ marginTop: 22 }}>Who is this for?</SectionLabel>
-          <View style={styles.childList}>
-            {profiles.map((child) => {
-              const selected = child.id === selectedId;
-              return (
-                <Pressable
-                  key={child.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`Add to ${child.nickname}’s playlist`}
-                  onPress={() => setSelectedId(child.id)}
-                  style={[styles.childRow, selected && styles.childRowSelected]}
-                >
-                  <ChildAvatar avatar={child.avatar} size={34} />
-                  <Txt weight="extrabold" size={15.5} style={{ flex: 1 }}>
-                    {child.nickname}
-                  </Txt>
-                  {selected ? (
-                    <Txt weight="black" color={colors.child.skyDeep}>
-                      ✓
+        {phase.kind === 'error' ? (
+          <View style={styles.centered}>
+            <Txt size={40}>😕</Txt>
+            <Txt weight="black" size={19} style={{ marginTop: 12, textAlign: 'center' }}>
+              Can’t add this one
+            </Txt>
+            <Txt weight="semibold" size={14} color={colors.muted} style={styles.centeredCopy}>
+              {phase.message}
+            </Txt>
+            <Button
+              title="Back to playlist"
+              onPress={close}
+              style={{ alignSelf: 'stretch', marginTop: 20 }}
+            />
+          </View>
+        ) : null}
+
+        {phase.kind === 'ready' ? (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <View style={styles.preview}>
+              <View style={styles.thumb}>
+                <Image
+                  source={{ uri: phase.video.thumbnailUrl }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                />
+                {phase.video.durationSeconds ? (
+                  <View style={styles.durationBadge}>
+                    <Txt weight="extrabold" size={10} color="#FFFFFF">
+                      {formatDuration(phase.video.durationSeconds)}
                     </Txt>
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
+                  </View>
+                ) : null}
+              </View>
+              <Txt weight="extrabold" size={15} lineHeight={20} numberOfLines={3} style={{ marginTop: 12 }}>
+                {phase.video.title}
+              </Txt>
+              <Txt weight="semibold" size={12.5} color={colors.muted} numberOfLines={1} style={{ marginTop: 3 }}>
+                {phase.video.channelTitle}
+              </Txt>
+            </View>
 
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: approveImmediately }}
-            accessibilityLabel="Approve video immediately"
-            accessibilityHint="Makes the video available in Child Mode as soon as it is added"
-            onPress={() => setApproveImmediately((approved) => !approved)}
-            style={[styles.approvalRow, approveImmediately && styles.approvalRowSelected]}
-          >
-            <View style={[styles.approvalCheck, approveImmediately && styles.approvalCheckSelected]}>
-              {approveImmediately ? (
-                <Txt weight="black" size={14} color="#FFFFFF">
-                  ✓
+            <SectionLabel style={{ marginTop: 22 }}>Who is this for?</SectionLabel>
+            <View style={styles.childList}>
+              {profiles.map((child) => {
+                const selected = child.id === selectedId;
+                return (
+                  <Pressable
+                    key={child.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`Add to ${child.nickname}’s playlist`}
+                    onPress={() => setSelectedId(child.id)}
+                    style={[styles.childRow, selected && styles.childRowSelected]}
+                  >
+                    <ChildAvatar avatar={child.avatar} size={34} />
+                    <Txt weight="extrabold" size={15.5} style={{ flex: 1 }}>
+                      {child.nickname}
+                    </Txt>
+                    {selected ? (
+                      <Txt weight="black" color={colors.child.skyDeep}>
+                        ✓
+                      </Txt>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: approveImmediately }}
+              accessibilityLabel="Approve video immediately"
+              accessibilityHint="Makes the video available in Child Mode as soon as it is added"
+              onPress={() => setApproveImmediately((approved) => !approved)}
+              style={[styles.approvalRow, approveImmediately && styles.approvalRowSelected]}
+            >
+              <View style={[styles.approvalCheck, approveImmediately && styles.approvalCheckSelected]}>
+                {approveImmediately ? (
+                  <Txt weight="black" size={14} color="#FFFFFF">
+                    ✓
+                  </Txt>
+                ) : null}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt weight="extrabold" size={14.5}>
+                  Approve immediately
                 </Txt>
-              ) : null}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt weight="extrabold" size={14.5}>
-                Approve immediately
-              </Txt>
-              <Txt weight="semibold" size={12.5} color={colors.muted} lineHeight={18}>
-                {approveImmediately
-                  ? 'This video will be available in Child Mode right away.'
-                  : 'Leave off to keep the video waiting for review.'}
-              </Txt>
-            </View>
-          </Pressable>
+                <Txt weight="semibold" size={12.5} color={colors.muted} lineHeight={18}>
+                  {approveImmediately
+                    ? 'This video will be available in Child Mode right away.'
+                    : 'Leave off to keep the video waiting for review.'}
+                </Txt>
+              </View>
+            </Pressable>
 
-          <Button
-            title={approveImmediately ? 'Approve & add to playlist' : 'Add to playlist'}
-            loading={adding}
-            disabled={!selectedId}
-            onPress={() => void add()}
-            style={{ marginTop: 18 }}
-          />
-        </ScrollView>
-      ) : null}
-    </ScreenContainer>
+            <Button
+              title={approveImmediately ? 'Approve & add to playlist' : 'Add to playlist'}
+              loading={adding}
+              disabled={!selectedId}
+              onPress={() => void add()}
+              style={{ marginTop: 18 }}
+            />
+          </ScrollView>
+        ) : null}
+      </ScreenContainer>
+      {/* This screen is presented as a modal, so dialogs must draw inside it;
+          a root-level <Modal> would be presented behind it and swallow taps. */}
+      <AppDialogHost nested />
+    </>
   );
 }
 
