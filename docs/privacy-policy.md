@@ -2,14 +2,14 @@
 
 _Last updated: July 15, 2026. This is the canonical copy; the in-app version
 (`apps/mobile/src/app/(parent)/legal.tsx`) is a condensed rendering and must be
-kept in sync. Host this document at https://littleloopapp.com/privacy for the
+kept in sync. Host this document at https://www.littleloopapp.com/privacy for the
 store listings._
 
 ## Who we are
 
 LittleLoop ("we") is a parent-controlled video playlist app. Parents review and
 approve individual videos; children watch only that approved list in a locked
-child mode. Contact: privacy@littleloopapp.com.
+child mode. Contact: support@littleloopapp.com.
 
 ## What we collect
 
@@ -72,7 +72,7 @@ Account data is retained while your account exists. **Settings → Delete
 account & data** removes the entire family when used by the main caregiver. For
 an invited caregiver, it removes only that caregiver's account and family
 access; the main caregiver's family data remains. You can
-also request deletion at privacy@littleloopapp.com; we complete requests within
+also request deletion at support@littleloopapp.com; we complete requests within
 30 days.
 
 ## Changes
