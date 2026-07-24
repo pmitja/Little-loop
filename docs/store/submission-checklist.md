@@ -163,9 +163,9 @@ The in-app copy lives in `apps/mobile/src/app/(parent)/legal.tsx` — keep them 
   Certificate of Foreign Status Active, Digital Services Act Active. The account
   is registered as an **individual**, not an entity — W-8BEN rather than
   W-8BEN-E — so any further compliance form must be filled consistently.
-  **Outstanding: DAC7 shows "Missing Info"**, and Apple's own banner says this can
-  block submitting new apps, not just payouts. Needs the TIN, the s.p.
-  registration number, and date/place of birth.
+  DAC7 was completed the same day and is Active; "personal services" was
+  answered **No**, correctly — DAC7 means human labour arranged through a
+  platform, not a software subscription. Nothing in Business is outstanding.
 - The Play side of this is untouched: no merchant account, no banking or tax
   setup, so Android IAPs cannot load at review time — a very common cause of
   "purchases don't work" rejections.
