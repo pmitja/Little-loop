@@ -158,8 +158,17 @@ The in-app copy lives in `apps/mobile/src/app/(parent)/legal.tsx` — keep them 
   explanation of YouTube embedded playback.
 - **Play:** Data safety form (`docs/store/data-safety.md` has the source of truth);
   content rating questionnaire; target audience; store listing assets.
-- Paid Apps agreement + banking/tax must be active in **both** consoles, or IAPs
-  will not load at review time — a very common cause of "purchases don't work" rejections.
+- **Apple business setup — verified 2026-07-24.** Paid Apps and Free Apps
+  agreements Active, Slovenian bank account Active (EUR → USD), W-8BEN and the
+  Certificate of Foreign Status Active, Digital Services Act Active. The account
+  is registered as an **individual**, not an entity — W-8BEN rather than
+  W-8BEN-E — so any further compliance form must be filled consistently.
+  **Outstanding: DAC7 shows "Missing Info"**, and Apple's own banner says this can
+  block submitting new apps, not just payouts. Needs the TIN, the s.p.
+  registration number, and date/place of birth.
+- The Play side of this is untouched: no merchant account, no banking or tax
+  setup, so Android IAPs cannot load at review time — a very common cause of
+  "purchases don't work" rejections.
 
 ## 6. YouTube compliance **[you]**
 
