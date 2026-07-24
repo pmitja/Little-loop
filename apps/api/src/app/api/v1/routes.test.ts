@@ -67,6 +67,7 @@ async function seedVideo(): Promise<string> {
   await ctx.db.insert(videoMetadata).values({
     providerVideoId,
     title: `Video ${providerVideoId}`,
+    channelId: 'UCtestchannel',
     channelTitle: 'Test Channel',
     durationSeconds: 120,
     thumbnailUrl: 'https://i.ytimg.com/test.jpg',

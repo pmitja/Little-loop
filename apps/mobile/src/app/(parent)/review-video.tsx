@@ -14,7 +14,10 @@ import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePremium } from '@/stores/entitlementStore';
 import { commitApprovedVideo } from '@/features/family/playlistSync';
-import { approveChannel } from '@/features/channels/channelsApi';
+import {
+  approveChannel,
+  channelApprovalErrorMessage,
+} from '@/features/channels/channelsApi';
 import { useChannelSuggestionStore } from '@/features/channels/channelSuggestionStore';
 
 function CheckMark({ on }: { on: boolean }) {
@@ -94,9 +97,9 @@ export default function ReviewVideo() {
       const res = await approveChannel(profile.id, video.providerVideoId);
       useChannelSuggestionStore.getState().set(profile.id, res.channel.channelTitle, res.suggestions);
       router.replace('/(parent)/channel-approved');
-    } catch {
+    } catch (error) {
       setApprovingChannel(false);
-      showAppAlert('Couldn’t approve channel', 'Check your connection and try again.');
+      showAppAlert('Couldn’t approve channel', channelApprovalErrorMessage(error));
     }
   };
 

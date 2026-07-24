@@ -8,14 +8,16 @@ import { useEntitlementStore } from '@/stores/entitlementStore';
  * "purchase" simply flips the cached entitlement, so the paywall and every
  * free-limit gate can be exercised before the RevenueCat project is wired.
  */
-const REVENUECAT_KEY =
-  // Test Store keys (test_…) are one key for both platforms; the App Store /
-  // Play keys that ship to production are per-store, hence the fallback.
-  process.env.EXPO_PUBLIC_REVENUECAT_KEY ||
-  (Platform.OS === 'ios'
+// Store-specific keys must win whenever both are present. The generic test_
+// key is only a fallback for local/preview builds that use RevenueCat Test
+// Store. Production EAS builds additionally reject test keys in the validation
+// hook, before native compilation starts.
+const PLATFORM_REVENUECAT_KEY =
+  Platform.OS === 'ios'
     ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
-    : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY) ||
-  '';
+    : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY;
+const REVENUECAT_KEY =
+  PLATFORM_REVENUECAT_KEY || process.env.EXPO_PUBLIC_REVENUECAT_KEY || '';
 
 export const ENTITLEMENT_ID = 'premium';
 

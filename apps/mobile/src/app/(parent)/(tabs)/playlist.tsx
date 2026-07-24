@@ -27,6 +27,7 @@ import { removeSharedVideo, reorderSharedVideos, syncFamilyPlaylists } from '@/f
 import { resolveSharedRequest, syncFamilyRequests } from '@/features/family/requestSync';
 import {
   approveChannel,
+  channelApprovalErrorMessage,
   approvePending,
   listChannels,
   listPendingVideos,
@@ -133,8 +134,8 @@ export default function Playlist() {
       void refreshChannels();
       useChannelSuggestionStore.getState().set(profile.id, res.channel.channelTitle, res.suggestions);
       router.push('/(parent)/channel-approved');
-    } catch {
-      showAppAlert('Couldn’t approve channel', 'Check your connection and try again.');
+    } catch (error) {
+      showAppAlert('Couldn’t approve channel', channelApprovalErrorMessage(error));
     } finally {
       setApprovingId(null);
     }

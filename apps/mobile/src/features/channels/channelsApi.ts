@@ -1,5 +1,5 @@
 import type { VideoMeta } from '@littleloop/shared';
-import { api, apiConfigured } from '@/lib/api';
+import { api, ApiError, apiConfigured } from '@/lib/api';
 
 export interface ApprovedChannel {
   id: string;
@@ -21,6 +21,26 @@ export async function approveChannel(childProfileId: string, providerVideoId: st
     method: 'POST',
     body: JSON.stringify({ childProfileId, providerVideoId }),
   });
+}
+
+export function channelApprovalErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return 'Check your connection and try again.';
+
+  switch (error.code) {
+    case 'PREMIUM_REQUIRED':
+      return 'Your subscription is still syncing. Wait a moment and try again.';
+    case 'VIDEO_UNAVAILABLE':
+      return 'We couldn’t identify this video’s channel. Try another video from the same channel.';
+    case 'QUOTA_EXCEEDED':
+    case 'PROVIDER_ERROR':
+      return 'YouTube is temporarily unavailable. Please try again later.';
+    case 'UNAUTHENTICATED':
+      return 'Your session has expired. Sign in again and retry.';
+    default:
+      return error.status === 0
+        ? 'Check your connection and try again.'
+        : 'The server couldn’t approve this channel. Please try again.';
+  }
 }
 
 export async function listChannels(childProfileId: string): Promise<ApprovedChannel[]> {
