@@ -1,18 +1,14 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Button, ScreenContainer, Txt } from '@/components';
 import { Logo } from '@/components/Logo';
 import { colors } from '@/theme/tokens';
 import { authConfigured } from '@/lib/auth';
-import { authClient } from '@/lib/authClient';
 import { SocialButton, type SocialProvider } from '@/features/auth/SocialButton';
+import { APPLE_SIGN_IN_ENABLED, signInWithProvider } from '@/features/auth/socialSignIn';
 import { useLockStore } from '@/stores/lockStore';
 import { useAppStore } from '@/stores/appStore';
-
-// Apple sign-in lands once the Apple Services ID + signing key are configured
-// on the better-auth server (Google-now / Apple-later).
-const APPLE_SIGN_IN_ENABLED = false;
 
 function useNextRoute() {
   const onboardingComplete = useAppStore((s) => s.onboardingComplete);
@@ -65,22 +61,12 @@ function AuthSignIn() {
     setBusy(provider);
     setError(null);
     try {
-      // The expo plugin opens the provider in a web browser and deep-links back
-      // via `callbackURL`, storing the session in SecureStore on success.
-      const { error: authError } = await authClient.signIn.social({
-        provider,
-        callbackURL: '/',
-      });
-      if (authError) {
-        setError(
-          authError.message ??
-            `Couldn’t continue with ${provider === 'apple' ? 'Apple' : 'Google'}.`,
-        );
+      const result = await signInWithProvider(provider);
+      if (!result.ok) {
+        if (result.error) setError(result.error);
         return;
       }
       router.replace(getPendingInviteRoute() ?? nextRoute);
-    } catch {
-      setError(`Couldn’t continue with ${provider === 'apple' ? 'Apple' : 'Google'}.`);
     } finally {
       setBusy(null);
     }
@@ -101,7 +87,7 @@ function AuthSignIn() {
       </View>
 
       <View style={styles.socialButtons}>
-        {Platform.OS === 'ios' && APPLE_SIGN_IN_ENABLED ? (
+        {APPLE_SIGN_IN_ENABLED ? (
           <SocialButton
             provider="apple"
             busy={busy !== null}

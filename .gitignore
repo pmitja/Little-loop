@@ -13,3 +13,16 @@ android/
 .next/
 out/
 *.tsbuildinfo
+
+# IDEs
+.idea/
+.vscode/
+
+# Xcode DerivedData from local iOS builds
+apps/mobile/build/
+.vercel
+.env*
+# ...but the committed templates must stay tracked (the Vercel CLI appended the
+# blanket `.env*` above and would otherwise swallow them).
+!.env.example
+!**/.env.example

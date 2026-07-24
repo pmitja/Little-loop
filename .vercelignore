@@ -1,0 +1,10 @@
+# The API deploy uploads the whole workspace (pnpm needs every package.json for
+# a frozen-lockfile install), so exclude only the heavy artefacts the build never
+# reads. apps/mobile/build alone is ~3.5 GB of Xcode DerivedData.
+apps/mobile/build
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo
+apps/mobile/assets
+.idea
+.vscode
