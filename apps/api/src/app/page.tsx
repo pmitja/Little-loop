@@ -1,6 +1,9 @@
 import Image from 'next/image';
 import { MarketingAnimations } from '@/components/MarketingAnimations';
 
+const APP_STORE_URL =
+  'https://apps.apple.com/si/app/littleloop-parent-playlists/id6792684159?l=sl&platform=ipad';
+
 const Check = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.2 3.6 3.6L16 5.9" /></svg>
 );
@@ -53,15 +56,19 @@ const GooglePlay = () => (
 function StoreButtons({ centered = false }: { centered?: boolean }) {
   return (
     <div className={`store-buttons${centered ? ' store-buttons-centered' : ''}`}>
-      <span className="store-badge store-badge-disabled" role="button" aria-disabled="true" aria-label="LittleLoop on the App Store — coming soon">
+      <a
+        className="store-badge"
+        href={APP_STORE_URL}
+        aria-label="Download LittleLoop on the App Store"
+      >
         <Apple />
         <span><small>Download on the</small><strong>App Store</strong></span>
-      </span>
+      </a>
       <span className="store-badge store-badge-disabled" role="button" aria-disabled="true" aria-label="LittleLoop on Google Play — coming soon">
         <GooglePlay />
         <span><small>GET IT ON</small><strong>Google Play</strong></span>
       </span>
-      <span className="store-coming-soon">Coming soon</span>
+      <span className="store-coming-soon">Android coming soon</span>
     </div>
   );
 }
