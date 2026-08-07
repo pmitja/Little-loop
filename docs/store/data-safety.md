@@ -5,8 +5,22 @@ Play Console (Data safety) verbatim unless the integrations change._
 
 ## Apple App Privacy ("privacy nutrition label")
 
-**Data used to track you:** None. (No cross-app tracking, no IDFA — do not
-show the ATT prompt.)
+**Data used to track you:** depends on whether the build carries Meta ad
+attribution — `EXPO_PUBLIC_FACEBOOK_APP_ID` / `_CLIENT_TOKEN` in the EAS
+`production` environment. Without them the SDK is not compiled in at all and
+the answer stays **None** (no ATT prompt).
+
+With them set, the answer is **Yes**, and these must be declared under "Data
+used to track you" as well as linked to the user:
+- Identifiers → Device ID (IDFA, only when the parent allows tracking at the
+  ATT prompt) and User ID (our better-auth user id, sent to Meta to join
+  conversions across devices).
+- Purchases → Purchase history (the subscription conversion event: amount,
+  currency, product id).
+- Usage data → Product interaction (app install/session and the sign-up
+  conversion, logged by the Meta SDK).
+No child data reaches Meta: no profile names, no approved videos, no watch
+activity. See `src/lib/attribution.ts`.
 
 **Data linked to you:**
 - Contact info → Email address (Google **or Apple** sign-in; app functionality).
@@ -43,7 +57,12 @@ history, health, financial info, messages, audio.
   but declared as collected).
 - Data shared with third parties: **No** (processors — Google (sign-in),
   RevenueCat, Sentry — act on our behalf; this counts as "collected", not
-  "shared", per Play policy).
+  "shared", per Play policy). **Flips to Yes if the build ships with Meta ad
+  attribution** (see the Apple section): Meta is not a processor, so Device ID,
+  User ID, Purchase history and App interactions are *shared* for "Advertising
+  or marketing" and "Analytics". Play's Families policy also bars ad SDKs from
+  apps whose target audience includes children — this app declares Parents,
+  which is what keeps the SDK allowable; keep that declaration accurate.
 - Data encrypted in transit: **Yes.**
 - Users can request deletion: **Yes** — in-app (Settings → Delete account &
   data) and via support@littleloopapp.com (the address the hosted pages actually

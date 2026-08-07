@@ -35,6 +35,14 @@ caregiver. Do not forward an invitation link to someone you do not trust.
 and stack traces. We configure Sentry to send no personally identifying
 information, no child names, and no video titles.
 
+**Ad measurement.** So we know which ads bring parents to LittleLoop, the app
+tells Meta (Facebook) when it is installed, when a parent creates an account,
+and when a parent subscribes, along with your account id and, on iOS, your
+device advertising id if you allow tracking when asked. Nothing about your child
+is included: no profiles, no approved videos, no watch activity. You can decline
+the iOS tracking prompt, or turn off ad personalisation in your device settings,
+and the app works exactly the same.
+
 ## What never leaves the device
 
 - **Parent PIN** — stored only as a salted hash in the device
@@ -61,10 +69,13 @@ avatar, and settings a parent chooses to enter.
 | Google | Parent sign-in (OAuth) | Email address |
 | RevenueCat | Subscription management | Store receipt, anonymized user id |
 | Sentry | Crash reporting | Device/OS info, stack traces |
+| Meta (Facebook) | Ad measurement — which ads lead to installs and subscriptions | App install/session, account id, subscription amount, device advertising id (only if you allow tracking) |
 | YouTube (Google) | Video playback, metadata, thumbnails | Video requests from the device |
 
-We do not sell personal data, do not run third-party advertising, and do not
-use cross-app tracking.
+We do not sell personal data and we show no advertising inside LittleLoop. We do
+use Meta's ad measurement, described above, to see which of our own ads work — on
+iOS only if you allow it at the tracking prompt. Nothing about your child is ever
+used for advertising.
 
 ## Data retention & deletion
 

@@ -9,6 +9,7 @@ import { DEFAULT_CHILD_RULES, useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 import { usePremium } from '@/stores/entitlementStore';
 import { presentCustomerCenter, restorePurchases } from '@/lib/purchases';
+import { openStoreReviewPage } from '@/lib/review';
 import { useDeleteAccount } from '@/features/security/deleteAccount';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
 
@@ -88,6 +89,7 @@ export default function Settings() {
       {isOwner ? <SettingsRow icon={<AppIcon name="restore" />} iconBg="transparent" title="Restore purchases" chevron onPress={restore} /> : null}
       <SettingsRow icon={<AppIcon name="privacy" />} iconBg="transparent" title="Privacy policy" chevron onPress={() => router.push('/(parent)/legal')} />
       <SettingsRow icon={<AppIcon name="terms" />} iconBg="transparent" title="Terms of use" chevron onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} />
+      <SettingsRow icon={<AppIcon name="premium" />} iconBg="transparent" title="Rate LittleLoop" chevron onPress={() => void openStoreReviewPage()} />
     </SettingsGroup>
     {/* Removing a child now lives on their Edit profile screen, next to their name:
         this row acted on whichever profile was active, which was easy to get wrong

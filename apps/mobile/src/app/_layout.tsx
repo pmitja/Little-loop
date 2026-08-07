@@ -19,6 +19,7 @@ import { authClient, getSessionCookie } from '@/lib/authClient';
 import { setCookieGetter } from '@/lib/api';
 import { syncCurrentUser } from '@/lib/userSync';
 import { configurePurchases } from '@/lib/purchases';
+import { initAttribution, logSignUp, setAttributionUser } from '@/lib/attribution';
 import { initMonitoring } from '@/lib/monitoring';
 import { queryClient } from '@/lib/query';
 import { useStoresHydrated } from '@/stores/appStore';
@@ -54,6 +55,12 @@ function ApiSessionBridge() {
   useEffect(() => {
     // logIn ties the RevenueCat app-user-id to our better-auth user (PLAN §12).
     configurePurchases(userId).catch(() => {});
+  }, [userId]);
+  useEffect(() => {
+    // Meta ad attribution: the signed-in id joins conversions across devices,
+    // and the first sign-in on an install is the registration conversion.
+    setAttributionUser(userId);
+    if (userId) void logSignUp().catch(() => {});
   }, [userId]);
   return null;
 }
@@ -163,6 +170,9 @@ export default function RootLayout() {
     if (fontsLoaded) {
       // Our animated splash route (s01) takes over from the native splash.
       SplashScreen.hideAsync();
+      // ATT has to be asked with the app on screen, not behind the native
+      // splash, or iOS silently drops the prompt.
+      void initAttribution().catch(() => {});
     }
   }, [fontsLoaded]);
 

@@ -14,6 +14,7 @@ import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePremium } from '@/stores/entitlementStore';
 import { commitApprovedVideo } from '@/features/family/playlistSync';
+import { recordHappyMoment } from '@/lib/review';
 import {
   approveChannel,
   channelApprovalErrorMessage,
@@ -85,6 +86,9 @@ export default function ReviewVideo() {
       return;
     }
     router.replace('/(parent)/(tabs)/playlist');
+    // A video safely added is the moment this app is worth rating; the gate
+    // decides whether this particular one is the ask.
+    recordHappyMoment();
   };
 
   const onApproveChannel = async () => {

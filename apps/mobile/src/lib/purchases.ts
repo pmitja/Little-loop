@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import type { CustomerInfo, PurchasesError, PurchasesPackage } from 'react-native-purchases';
+import { logSubscription } from '@/lib/attribution';
 import { useEntitlementStore } from '@/stores/entitlementStore';
 
 /**
@@ -27,6 +28,8 @@ export interface Plan {
   priceString: string;
   /** Numeric price in the plan's own currency — only for comparing the two plans. */
   price: number;
+  /** ISO currency of `price`, for the ad-attribution purchase event. */
+  currencyCode: string;
   /** e.g. "$2.92 / mo" — only on yearly. */
   subline: string;
   /** RevenueCat package identifier when live; mock plans carry their id. */
@@ -39,6 +42,7 @@ const MOCK_PLANS: Plan[] = [
     productId: 'll_premium_monthly',
     priceString: '$4.99',
     price: 4.99,
+    currencyCode: 'USD',
     subline: 'per month',
     rcPackageId: '$rc_monthly',
   },
@@ -47,6 +51,7 @@ const MOCK_PLANS: Plan[] = [
     productId: 'll_premium_yearly',
     priceString: '$34.99',
     price: 34.99,
+    currencyCode: 'USD',
     subline: '$2.92 / mo',
     rcPackageId: '$rc_annual',
   },
@@ -132,6 +137,7 @@ export async function getPlans(): Promise<Plan[]> {
       productId: pkg.product.identifier,
       priceString: pkg.product.priceString,
       price: pkg.product.price,
+      currencyCode: pkg.product.currencyCode,
       subline: isYearly
         ? `${pkg.product.pricePerMonthString ?? ''} / mo`.trim()
         : 'per month',
@@ -161,7 +167,11 @@ export async function purchasePlan(plan: Plan): Promise<PurchaseResult> {
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     syncEntitlement(customerInfo);
-    return ENTITLEMENT_ID in customerInfo.entitlements.active ? 'purchased' : 'failed';
+    if (!(ENTITLEMENT_ID in customerInfo.entitlements.active)) return 'failed';
+    // Ad attribution counts the purchase here rather than off the entitlement
+    // listener, which also fires for renewals and for restores on a new device.
+    logSubscription(plan.price, plan.currencyCode, plan.productId);
+    return 'purchased';
   } catch (e) {
     const { code } = e as PurchasesError;
     if (code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';

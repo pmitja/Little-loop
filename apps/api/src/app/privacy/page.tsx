@@ -46,6 +46,15 @@ export default function PrivacyPolicyPage() {
           version, and stack traces. We configure Sentry to send no personally identifying
           information, no child names, and no video titles.
         </p>
+        <p>
+          <strong>Ad measurement.</strong> So we know which ads bring parents to LittleLoop, the
+          app tells Meta (Facebook) when it is installed, when a parent creates an account, and
+          when a parent subscribes, along with your account id and, on iOS, your device
+          advertising id if you allow tracking when asked. Nothing about your child is included:
+          no profiles, no approved videos, no watch activity. You can decline the iOS tracking
+          prompt, or turn off ad personalisation in your device settings, and the app works
+          exactly the same.
+        </p>
       </LegalSection>
 
       <LegalSection heading="What never leaves the device">
@@ -104,6 +113,11 @@ export default function PrivacyPolicyPage() {
               <td>Device/OS info, stack traces</td>
             </tr>
             <tr>
+              <td>Meta (Facebook)</td>
+              <td>Ad measurement — which ads lead to installs and subscriptions</td>
+              <td>App install/session, account id, subscription amount, device advertising id (only if you allow tracking)</td>
+            </tr>
+            <tr>
               <td>YouTube (Google)</td>
               <td>Video playback, metadata, thumbnails</td>
               <td>Video requests from the device</td>
@@ -111,8 +125,10 @@ export default function PrivacyPolicyPage() {
           </tbody>
         </table>
         <p>
-          We do not sell personal data, do not run third-party advertising, and do not use
-          cross-app tracking.
+          We do not sell personal data and we show no advertising inside LittleLoop. We do use
+          Meta&rsquo;s ad measurement, described above, to see which of our own ads work — on iOS
+          only if you allow it at the tracking prompt. Nothing about your child is ever used for
+          advertising.
         </p>
       </LegalSection>
 

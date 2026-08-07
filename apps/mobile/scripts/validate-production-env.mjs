@@ -80,6 +80,18 @@ if (platform === 'ios') {
   errors.push('EAS_BUILD_PLATFORM must be ios or android for a production build');
 }
 
+// Meta attribution is optional, but half-configured means the SDK is silently
+// dropped from a production build — worth a loud warning rather than an error.
+const fbAppId = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? '';
+const fbClientToken = process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN ?? '';
+if (!fbAppId && !fbClientToken) {
+  console.warn('Warning: Meta ad attribution is disabled in this build (no Facebook app id).');
+} else if (!fbAppId || !fbClientToken) {
+  errors.push(
+    'EXPO_PUBLIC_FACEBOOK_APP_ID and EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN must be set together',
+  );
+}
+
 if (errors.length > 0) {
   console.error('Invalid LittleLoop production environment:');
   for (const error of errors) console.error(`- ${error}`);
