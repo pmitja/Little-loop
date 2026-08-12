@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -167,13 +167,21 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      // Our animated splash route (s01) takes over from the native splash.
-      SplashScreen.hideAsync();
-      // ATT has to be asked with the app on screen, not behind the native
-      // splash, or iOS silently drops the prompt.
-      void initAttribution().catch(() => {});
-    }
+    if (!fontsLoaded) return;
+
+    // Our animated splash route (s01) takes over from the native splash. Every
+    // ATT attempt waits for this promise, while later foreground transitions
+    // give iOS another chance if it discarded a request as `undetermined`.
+    const splashHidden = SplashScreen.hideAsync();
+    const initialize = () => {
+      void splashHidden.then(initAttribution).catch(() => {});
+    };
+
+    initialize();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') initialize();
+    });
+    return () => subscription.remove();
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;

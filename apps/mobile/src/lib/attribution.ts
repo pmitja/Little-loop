@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { storage } from '@/lib/storage';
 
 /**
@@ -34,6 +34,61 @@ const fbsdk = loadFbsdk();
 export const attributionEnabled = fbsdk !== null;
 
 let initialized = false;
+let initialization: Promise<void> | null = null;
+
+function waitForActiveApp(): Promise<void> {
+  if (AppState.currentState === 'active') return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      subscription.remove();
+      resolve();
+    });
+  });
+}
+
+async function initializeAttribution(): Promise<void> {
+  let trackingAllowed = Platform.OS !== 'ios';
+  if (Platform.OS === 'ios') {
+    try {
+      const {
+        getTrackingPermissionsAsync,
+        requestTrackingPermissionsAsync,
+      } = await import('expo-tracking-transparency');
+
+      // iOS only presents ATT while UIApplication is active. A request made as
+      // the native splash is disappearing can otherwise resolve without ever
+      // showing the prompt, so wait for the foreground state explicitly.
+      await waitForActiveApp();
+
+      let permission = await getTrackingPermissionsAsync();
+      if (permission.status === 'undetermined') {
+        permission = await requestTrackingPermissionsAsync();
+      }
+
+      // Do not initialize Meta while iOS still has no answer. Leaving
+      // `initialized` false lets a later foreground call safely try again if
+      // iOS discarded the first request because another system prompt won.
+      if (permission.status === 'undetermined') return;
+      trackingAllowed = permission.granted;
+    } catch {
+      // A transient native failure must not start Meta without an ATT answer.
+      // Leave initialization open so a later foreground transition can retry.
+      return;
+    }
+  }
+
+  const { Settings } = fbsdk!;
+  Settings.setAppID(APP_ID);
+  Settings.setClientToken(CLIENT_TOKEN);
+  // Both must be false when the parent said no, or the SDK will attach the
+  // device advertising id to events anyway.
+  Settings.setAdvertiserTrackingEnabled(trackingAllowed);
+  Settings.setAdvertiserIDCollectionEnabled(trackingAllowed);
+  Settings.initializeSDK();
+  initialized = true;
+}
 
 /**
  * Ask for App Tracking Transparency (iOS 14.5+) and start the SDK with the
@@ -46,28 +101,14 @@ let initialized = false;
  */
 export async function initAttribution(): Promise<void> {
   if (!fbsdk || initialized) return;
-  initialized = true;
+  if (initialization) return initialization;
 
-  let trackingAllowed = Platform.OS !== 'ios';
-  if (Platform.OS === 'ios') {
-    try {
-      const { requestTrackingPermissionsAsync } = await import('expo-tracking-transparency');
-      const { granted } = await requestTrackingPermissionsAsync();
-      trackingAllowed = granted;
-    } catch {
-      // No ATT module or the prompt failed — stay on the conservative default.
-      trackingAllowed = false;
-    }
+  initialization = initializeAttribution();
+  try {
+    await initialization;
+  } finally {
+    initialization = null;
   }
-
-  const { Settings } = fbsdk;
-  Settings.setAppID(APP_ID);
-  Settings.setClientToken(CLIENT_TOKEN);
-  // Both must be false when the parent said no, or the SDK will attach the
-  // device advertising id to events anyway.
-  Settings.setAdvertiserTrackingEnabled(trackingAllowed);
-  Settings.setAdvertiserIDCollectionEnabled(trackingAllowed);
-  Settings.initializeSDK();
 }
 
 /**
