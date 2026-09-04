@@ -55,6 +55,12 @@ export const fonts = {
   black: 'Nunito_900Black',
 } as const;
 
+// Keep the default UI comfortably readable while preserving the user's
+// additional Dynamic Type / font-size setting from iOS and Android.
+export const typography = {
+  scale: 1.1,
+} as const;
+
 export type FontWeight = keyof typeof fonts;
 
 export const shadows = {

@@ -12,7 +12,7 @@ import {
   type ChildProfile,
 } from '@littleloop/shared';
 import { Button, Card, ChildAvatar, DailyLimitPopup, SectionLabel, Txt } from '@/components';
-import { colors, fonts, radii } from '@/theme/tokens';
+import { colors, fonts, radii, typography } from '@/theme/tokens';
 import { api, ApiError, apiConfigured } from '@/lib/api';
 import { updateChildProfile as saveChildProfile } from '@/features/family/updateChildProfile';
 import { syncFamilyPlaylists } from '@/features/family/playlistSync';
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 18,
     fontFamily: fonts.extrabold,
-    fontSize: 16,
+    fontSize: 16 * typography.scale,
     color: colors.ink,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },

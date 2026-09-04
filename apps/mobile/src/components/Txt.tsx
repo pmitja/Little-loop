@@ -1,5 +1,5 @@
 import { Text, type TextProps, type TextStyle } from 'react-native';
-import { colors, fonts, type FontWeight } from '@/theme/tokens';
+import { colors, fonts, typography, type FontWeight } from '@/theme/tokens';
 
 interface TxtProps extends TextProps {
   weight?: FontWeight;
@@ -16,15 +16,16 @@ export function Txt({
   color = colors.ink,
   center,
   lineHeight,
+  allowFontScaling = true,
   style,
   ...rest
 }: TxtProps) {
   const base: TextStyle = {
     fontFamily: fonts[weight],
-    fontSize: size,
+    fontSize: size * typography.scale,
     color,
     ...(center ? { textAlign: 'center' } : null),
-    ...(lineHeight ? { lineHeight } : null),
+    ...(lineHeight ? { lineHeight: lineHeight * typography.scale } : null),
   };
-  return <Text style={[base, style]} {...rest} />;
+  return <Text allowFontScaling={allowFontScaling} style={[base, style]} {...rest} />;
 }

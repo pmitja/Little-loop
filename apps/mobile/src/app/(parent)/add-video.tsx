@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { extractYouTubeId, type VideoMeta } from '@littleloop/shared';
 import { Button, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
-import { colors, radii } from '@/theme/tokens';
+import { colors, radii, typography } from '@/theme/tokens';
 import { previewVideo, VideoPreviewError, VIDEO_ERROR_MESSAGES } from '@/lib/videos';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: 'Nunito_700Bold',
-    fontSize: 14,
+    fontSize: 14 * typography.scale,
     color: colors.ink,
     paddingVertical: 12,
   },
