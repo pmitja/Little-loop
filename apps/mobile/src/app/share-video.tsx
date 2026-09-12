@@ -12,6 +12,7 @@ import {
 import { AppDialogHost, Button, ChildAvatar, ParentHeader, ScreenContainer, SectionLabel, Txt } from '@/components';
 import { colors, radii, shadows } from '@/theme/tokens';
 import { previewVideo, VideoPreviewError, VIDEO_ERROR_MESSAGES } from '@/lib/videos';
+import { recordHappyMoment } from '@/lib/review';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
 import { commitApprovedVideo } from '@/features/family/playlistSync';
@@ -115,6 +116,7 @@ export default function ShareVideo() {
       setPhase({ kind: 'error', message: `${child.nickname} already has this video.` });
       return;
     }
+    if (approveImmediately) recordHappyMoment();
     setPhase({
       kind: 'added',
       video: phase.video,

@@ -9,9 +9,9 @@ import { storage } from './storage';
  * Apple only shows the system sheet three times per user per year and gives us
  * no signal about whether it appeared, so a raw requestReview() call is easy to
  * waste. This module spends those calls deliberately: only after the parent has
- * had a few good moments, only once per app version, and never twice inside the
- * cooldown. Guideline 1.1.7 forbids a custom star prompt of our own, so there is
- * no pre-prompt here — the only dialog is Apple's.
+ * had a few good moments and never twice inside the cooldown. Guideline 1.1.7
+ * forbids a custom star prompt of our own, so there is no pre-prompt here — the
+ * only dialog is Apple's.
  */
 
 const APP_STORE_ID = '6792684159';
@@ -27,18 +27,26 @@ const PROMPT_DELAY_MS = 1200;
 interface ReviewState {
   happyMoments: number;
   lastPromptedAt: number | null;
-  /** Apple resets its own quota per version; never ask twice on the same one. */
-  lastPromptedVersion: string | null;
+  /** Requests made, not prompts shown; Apple does not tell us whether it displayed one. */
+  promptAttempts: number;
 }
 
-const EMPTY: ReviewState = { happyMoments: 0, lastPromptedAt: null, lastPromptedVersion: null };
-
-const appVersion = Constants.expoConfig?.version ?? '0.0.0';
+const EMPTY: ReviewState = { happyMoments: 0, lastPromptedAt: null, promptAttempts: 0 };
 
 async function read(): Promise<ReviewState> {
   try {
     const raw = await storage.getItem(STORAGE_KEY);
-    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<ReviewState>) } : EMPTY;
+    if (!raw) return EMPTY;
+    const stored = JSON.parse(raw) as Partial<ReviewState> & {
+      lastPromptedVersion?: string | null;
+    };
+    return {
+      happyMoments: stored.happyMoments ?? 0,
+      lastPromptedAt: stored.lastPromptedAt ?? null,
+      // Older versions stored only the date and app version. Preserve that
+      // request as attempt one instead of resetting an existing user's cadence.
+      promptAttempts: stored.promptAttempts ?? (stored.lastPromptedAt ? 1 : 0),
+    };
   } catch {
     return EMPTY;
   }
@@ -53,9 +61,7 @@ async function write(state: ReviewState): Promise<void> {
 }
 
 function isDue(state: ReviewState): boolean {
-  if (state.lastPromptedVersion === appVersion) return false;
-  const asksSoFar = state.lastPromptedAt ? 1 : 0;
-  const threshold = HAPPY_MOMENTS_REQUIRED + asksSoFar * HAPPY_MOMENTS_BETWEEN;
+  const threshold = HAPPY_MOMENTS_REQUIRED + state.promptAttempts * HAPPY_MOMENTS_BETWEEN;
   if (state.happyMoments < threshold) return false;
   if (state.lastPromptedAt && Date.now() - state.lastPromptedAt < COOLDOWN_DAYS * 86_400_000) {
     return false;
@@ -83,9 +89,13 @@ export function recordHappyMoment(): void {
       await write(next);
       return;
     }
-    // Written before the request: if the sheet does appear we must not ask
-    // again, and Apple never tells us either way.
-    await write({ ...next, lastPromptedAt: Date.now(), lastPromptedVersion: appVersion });
+    // Written before the request: Apple never tells us whether the sheet
+    // appeared, so cadence is based on attempts rather than displayed prompts.
+    await write({
+      ...next,
+      lastPromptedAt: Date.now(),
+      promptAttempts: next.promptAttempts + 1,
+    });
     setTimeout(() => {
       StoreReview.requestReview().catch(() => {});
     }, PROMPT_DELAY_MS);
