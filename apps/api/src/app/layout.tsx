@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
+import { SiteHeader } from '@/components/SiteHeader';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://littleloopapp.com'),
+  metadataBase: new URL('https://www.littleloopapp.com'),
   title: {
-    default: 'LittleLoop — You choose what they watch',
-    template: '%s — LittleLoop',
+    default: 'LittleLoop | You choose what they watch',
+    template: '%s | LittleLoop',
   },
   description:
     'A parent-controlled video player where children can watch only the videos you choose, for exactly as long as you allow.',
   openGraph: {
-    title: 'LittleLoop — You choose what they watch',
+    title: 'LittleLoop | You choose what they watch',
     description:
       'Share a video to LittleLoop, choose a child, and build a calm, parent-approved loop.',
     type: 'website',
@@ -21,13 +22,13 @@ export const metadata: Metadata = {
         url: '/marketing/little-loop-opengraph.png',
         width: 1536,
         height: 1024,
-        alt: 'LittleLoop — parent-approved videos, screen-time limits, PIN protection, and caregiver sharing.',
+        alt: 'LittleLoop | parent-approved videos, screen-time limits, PIN protection, and caregiver sharing.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LittleLoop — You choose what they watch',
+    title: 'LittleLoop | You choose what they watch',
     description:
       'Share a video to LittleLoop, choose a child, and build a calm, parent-approved loop.',
     images: ['/marketing/little-loop-opengraph.png'],
@@ -37,7 +38,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <a className="skip-link" href="#page-content">Skip to content</a>
+        <SiteHeader />
+        <div id="page-content" tabIndex={-1}>{children}</div>
+      </body>
     </html>
   );
 }

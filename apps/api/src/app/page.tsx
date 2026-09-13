@@ -1,8 +1,11 @@
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { MarketingAnimations } from '@/components/MarketingAnimations';
+import { APP_STORE_URL } from '@/content/site';
 
-const APP_STORE_URL =
-  'https://apps.apple.com/si/app/littleloop-parent-playlists/id6792684159?l=sl&platform=ipad';
+export const metadata: Metadata = {
+  alternates: { canonical: 'https://www.littleloopapp.com' },
+};
 
 const Check = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.2 3.6 3.6L16 5.9" /></svg>
@@ -64,7 +67,7 @@ function StoreButtons({ centered = false }: { centered?: boolean }) {
         <Apple />
         <span><small>Download on the</small><strong>App Store</strong></span>
       </a>
-      <span className="store-badge store-badge-disabled" role="button" aria-disabled="true" aria-label="LittleLoop on Google Play — coming soon">
+      <span className="store-badge store-badge-disabled" aria-label="LittleLoop on Google Play, coming soon">
         <GooglePlay />
         <span><small>GET IT ON</small><strong>Google Play</strong></span>
       </span>
@@ -100,17 +103,6 @@ export default function MarketingPage() {
   return (
     <main>
       <MarketingAnimations />
-      <a className="skip-link" href="#content">Skip to content</a>
-
-      <header className="site-header">
-        <a href="#top" className="brand-link"><Brand /></a>
-        <nav aria-label="Main navigation">
-          <a href="#how-it-works">How it works</a>
-          <a href="#family">For families</a>
-          <a href="#safety">Safety</a>
-        </nav>
-        <a className="button button-small" href="#early-access">Get early access <Arrow /></a>
-      </header>
 
       <section className="hero" id="top">
         <div className="hero-glow hero-glow-one" />
@@ -119,12 +111,11 @@ export default function MarketingPage() {
           <div className="eyebrow"><span className="status-dot" /> Built for little watchers. Controlled by you.</div>
           <h1>They tap.<br /><span>You choose</span> what comes next.</h1>
           <p className="hero-lede">
-            Kids can click through videos faster than you can check them. LittleLoop replaces the
-            endless feed with one calm playlist made entirely by you.
+            Choose the YouTube videos. Set a time limit. Let your child watch the list you approved.
           </p>
           <div className="hero-actions">
-            <a className="button" href="#how-it-works">See how it works <Arrow /></a>
-            <a className="text-link" href="#safety"><span className="icon-circle"><Lock /></span> Why parents feel in control</a>
+            <a className="button" href={APP_STORE_URL}>Download app <Arrow /></a>
+            <a className="text-link" href="#how-it-works"><span className="icon-circle"><Play /></span> See how it works</a>
           </div>
           <StoreButtons />
           <div className="trust-row" aria-label="LittleLoop benefits">
@@ -166,16 +157,16 @@ export default function MarketingPage() {
       <section className="pain-section" id="safety">
         <div className="section-kicker light">THE REAL PROBLEM</div>
         <div className="pain-heading" data-reveal>
-          <h2>You can&apos;t preview an<br /><span>endless feed.</span></h2>
+          <h2>You can&apos;t preview <span>an endless feed.</span></h2>
           <p>
-            YouTube Kids offers a huge world of video. But recommendations are still recommendations —
-            not your personal choices. And most parents don&apos;t have time to verify every possible next tap.
+            A recommendation isn&apos;t a video you&apos;ve checked. With an open feed, the next tap can lead
+            somewhere you haven&apos;t reviewed.
           </p>
         </div>
         <div className="contrast-grid" data-stagger>
           <article className="contrast-card contrast-before" data-stagger-item>
             <div className="contrast-top"><span className="contrast-icon"><Play /></span><span>OPEN VIDEO FEED</span></div>
-            <h3>“What did they click now?”</h3>
+            <h3>"What did they click now?"</h3>
             <div className="feed-stack">
               <span className="feed-card feed-one" /><span className="feed-card feed-two" /><span className="feed-card feed-three" />
               <span className="feed-question">?</span>
@@ -183,12 +174,12 @@ export default function MarketingPage() {
             <ul>
               <li><span>×</span> New suggestions keep appearing</li>
               <li><span>×</span> Every next tap needs another check</li>
-              <li><span>×</span> “One more” can keep going</li>
+              <li><span>×</span> "One more" can keep going</li>
             </ul>
           </article>
           <article className="contrast-card contrast-after" data-stagger-item>
             <div className="contrast-top"><span className="contrast-icon"><Lock /></span><span>THE LITTLELOOP WAY</span></div>
-            <h3>“I chose every video here.”</h3>
+            <h3>"I chose every video here."</h3>
             <div className="loop-stack">
               <span className="loop-video loop-blue"><Check /></span>
               <span className="loop-video loop-yellow"><Check /></span>
@@ -297,8 +288,8 @@ export default function MarketingPage() {
         <Image src="/marketing/star.png" alt="LittleLoop star character" width={160} height={160} />
         <div>
           <div className="section-kicker">THE LITTLELOOP PROMISE</div>
-          <blockquote>“If it&apos;s not in the loop,<br />they can&apos;t tap into it.”</blockquote>
-          <p>A small, understandable world of video — made by the person who knows them best.</p>
+          <blockquote>If it&apos;s not in the loop,<br />they can&apos;t tap into it.</blockquote>
+          <p>A list of videos you&apos;ve chosen, ready for your child to watch.</p>
         </div>
         <div className="promise-list">
           <span><Check /> Parent-approved videos</span><span><Check /> Separate child profiles</span><span><Check /> Daily time limits</span><span><Check /> Shared caregiver access</span>
@@ -308,18 +299,17 @@ export default function MarketingPage() {
       <section className="final-cta" id="early-access">
         <div className="final-cloud cloud-one" /><div className="final-cloud cloud-two" />
         <Image className="cta-character" src="/marketing/rocket.png" alt="LittleLoop rocket character" width={220} height={220} />
-        <div className="section-kicker">COMING SOON</div>
-        <h2>Less wondering.<br />More <span>“I chose that.”</span></h2>
-        <p>LittleLoop is getting ready for families who want a calmer, more intentional way to watch.</p>
+        <div className="section-kicker">AVAILABLE ON THE APP STORE</div>
+        <h2>Make their first <span>LittleLoop.</span></h2>
+        <p>Add the videos you want them to watch. Set a limit, then hand over the player.</p>
         <StoreButtons centered />
-        <a className="early-access-link" href="mailto:hello@littleloopapp.com?subject=LittleLoop%20early%20access">Or ask for early access <Arrow /></a>
-        <small>For parents and caregivers · iOS &amp; Android</small>
+        <small>Available for iPhone and iPad</small>
       </section>
 
       <footer>
         <a href="#top" className="brand-link"><Brand /></a>
         <p>Small loops. Big peace of mind.</p>
-        <div><a href="/privacy">Privacy</a><a href="mailto:hello@littleloopapp.com">Contact</a><span>© 2026 LittleLoop</span></div>
+        <div><a href="/guides">Guides</a><a href="/privacy">Privacy</a><a href="mailto:hello@littleloopapp.com">Contact</a><span>© 2026 LittleLoop</span></div>
       </footer>
     </main>
   );

@@ -37,8 +37,7 @@ export function MarketingAnimations() {
               });
 
               hero
-                .from('.site-header', { autoAlpha: 0, y: -18, duration: 0.55 })
-                .from('.hero-copy > *', { autoAlpha: 0, y: 24, stagger: 0.075 }, '-=0.28')
+                .from('.hero-copy > *', { autoAlpha: 0, y: 24, stagger: 0.075 })
                 .from('.hero-visual', { autoAlpha: 0, y: 46, scale: 0.965, duration: 1 }, '-=0.78')
                 .from('.float-note', { autoAlpha: 0, y: 18, stagger: 0.12 }, '-=0.42')
                 .from('.hero-bear', { autoAlpha: 0, y: 20, rotation: -12 }, '-=0.58');
