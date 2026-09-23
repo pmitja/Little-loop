@@ -1,10 +1,10 @@
-import { devices, securityEvents, watchSessions } from '@littleloop/db';
+import { devices } from '@littleloop/db';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth';
-import { handle, HttpError, json, parseBody } from '@/lib/http';
+import { handle, json, parseBody } from '@/lib/http';
 import { requireChildProfile } from '@/lib/ownership';
-import { secondsWatchedToday } from '@/lib/sessions';
+import { startWatchSession } from '@/lib/sessions';
 
 const startSchema = z.object({
   childProfileId: z.string().uuid(),
@@ -20,56 +20,19 @@ export const POST = handle(async (req) => {
   const body = await parseBody(req, startSchema);
   const child = await requireChildProfile(db, user!.id, body.childProfileId);
 
-  const existing = body.clientSessionId
-    ? await db.query.watchSessions.findFirst({
-        where: eq(watchSessions.clientSessionId, body.clientSessionId),
-      })
-    : null;
-  if (existing) {
-    if (existing.childProfileId !== child.id) {
-      throw new HttpError(409, 'SESSION_ID_CONFLICT', 'Session id is already in use');
-    }
-    return json({
-      sessionId: existing.id,
-      secondsWatchedToday: await secondsWatchedToday(db, child.id, body.tzOffsetMinutes),
-      dailyLimitMinutes: child.dailyLimitMinutes,
-    });
-  }
-
   const device = await db.query.devices.findFirst({
     where: and(eq(devices.userId, user!.id), eq(devices.installId, body.installId)),
     columns: { id: true },
   });
 
-  const [session] = await db
-    .insert(watchSessions)
-    .values({
-      childProfileId: child.id,
-      clientSessionId: body.clientSessionId,
-      deviceId: device?.id,
-      startedAt: (() => {
-        const requested = body.startedAt ? new Date(body.startedAt) : new Date();
-        const oldest = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        return requested.getTime() >= oldest && requested.getTime() <= Date.now()
-          ? requested
-          : new Date();
-      })(),
-    })
-    .returning();
-
-  await db.insert(securityEvents).values({
-    userId: user!.id,
-    deviceId: device?.id,
-    type: 'child_mode_enter',
-    metadata: { childProfileId: child.id },
+  const { status, body: result } = await startWatchSession(db, {
+    childProfileId: child.id,
+    dailyLimitMinutes: child.dailyLimitMinutes,
+    clientSessionId: body.clientSessionId,
+    startedAt: body.startedAt,
+    tzOffsetMinutes: body.tzOffsetMinutes,
+    deviceId: device?.id ?? null,
+    actorUserId: user!.id,
   });
-
-  return json(
-    {
-      sessionId: session.id,
-      secondsWatchedToday: await secondsWatchedToday(db, child.id, body.tzOffsetMinutes),
-      dailyLimitMinutes: child.dailyLimitMinutes,
-    },
-    201,
-  );
+  return json(result, status);
 });

@@ -328,6 +328,58 @@ export const devices = pgTable(
   (t) => [uniqueIndex('uq_device_install').on(t.userId, t.installId)],
 );
 
+// A child's own phone/tablet, locked to one child profile. It never holds a
+// parent session: it authenticates with a bearer token scoped to that child
+// (only the hash is stored). Revoking (unpair) is done from a parent device.
+export const childDevices = pgTable(
+  'child_devices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familyId: uuid('family_id')
+      .notNull()
+      .references(() => families.id, { onDelete: 'cascade' }),
+    childProfileId: uuid('child_profile_id')
+      .notNull()
+      .references(() => childProfiles.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    platform: text('platform', { enum: ['ios', 'android'] }).notNull(),
+    installId: text('install_id').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    pairedByUserId: uuid('paired_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('idx_child_devices_family').on(t.familyId),
+    index('idx_child_devices_child').on(t.childProfileId),
+  ],
+);
+
+// Kid-initiated pairing: the kid device shows a short code, a parent device
+// claims it for one child. The kid holds a secret (only its hash is stored)
+// that becomes its device token once claimed — the raw token never persists.
+export const devicePairingSessions = pgTable(
+  'device_pairing_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    codeHash: text('code_hash').notNull(),
+    secretHash: text('secret_hash').notNull().unique(),
+    deviceName: text('device_name').notNull(),
+    platform: text('platform', { enum: ['ios', 'android'] }).notNull(),
+    installId: text('install_id').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    childDeviceId: uuid('child_device_id').references(() => childDevices.id, {
+      onDelete: 'cascade',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('idx_pairing_sessions_code').on(t.codeHash)],
+);
+
 export const watchSessions = pgTable(
   'watch_sessions',
   {
@@ -337,6 +389,9 @@ export const watchSessions = pgTable(
       .notNull()
       .references(() => childProfiles.id, { onDelete: 'cascade' }),
     deviceId: uuid('device_id').references(() => devices.id),
+    childDeviceId: uuid('child_device_id').references(() => childDevices.id, {
+      onDelete: 'set null',
+    }),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
     endedAt: timestamp('ended_at', { withTimezone: true }),
     totalSeconds: integer('total_seconds').notNull().default(0),

@@ -71,6 +71,13 @@
       "when": 1784734387902,
       "tag": "0009_lovely_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790156510304,
+      "tag": "0010_kid_devices",
+      "breakpoints": true
     }
   ]
 }
