@@ -51,6 +51,7 @@ export function ScreenContainer({
         style,
         safeTopStyle,
         safeBottomStyle,
+        { flexGrow: 1 },
       ]}
       showsVerticalScrollIndicator={false}
     >

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { formatDuration, type PlaylistVideo } from '@littleloop/shared';
-import { colors, radii, shadows } from '@/theme/tokens';
+import { colors, radii, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 interface VideoRowProps {
@@ -65,7 +65,7 @@ export function VideoRow({ item, onRemove, onDragStart, dragging }: VideoRowProp
 
 export function PlusIcon({ color = '#FFFFFF', size = 22 }: { color?: string; size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 22 22">
+    <Svg width={scaleUi(size)} height={scaleUi(size)} viewBox="0 0 22 22">
       <Path
         d="M11 4 V18 M4 11 H18"
         stroke={color}

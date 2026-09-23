@@ -27,12 +27,12 @@ const TABS: Record<string, { label: string; icon: (active: boolean) => React.Rea
 };
 
 /** Custom parent-zone tab bar matching s10: Home · Playlist · Activity · Settings. */
-export function TabBar({ state, navigation }: BottomTabBarProps) {
+export function TabBar({ state, navigation, sidebar = false }: BottomTabBarProps & { sidebar?: boolean }) {
   const insets = useSafeAreaInsets();
   const childId = useAppStore(s => s.activeChildProfileId);
   const pending = usePlaylistVideos(childId).filter((video) => video.status === 'review').length;
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={[styles.bar, { paddingBottom: sidebar ? 12 : Math.max(insets.bottom, 12) }, sidebar && styles.sidebar]}>
       {state.routes.map((route, index) => {
         const tab = TABS[route.name];
         if (!tab) return null;
@@ -53,11 +53,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 navigation.navigate(route.name);
               }
             }}
-            style={[styles.tab, active && styles.activeTab]}
+            style={[styles.tab, sidebar && styles.sidebarTab, active && styles.activeTab]}
           >
             {tab.icon(active)}
-            {route.name === 'playlist' && pending > 0 ? <View style={styles.badge}><Txt weight="black" size={9} color="#fff">{pending}</Txt></View> : null}
-            <Txt weight="extrabold" size={10.5} color={active ? colors.primary : colors.subtle}>
+            {route.name === 'playlist' && pending > 0 ? <View style={[styles.badge, sidebar && { right: 4, top: 4 }]}><Txt weight="black" size={9} color="#fff">{pending}</Txt></View> : null}
+            <Txt weight="extrabold" size={sidebar ? 14 : 10.5} color={active ? colors.primary : colors.subtle}>
               {tab.label}
             </Txt>
           </Pressable>
@@ -68,6 +68,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 const styles = StyleSheet.create({
+  sidebar: { flexDirection: 'column', gap: 8, marginHorizontal: 10, marginBottom: 16 },
+  sidebarTab: { flex: 0, flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: 12, gap: 10, minHeight: 56 },
   bar: {
     flexDirection: 'row',
     backgroundColor: colors.card,

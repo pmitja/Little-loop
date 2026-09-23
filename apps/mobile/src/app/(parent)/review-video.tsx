@@ -85,7 +85,9 @@ export default function ReviewVideo() {
       router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: profile.nickname } });
       return;
     }
-    router.replace('/(parent)/(tabs)/playlist');
+    // Dismiss the modal back to the playlist — a replace would keep rendering
+    // the playlist inside the modal sheet, stacked over the real one.
+    router.dismissTo('/(parent)/(tabs)/playlist');
     // A video safely added is the moment this app is worth rating; the gate
     // decides whether this particular one is the ask.
     recordHappyMoment();
@@ -108,8 +110,11 @@ export default function ReviewVideo() {
   };
 
   return (
-    <ScreenContainer style={styles.container}>
-      <ParentHeader title="Review video" onBack={() => router.back()} />
+    <ScreenContainer scroll style={styles.container}>
+      <ParentHeader
+        title="Review video"
+        onClose={() => router.dismissTo('/(parent)/(tabs)/playlist')}
+      />
 
       <Card radius={radii.cardLg} padding={14} large style={styles.previewCard}>
         <View style={styles.thumbWrap}>
@@ -165,7 +170,12 @@ export default function ReviewVideo() {
 
       <View style={{ flex: 1 }} />
       <Button title="Add to Playlist" disabled={!approved} loading={saving} onPress={() => void onAdd()} />
-      <Button title="Cancel" variant="ghost" size="md" onPress={() => router.back()} />
+      <Button
+        title="Cancel"
+        variant="ghost"
+        size="md"
+        onPress={() => router.dismissTo('/(parent)/(tabs)/playlist')}
+      />
     </ScreenContainer>
   );
 }

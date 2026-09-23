@@ -8,7 +8,7 @@ export default function FirstVideo() {
   const router = useRouter();
 
   return (
-    <ScreenContainer style={styles.root}>
+    <ScreenContainer scroll style={styles.root}>
       <Txt weight="black" size={12} color={colors.primaryDark} center style={styles.stepLabel}>STEP 3 OF 3</Txt>
       <StoryIllustration scene="add-video" width={220} style={styles.art} />
       <Txt weight="black" size={26} center>

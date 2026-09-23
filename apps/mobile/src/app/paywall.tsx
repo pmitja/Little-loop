@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FREE_LIMITS } from '@littleloop/shared';
 import { AppDialogHost, AppIcon, showAppAlert, Txt, ScreenContainer, type AppIconName } from '@/components';
-import { colors } from '@/theme/tokens';
+import { colors, scaleUi } from '@/theme/tokens';
 import {
   getPlans,
   purchasePlan,
@@ -15,28 +15,37 @@ import {
 import { usePremium } from '@/stores/entitlementStore';
 import { useAppStore } from '@/stores/appStore';
 
+/**
+ * Every row here must name something the free plan actually withholds — the four
+ * `usePremium()` gates in the app: the playlist cap, channel approval, a second
+ * child profile and caregiver sharing. PIN-locked child mode, daily limits,
+ * bedtime and the activity view are free, so they belong in `FREE_NOTE`, not here.
+ */
 const BENEFITS: { icon: AppIconName; title: string; detail: string }[] = [
   {
-    icon: 'pin',
-    title: 'Hand over your phone with confidence',
-    detail: 'PIN-locked child mode shows only the videos you approved.',
+    icon: 'videos',
+    title: 'Add all their favourites',
+    detail: `Go past the ${FREE_LIMITS.videosPerPlaylist}-video limit and approve as many as you like.`,
   },
   {
-    icon: 'add-video',
+    icon: 'channels',
     title: 'Approve whole channels',
-    detail: 'New videos from creators you trust arrive automatically — always reviewed by you first.',
+    detail: 'New uploads from creators you trust arrive automatically — always reviewed by you first.',
   },
   {
     icon: 'profile',
-    title: 'Care together',
-    detail: 'Invite another caregiver to help manage playlists and limits.',
+    title: 'A profile for every child',
+    detail: 'Give each child their own playlist, daily limit and bedtime.',
   },
   {
-    icon: 'time',
-    title: 'See the whole picture',
-    detail: 'Know what they watched and how their screen time adds up.',
+    icon: 'parent-hq',
+    title: 'Care together',
+    detail: 'Invite another grown-up to help manage playlists and limits.',
   },
 ];
+
+const FREE_NOTE =
+  'PIN-locked child mode, daily limits, bedtime and activity stay free — always.';
 
 function BenefitRow({ icon, title, detail }: (typeof BENEFITS)[number]) {
   return (
@@ -198,7 +207,7 @@ export default function Paywall() {
           ))}
           <View style={styles.moreRow}>
             <Txt weight="black" size={11.5} color={colors.child.sun} center>
-              Plus unlimited videos, multiple playlists, and up to 4 child profiles
+              {FREE_NOTE}
             </Txt>
           </View>
         </View>
@@ -318,8 +327,8 @@ const styles = StyleSheet.create({
   },
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   benefitIcon: {
-    width: 38,
-    height: 38,
+    width: scaleUi(38),
+    height: scaleUi(38),
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,.14)',
     alignItems: 'center',

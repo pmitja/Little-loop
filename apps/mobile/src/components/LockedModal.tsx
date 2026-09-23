@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { colors, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 import { Button } from './Button';
@@ -32,9 +32,9 @@ interface LockedModalProps {
 /** s15 — "Ask a parent" modal for any protected interaction in child mode. */
 export function LockedModal({ visible, onDismiss, onParentUnlock }: LockedModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']} visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <ScrollView style={styles.card} contentContainerStyle={styles.cardContent} bounces={false}>
           <View style={styles.iconBox}>
             <LockGlyph />
           </View>
@@ -50,7 +50,7 @@ export function LockedModal({ visible, onDismiss, onParentUnlock }: LockedModalP
               Parent unlock
             </Txt>
           </Pressable>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -65,15 +65,16 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   card: {
-    alignSelf: 'stretch',
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '100%',
+    flexGrow: 0,
     backgroundColor: colors.card,
     borderRadius: 28,
-    paddingVertical: 30,
-    paddingHorizontal: 26,
-    alignItems: 'center',
     ...shadows.cardLg,
     shadowOpacity: 0.3,
   },
+  cardContent: { paddingVertical: 30, paddingHorizontal: 26, alignItems: 'center' },
   iconBox: {
     width: 64,
     height: 64,

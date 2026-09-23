@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, shadows } from '@/theme/tokens';
+import { colors, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 export type ButtonVariant = 'primary' | 'coral' | 'outline' | 'ghost';
@@ -25,7 +25,7 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const HEIGHTS: Record<ButtonSize, number> = { lg: 56, md: 48 };
+const HEIGHTS: Record<ButtonSize, number> = { lg: scaleUi(56), md: scaleUi(48) };
 
 export function Button({
   title,

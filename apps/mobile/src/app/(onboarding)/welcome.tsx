@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StoryIllustration, Txt } from '@/components';
@@ -26,10 +27,14 @@ const PAGES = [
 /** Onboarding promise pager (concept §09): sky gradient, mascot circle, one idea per page. */
 export default function Welcome() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const { isTablet } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ x: page * width, animated: false });
+  }, [width, page]);
   const { isSignedIn } = useAuthStatus();
   const setOnboardingComplete = useAppStore((s) => s.setOnboardingComplete);
 
@@ -60,15 +65,15 @@ export default function Welcome() {
         style={{ flex: 1, marginTop: insets.top }}
       >
         {PAGES.map((p) => (
-          <View key={p.title} style={[styles.page, { width }]}>
-            <StoryIllustration scene={p.art} width={Math.min(width - 48, 320)} style={styles.mascotStage} />
+          <ScrollView key={p.title} style={{ width }} contentContainerStyle={[styles.page, { minHeight: Math.max(0, height - insets.top - insets.bottom - 160) }]} showsVerticalScrollIndicator={false}>
+            <StoryIllustration scene={p.art} width={Math.min(width - 48, height * 0.38, 320)} style={styles.mascotStage} />
             <Txt weight="black" size={26} color={colors.parent.night} center lineHeight={31} style={styles.title}>
               {p.title}
             </Txt>
             <Txt weight="semibold" size={14.5} color="#2E5566" center lineHeight={21.75} style={styles.body}>
               {p.body}
             </Txt>
-          </View>
+          </ScrollView>
         ))}
       </ScrollView>
       <View style={styles.dots}>
@@ -82,7 +87,7 @@ export default function Welcome() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 22 }]}>
         <Pressable
           onPress={() => (isLast ? finish() : goTo(page + 1))}
-          style={({ pressed }) => [styles.cta, shadows.coralButton, pressed && { opacity: 0.9 }]}
+          style={({ pressed }) => [styles.cta, isTablet && { width: '100%', maxWidth: 512, alignSelf: 'center' }, shadows.coralButton, pressed && { opacity: 0.9 }]}
         >
           <Txt weight="black" size={16} color="#fff">{PAGES[page].cta}</Txt>
         </Pressable>
@@ -100,7 +105,7 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  page: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, gap: 16 },
+  page: { flexGrow: 1, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, gap: 16 },
   mascotStage: { marginBottom: 12, borderRadius: 32 },
   title: { maxWidth: 280 },
   body: { maxWidth: 280 },

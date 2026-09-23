@@ -1,3 +1,4 @@
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +16,7 @@ import { useTimerStore } from '@/stores/timerStore';
 
 export default function WhosWatching() {
   const router = useRouter();
+  const { isTablet } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const profiles = useAppStore((s) => s.childProfiles);
   const premium = usePremium();
@@ -111,7 +113,7 @@ export default function WhosWatching() {
           </Txt>
         </View>
 
-        <View style={styles.profileGrid}>
+        <View style={[styles.profileGrid, isTablet && { width: '100%', maxWidth: 600 }]}>
           {profiles.map((profile) => (
             <Pressable
               key={profile.id}

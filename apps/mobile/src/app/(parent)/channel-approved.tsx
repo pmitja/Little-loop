@@ -41,12 +41,14 @@ export default function ChannelApproved() {
 
   const done = () => {
     clear();
-    router.back();
+    // The review sheet was replaced by this one, so back would land on a stale
+    // add-video modal — dismiss the whole sheet instead.
+    router.dismissTo('/(parent)/(tabs)/playlist');
   };
 
   return (
-    <ScreenContainer style={styles.container}>
-      <ParentHeader title="Channel approved" onBack={done} />
+    <ScreenContainer scroll style={styles.container}>
+      <ParentHeader title="Channel approved" onClose={done} />
       <Txt weight="semibold" size={13.5} color={colors.parent.muted} lineHeight={19} style={styles.intro}>
         {channelTitle ? `${channelTitle}’s ` : ''}popular videos — add any to {name}’s playlist now.
         New uploads will arrive for your review automatically.

@@ -179,7 +179,13 @@ export function DurationPickerContent({
 /** Hours + minutes wheels for a custom daily limit (5 min – 4 hr). */
 export function DurationPicker({ visible, initialMinutes, onCancel, onConfirm }: DurationPickerProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']}
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View style={styles.backdrop}>
         <DurationPickerContent
           active={visible}
@@ -201,7 +207,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   card: {
-    alignSelf: 'stretch',
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: colors.card,
     borderRadius: radii.cardXl,
     paddingVertical: 28,

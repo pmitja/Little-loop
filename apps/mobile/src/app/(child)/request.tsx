@@ -65,7 +65,7 @@ export default function ChildRequest() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[{ width: '100%', maxWidth: 560, alignSelf: 'center' },styles.content, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>

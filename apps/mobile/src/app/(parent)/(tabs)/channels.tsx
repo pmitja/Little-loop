@@ -1,8 +1,8 @@
+import { ScreenContainer } from '@/components/ScreenContainer';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon, ParentHeader, showAppAlert, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
@@ -10,7 +10,6 @@ import { listChannels, removeChannel, type ApprovedChannel } from '@/features/ch
 
 /** Manage the channels a parent has approved for the active child (PLAN §12). */
 export default function ChannelsTab() {
-  const insets = useSafeAreaInsets();
   const profile = useAppStore(
     (s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
@@ -58,7 +57,7 @@ export default function ChannelsTab() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
+    <ScreenContainer padded={false} style={{ paddingTop: 12 }}>
       <View style={styles.header}>
         <ParentHeader
           title="Channels"
@@ -117,7 +116,7 @@ export default function ChannelsTab() {
           </View>
         )}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 

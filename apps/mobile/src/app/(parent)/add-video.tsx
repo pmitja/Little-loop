@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -44,7 +42,9 @@ export default function AddVideo() {
     if (result === 'limit') { router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: profile.nickname } }); return; }
     if (result === 'duplicate') { setError('This video is already in the playlist.'); return; }
     const created = usePlaylistStore.getState().videosByChild[profile.id]?.find((v) => v.video.providerVideoId === video.providerVideoId);
-    router.push({
+    // Replace, not push: the review sheet takes over this modal instead of
+    // stacking a second one on top of it.
+    router.replace({
       pathname: '/(parent)/review-video',
       params: { video: JSON.stringify(video), entryId: created?.id },
     });
@@ -74,12 +74,12 @@ export default function AddVideo() {
   };
 
   return (
-    <ScreenContainer style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
-        <ParentHeader title="Add Video" onBack={() => router.back()} />
+    <ScreenContainer scroll style={styles.container}>
+
+        <ParentHeader
+          title="Add Video"
+          onClose={() => router.dismissTo('/(parent)/(tabs)/playlist')}
+        />
         <SectionLabel style={styles.label}>Paste video link</SectionLabel>
         <View style={[styles.inputWrap, error ? styles.inputError : null]}>
           <PlayBadge />
@@ -137,7 +137,7 @@ export default function AddVideo() {
           onPress={onSubmit}
           style={styles.cta}
         />
-      </KeyboardAvoidingView>
+
     </ScreenContainer>
   );
 }

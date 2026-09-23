@@ -1,3 +1,17 @@
+import * as Device from 'expo-device';
+
+// Tablets are held farther away and have room to spare, so type, icons and the
+// control boxes around them all go up a notch there. deviceType is a
+// synchronous native constant, so this resolves once at module load.
+const TABLET_SCALE = 1.15;
+const isTabletDevice = Device.deviceType === Device.DeviceType.TABLET;
+
+/** Icons, glyphs and touch targets grow with the text on tablets. */
+export const uiScale = isTabletDevice ? TABLET_SCALE : 1;
+
+/** Rounds so scaled icon boxes stay on whole points. */
+export const scaleUi = (value: number): number => Math.round(value * uiScale);
+
 export const colors = {
   child: { sky: '#4EC3E0', skyDeep: '#16708B', sun: '#FFC93E', coral: '#C94735', grass: '#6BCB77', plum: '#7C5CBF', cream: '#FFF8EC' },
   parent: { paper: '#F4F1EB', night: '#2A3B5C', card: '#FFFFFF', hairline: '#E7E1D8', muted: '#6F6675' },
@@ -39,7 +53,16 @@ export const radii = {
   navPill: 18,
 } as const;
 
-export const controls = { iconSlot: 30, toggleW: 51, toggleH: 31, navBadge: 16, minTouchChild: 64, minTouchParent: 44 } as const;
+// Touch targets and icon slots follow the tablet bump so the chrome stays in
+// proportion with the larger type (see uiScale below).
+export const controls = {
+  iconSlot: scaleUi(30),
+  toggleW: 51,
+  toggleH: 31,
+  navBadge: scaleUi(16),
+  minTouchChild: scaleUi(64),
+  minTouchParent: scaleUi(44),
+} as const;
 
 export const spacing = {
   screenX: 24,
@@ -56,9 +79,10 @@ export const fonts = {
 } as const;
 
 // Keep the default UI comfortably readable while preserving the user's
-// additional Dynamic Type / font-size setting from iOS and Android.
+// additional Dynamic Type / font-size setting from iOS and Android; tablets get
+// the extra bump from TABLET_SCALE on top.
 export const typography = {
-  scale: 1.1,
+  scale: isTabletDevice ? 1.1 * TABLET_SCALE : 1.1,
 } as const;
 
 export type FontWeight = keyof typeof fonts;

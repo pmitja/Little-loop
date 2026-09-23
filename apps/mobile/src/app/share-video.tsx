@@ -48,7 +48,10 @@ export default function ShareVideo() {
   // reliable. Finish inside LittleLoop on the playlist that received the video.
   const close = useCallback(() => {
     leaving.current = true;
-    router.replace('/(parent)/(tabs)/playlist');
+    // Dismiss the share sheet when it sits on a stack; a bare replace would
+    // render the playlist inside the modal.
+    if (router.canDismiss()) router.dismissTo('/(parent)/(tabs)/playlist');
+    else router.replace('/(parent)/(tabs)/playlist');
     resetShareIntent();
   }, [resetShareIntent, router]);
 
@@ -129,7 +132,7 @@ export default function ShareVideo() {
   if (profiles.length === 0) {
     return (
       <ScreenContainer style={styles.root}>
-        <ParentHeader title="Add to LittleLoop" onBack={close} />
+        <ParentHeader title="Add to LittleLoop" onClose={close} />
         <View style={styles.centered}>
           <Txt size={40}>🦉</Txt>
           <Txt weight="black" size={19} style={{ marginTop: 12, textAlign: 'center' }}>
@@ -147,7 +150,7 @@ export default function ShareVideo() {
   if (phase.kind === 'added') {
     return (
       <ScreenContainer style={styles.root}>
-        <ParentHeader title="Added" onBack={close} />
+        <ParentHeader title="Added" onClose={close} />
         <View style={styles.centered}>
           <Txt size={40}>✅</Txt>
           <Txt weight="black" size={19} style={{ marginTop: 12, textAlign: 'center' }}>
@@ -171,7 +174,7 @@ export default function ShareVideo() {
   return (
     <>
       <ScreenContainer style={styles.root}>
-        <ParentHeader title="Add to LittleLoop" onBack={close} />
+        <ParentHeader title="Add to LittleLoop" onClose={close} />
 
         {phase.kind === 'resolving' ? (
           <View style={styles.centered}>

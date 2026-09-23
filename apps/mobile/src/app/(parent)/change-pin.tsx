@@ -83,7 +83,7 @@ export default function ChangePin() {
   };
 
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer scroll style={styles.container}>
       <ParentHeader title="Parent PIN" onBack={() => router.back()} />
       <View style={styles.body}>
         <Txt weight="black" size={12} color={colors.primaryDark} style={styles.stepLabel}>

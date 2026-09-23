@@ -1,6 +1,7 @@
 # Store submission checklist
 
-Status as of 2026-07-24. Covers Apple App Store + Google Play. Items marked
+Status as of 2026-09-18 (§5 iPad; everything else as of 2026-07-24). Covers
+Apple App Store + Google Play. Items marked
 **[code]** are done in the repo; **[you]** needs a console, an account, or a
 hosted URL and cannot be done from the codebase.
 
@@ -136,15 +137,47 @@ The in-app copy lives in `apps/mobile/src/app/(parent)/legal.tsx` — keep them 
 
 ## 5. Store metadata **[you]**
 
-- **iPad — deferred to 1.1, decided 2026-07-24.** `supportsTablet` stays `false`
-  for the 1.0 submission, so no iPad screenshots are required. This is a quality
-  call, not an availability one: iPhone-only apps still install and run on iPad
-  in a scaled window under a "Designed for iPhone" label. Enabling the flag alone
-  would be worse than that — only 2 of 66 components read window dimensions, no
-  list uses `numColumns`, and everything but the player is portrait-locked, so a
-  native iPad build would render as a stretched single-column phone layout.
-  Doing it properly means multi-column grids, wider max-widths, landscape
-  support, and 13" iPad screenshots.
+- **iPad — now on, as of 2026-09-18.** This supersedes the 2026-07-24 "defer to
+  1.1" call. The layout work that decision was waiting for is done: responsive
+  columns (`src/theme/layout.ts` + `useResponsiveLayout`), a sidebar instead of a
+  bottom tab bar on wide screens, multi-column video grids, a capped hero poster,
+  and a tablet type/icon scale (`uiScale` in `theme/tokens.ts`).
+
+  **Config — [code] done, nothing left to change:** `supportsTablet: true`,
+  `orientation: "default"`, `requireFullScreen: true` (no Split View — deliberate
+  for a child-handoff app). The prebuild matches: `TARGETED_DEVICE_FAMILY =
+  "1,2"` on both the app and the ShareExtension target, all four orientations in
+  `UISupportedInterfaceOrientations`, `UIRequiresFullScreen` true. Icon and
+  splash come from the same sources, so no iPad-specific art is needed. The next
+  production build therefore ships universal, and the "Designed for iPhone" label
+  goes away on its own.
+
+  **[you] — what App Store Connect still needs:**
+
+  1. **iPad screenshots — the only hard blocker.** Apple requires the **iPad
+     13-inch** set for any app that supports iPad (2064 × 2752 portrait or
+     2752 × 2064 landscape; confirm the accepted sizes in ASC at upload time,
+     Apple revises them). Up to 10 per set. Shoot them on a 13" iPad simulator —
+     child home with the hero and the grid, parent dashboard with the sidebar,
+     the playlist, and the paywall. The iPhone 6.9" set stays as it is; the two
+     sets are independent.
+  2. **Version — decided 2026-09-18: 1.1.0**, already set in
+     `apps/mobile/app.json` (1.0.3 was the iPhone-only release). iPad support is
+     the headline of this version, so "What's New" is essentially "LittleLoop now
+     runs natively on iPad". `appVersionSource: remote` means EAS still owns the
+     build number; only this marketing version is set by hand.
+  3. **Review notes:** say the app is universal and that child mode is
+     PIN-gated the same way on iPad — a reviewer testing on an iPad should get
+     the same demo account instructions. Nothing else in §3 or §6 changes.
+  4. **No change needed** to categories (Utilities / Education), age rating, App
+     Privacy labels, subscription group, or pricing — device family does not
+     touch any of them. The website copy already says "Available for iPhone and
+     iPad" (`apps/api/src/app/page.tsx`), which the universal build finally makes
+     literally true.
+
+  **Build:** `eas build -p ios --profile production` — the same command; there is
+  no iPad-specific profile or flag. Worth a device pass on a real iPad in both
+  orientations before submitting, since the review will now be done on one.
 - **Apple categories — decided 2026-07-24:** Primary **Utilities**, Secondary
   **Education**. Chosen to stay consistent with the §3 decision to present as a
   parental-control utility rather than a children's content app; that framing is

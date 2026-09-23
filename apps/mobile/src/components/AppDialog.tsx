@@ -1,7 +1,7 @@
 import { useEffect, useId } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
-import { colors, controls, shadows } from '@/theme/tokens';
+import { colors, controls, scaleUi, shadows } from '@/theme/tokens';
 import { AppIcon, type AppIconName } from './AppIcon';
 import { Txt } from './Txt';
 
@@ -200,6 +200,7 @@ export function AppDialogHost({ nested = false }: AppDialogHostProps = {}) {
 
   return (
     <Modal
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']}
       visible
       transparent
       animationType="fade"
@@ -238,8 +239,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
   },
   iconStage: {
-    width: 68,
-    height: 68,
+    width: scaleUi(68),
+    height: scaleUi(68),
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',

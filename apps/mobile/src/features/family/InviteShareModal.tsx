@@ -104,6 +104,7 @@ export function InviteShareModal({ token, onClose }: InviteShareModalProps) {
 
   return (
     <Modal
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']}
       visible
       transparent
       animationType="fade"

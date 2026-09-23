@@ -1,3 +1,4 @@
+import { ScreenContainer } from '@/components/ScreenContainer';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -267,7 +268,7 @@ export default function Playlist() {
   );
 
   return (
-    <View style={styles.root}>
+    <ScreenContainer padded={false}>
       <DraggableFlatList
         data={videos}
         keyExtractor={(item) => item.id}
@@ -275,7 +276,7 @@ export default function Playlist() {
         renderItem={renderItem}
         activationDistance={12}
         containerStyle={styles.listContainer}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[styles.content, { paddingTop: 12, paddingBottom: Math.max(insets.bottom, 24) }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
@@ -425,7 +426,7 @@ export default function Playlist() {
           />
         }
       />
-    </View>
+    </ScreenContainer>
   );
 }
 

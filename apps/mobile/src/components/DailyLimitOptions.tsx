@@ -97,6 +97,7 @@ export function DailyLimitPopup({ visible, value, onCancel, onChange }: DailyLim
 
   return (
     <Modal
+      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']}
       visible={visible}
       transparent
       animationType="fade"
@@ -142,7 +143,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   popupCard: {
-    alignSelf: 'stretch',
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: colors.card,
     borderRadius: radii.cardXl,
     padding: 24,

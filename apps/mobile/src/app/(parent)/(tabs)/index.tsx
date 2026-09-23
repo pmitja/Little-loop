@@ -1,14 +1,18 @@
+import { useState } from 'react';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { AppIcon, Card, ChildAvatar, ChildSwitcher, ParentHeader, ScreenContainer, Txt } from '@/components';
-import { colors } from '@/theme/tokens';
+import { colors, scaleUi } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 import { useSecondsWatchedToday, useTimerStore, videosWatchedToday } from '@/stores/timerStore';
 
 export default function Home() {
   const router = useRouter();
+  const [contentWidth, setContentWidth] = useState(0);
+  const { dashboardColumns } = useResponsiveLayout(contentWidth);
   const profiles = useAppStore((s) => s.childProfiles);
   const activeId = useAppStore((s) => s.activeChildProfileId);
   const profile = profiles.find((p) => p.id === activeId) ?? profiles[0] ?? null;
@@ -36,6 +40,8 @@ export default function Home() {
         onAdd={() => router.push('/(parent)/add-child')}
         onEdit={(id) => router.push({ pathname: '/(parent)/edit-child', params: { id } })}
       />
+      <View onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)} style={[styles.dashboard, dashboardColumns && styles.columns]}>
+      <View style={[styles.primaryColumn, dashboardColumns && { flex: 1 }]}>
       <Card large style={[styles.hero, ready ? styles.heroReady : styles.heroNeedsVideo]}>
         <View style={styles.heroTop}>
           {profile ? (
@@ -84,7 +90,8 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <View style={styles.section}>
+      </View>
+      <View style={[styles.section, dashboardColumns && { flex: 1 }]}>
         <View style={styles.sectionTitle}>
           <Txt weight="black" size={17}>Today</Txt>
           {watched.length > 0 ? <Txt weight="bold" size={13} color={colors.parent.muted}>{min} min watched</Txt> : null}
@@ -105,11 +112,15 @@ export default function Home() {
           ))
         )}
       </View>
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  dashboard: { gap: 20 },
+  columns: { flexDirection: 'row', alignItems: 'flex-start' },
+  primaryColumn: { gap: 16 },
   root: { paddingTop: 16, gap: 16 },
   hero: { gap: 16, padding: 20, borderWidth: 2 },
   heroReady: { borderColor: '#CDEED4', backgroundColor: '#F8FFF9' },
@@ -121,7 +132,7 @@ const styles = StyleSheet.create({
   check: { backgroundColor: '#FFFFFF', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 6 },
   actions: { gap: 10 },
   action: { minHeight: 70, borderRadius: 18, padding: 11, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 11 },
-  actionIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  actionIcon: { width: scaleUi(48), height: scaleUi(48), borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   actionCopy: { flex: 1, gap: 2 },
   pressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   section: { gap: 10 },

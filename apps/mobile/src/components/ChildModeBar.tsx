@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
-import { colors, shadows } from '@/theme/tokens';
+import { colors, scaleUi, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
 import { Txt } from './Txt';
@@ -42,10 +42,10 @@ export function ChildModeBar() {
           end={{ x: 1, y: 1 }}
           style={styles.bar}
         >
-          <Svg width={12} height={15} viewBox="0 0 14 17">
+          <Svg width={scaleUi(12)} height={scaleUi(15)} viewBox="0 0 14 17">
             <Path d="M1 1 L13 8.5 L1 16 Z" fill="#FFFFFF" />
           </Svg>
-          <Txt weight="extrabold" size={15.5} color="#FFFFFF">
+          <Txt weight="extrabold" size={15.5} color="#FFFFFF" style={{ flexShrink: 1 }}>
             {ready ? `Hand over to ${profile.nickname}` : 'Add a video to use Child Mode'}
           </Txt>
         </LinearGradient>

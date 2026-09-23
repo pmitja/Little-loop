@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, controls, radii, shadows } from '@/theme/tokens';
+import { colors, controls, radii, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 
 interface SettingsRowProps {
@@ -46,7 +46,7 @@ export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle
         />
       ) : null}
       {chevron ? (
-        <Svg width={14} height={14} viewBox="0 0 14 14">
+        <Svg width={scaleUi(14)} height={scaleUi(14)} viewBox="0 0 14 14">
           <Path
             d="M5 3 L10 7 L5 11"
             stroke={colors.subtle}

@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
@@ -22,9 +22,9 @@ interface NoVideosModalProps {
 /** Shown when a child profile is picked but has no approved videos yet. */
 export function NoVideosModal({ visible, childName, onAddVideo, onDismiss }: NoVideosModalProps) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal supportedOrientations={['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right']} visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <ScrollView style={styles.card} contentContainerStyle={styles.cardContent} bounces={false}>
           <View style={styles.iconBox}>
             <PlayGlyph />
           </View>
@@ -52,7 +52,7 @@ export function NoVideosModal({ visible, childName, onAddVideo, onDismiss }: NoV
               Not now
             </Txt>
           </Pressable>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -67,15 +67,16 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   card: {
-    alignSelf: 'stretch',
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '100%',
+    flexGrow: 0,
     backgroundColor: colors.card,
     borderRadius: 28,
-    paddingVertical: 30,
-    paddingHorizontal: 26,
-    alignItems: 'center',
     ...shadows.cardLg,
     shadowOpacity: 0.3,
   },
+  cardContent: { paddingVertical: 30, paddingHorizontal: 26, alignItems: 'center' },
   iconBox: {
     width: 64,
     height: 64,

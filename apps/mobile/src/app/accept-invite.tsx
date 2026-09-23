@@ -57,7 +57,7 @@ export default function AcceptInvite() {
 
   if (!isLoaded) return null;
   return (
-    <ScreenContainer style={styles.root}>
+    <ScreenContainer scroll style={styles.root}>
       <View style={styles.card}>
         <Txt size={48} center>👨‍👩‍👧</Txt>
         <Txt weight="black" size={24} center>Join this LittleLoop family</Txt>

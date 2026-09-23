@@ -6,11 +6,12 @@ import {
   BackHandler,
   Pressable,
   StyleSheet,
+  ScrollView,
   View,
-  useWindowDimensions,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -108,8 +109,9 @@ function CornersIcon({ expand }: { expand: boolean }) {
 export default function ChildPlayer() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+  const { width, height, isTablet } = useResponsiveLayout();
+  const [tabletFullscreen, setTabletFullscreen] = useState(false);
+  const fullscreen = isTablet ? tabletFullscreen : width > height;
   const params = useLocalSearchParams<{ index?: string }>();
 
   const profile = useAppStore((s) =>
@@ -163,6 +165,8 @@ export default function ChildPlayer() {
 
   // The document is created once; later videos load over the bridge.
   const html = useMemo(() => buildPlayerHtml(current?.video.providerVideoId ?? ''), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const playerSource = useMemo(() => ({ html, baseUrl: PLAYER_ORIGIN }), [html]);
 
   const command = useCallback((cmd: string, arg?: unknown) => {
     webviewRef.current?.injectJavaScript(
@@ -391,17 +395,21 @@ export default function ChildPlayer() {
     return () => sub.remove();
   }, [command, persistCurrentProgress]);
 
-  // Restore portrait when the player unmounts.
-  useEffect(() => {
-    return () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
-    };
-  }, []);
+  // Tablets rotate freely; only the phone player owns an orientation lock.
+  useEffect(() => () => {
+    if (!isTablet) {
+      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+  }, [isTablet]);
 
-  const enterFullscreen = () =>
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
-  const exitFullscreen = () =>
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  const enterFullscreen = () => {
+    if (isTablet) setTabletFullscreen(true);
+    else void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+  };
+  const exitFullscreen = useCallback(() => {
+    if (isTablet) setTabletFullscreen(false);
+    else void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+  }, [isTablet]);
 
   // Android back mirrors the "My videos" pill: it leaves the player instead of
   // raising the child lock. Registered after the child layout's guard, so it
@@ -409,7 +417,7 @@ export default function ChildPlayer() {
   // playlist root. In fullscreen, back exits landscape rather than the video.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (isLandscape) {
+      if (fullscreen) {
         exitFullscreen();
         return true;
       }
@@ -417,7 +425,7 @@ export default function ChildPlayer() {
       return true;
     });
     return () => sub.remove();
-  }, [isLandscape, router]);
+  }, [fullscreen, exitFullscreen, router]);
 
   if (!current) {
     // Playlist emptied out from under us — nothing to play.
@@ -431,7 +439,7 @@ export default function ChildPlayer() {
     <View style={StyleSheet.absoluteFill}>
       <WebView
         ref={webviewRef}
-        source={{ html, baseUrl: PLAYER_ORIGIN }}
+        source={playerSource}
         originWhitelist={['*']}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={(req) => isAllowedPlayerUrl(req.url)}
@@ -589,11 +597,31 @@ export default function ChildPlayer() {
     </View>
   ) : null;
 
-  if (isLandscape) {
-    // s14b — fullscreen landscape: video fills the screen, controls float above.
-    return (
-      <View style={styles.landscapeRoot}>
-        {webview}
+  return (
+    <View style={{ flex: 1, backgroundColor: fullscreen ? '#000' : colors.child.cream }}>
+      <StatusBar style={fullscreen ? 'light' : 'dark'} hidden={fullscreen} />
+      <ScrollView
+        scrollEnabled={!fullscreen}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          { flexGrow: 1 },
+          !fullscreen && {
+            paddingTop: insets.top + 10,
+            paddingBottom: insets.bottom + 16,
+            paddingLeft: insets.left + 24,
+            paddingRight: insets.right + 24,
+          },
+        ]}
+      >
+        <View style={[styles.headerRow, fullscreen && styles.hidden]}>
+          {backPill(() => router.back(), true)}
+          <TimerBadge remainingSeconds={remaining} variant="compact" />
+        </View>
+        <View style={{ flexGrow: 1 }}>
+          <View style={fullscreen ? { flex: 1 } : undefined}>
+            <View style={fullscreen ? { flex: 1, backgroundColor: '#000' } : styles.videoBox}>
+              {webview}
+              {fullscreen ? (
         <Animated.View
           pointerEvents={controlsVisible ? 'box-none' : 'none'}
           style={[StyleSheet.absoluteFill, { opacity: controlsOpacity }]}
@@ -614,7 +642,7 @@ export default function ChildPlayer() {
             <TimerBadge remainingSeconds={remaining} variant="dark" />
           </View>
           <View style={styles.landscapeCenter} pointerEvents="box-none">
-            {transportControls(36, 76, 56)}
+            {transportControls(width < 600 ? 12 : 36, 76, width < 600 ? 44 : 56)}
           </View>
           <View style={[styles.landscapeBottom, { bottom: insets.bottom + 14, left: insets.left + 16, right: insets.right + 16 }]}>
             <View style={{ flex: 1 }}>{progressBar()}</View>
@@ -631,39 +659,24 @@ export default function ChildPlayer() {
             </Pressable>
           </View>
         </Animated.View>
-        {warningOverlay}
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.root, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 16 }]}>
-      <StatusBar style="dark" />
-      <View style={styles.headerRow}>
-        {backPill(() => router.back(), true)}
-        <TimerBadge remainingSeconds={remaining} variant="compact" />
-      </View>
-
-      <View style={styles.videoBox}>
-        {webview}
-        <Animated.View
-          pointerEvents={controlsVisible ? 'box-none' : 'none'}
-          style={[styles.cornerInVideo, { opacity: controlsOpacity }]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Enter full screen"
-            onPress={() => {
-              revealControls();
-              enterFullscreen();
-            }}
-            style={styles.cornerButton}
-          >
-            <CornersIcon expand />
-          </Pressable>
-        </Animated.View>
-      </View>
-
+              ) : (
+                <Animated.View
+                  pointerEvents={controlsVisible ? 'box-none' : 'none'}
+                  style={[styles.cornerInVideo, { opacity: controlsOpacity }]}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Enter full screen"
+                    onPress={() => { revealControls(); enterFullscreen(); }}
+                    style={styles.cornerButton}
+                  >
+                    <CornersIcon expand />
+                  </Pressable>
+                </Animated.View>
+              )}
+            </View>
+          </View>
+          <View style={[{ flexGrow: 1 }, fullscreen && styles.hidden]}>
       <Txt weight="extrabold" size={19} color={colors.parent.night} style={{ marginTop: 18 }} numberOfLines={2}>
         {current.video.title}
       </Txt>
@@ -681,7 +694,7 @@ export default function ChildPlayer() {
         />
       </View>
 
-      <View style={{ flex: 1 }} />
+      <View style={isTablet ? undefined : { flex: 1 }} />
 
       {next ? (
         <>
@@ -716,8 +729,11 @@ export default function ChildPlayer() {
           </Pressable>
         </>
       ) : null}
+          </View>
+        </View>
+      </ScrollView>
       {warningOverlay}
-      {likeToast ? (
+      {likeToast && !fullscreen ? (
         <View pointerEvents="none" style={styles.likeToastWrap}>
           <LikeToast text="Told your grown-up 💛" />
         </View>
@@ -766,6 +782,7 @@ function RoundButton({
 }
 
 const styles = StyleSheet.create({
+  hidden: { display: 'none' },
   root: { flex: 1, backgroundColor: colors.child.cream, paddingHorizontal: 24 },
   headerRow: {
     flexDirection: 'row',
