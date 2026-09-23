@@ -1,5 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useState, useRef, useLayoutEffect } from 'react';
+import { FlatList, Pressable, RefreshControl, StyleSheet, View, type ListRenderItemInfo, type ViewToken } from 'react-native';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +11,8 @@ import { ChildAvatar, HeartButton, LikeToast, LockGlyph, TimerBadge, Txt } from 
 import { useAppStore, useBedtimeReached } from '@/stores/appStore';
 import { useLikedVideoIds } from '@/stores/requestStore';
 import { toggleLikeAndSync } from '@/features/family/requestSync';
+import { useKidDeviceStore } from '@/stores/kidDeviceStore';
+import { useKidPullToRefresh } from '@/features/kid/useKidPullToRefresh';
 import { useLivePlaylistVideos, usePlaybackProgress } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday } from '@/stores/timerStore';
 import { colors, controls, shadows } from '@/theme/tokens';
@@ -40,8 +43,10 @@ const VideoRow = memo(function VideoRow({
   onPlay,
   liked,
   onToggleLike,
+  grid = false,
 }: {
   item: VideoChoice;
+  grid?: boolean;
   onPlay: (index: number) => void;
   liked: boolean;
   onToggleLike: (item: VideoChoice) => void;
@@ -54,9 +59,9 @@ const VideoRow = memo(function VideoRow({
       accessibilityRole="button"
       accessibilityLabel={`${item.hasSavedProgress ? 'Continue' : 'Play'} ${item.title}`}
       onPress={handlePress}
-      style={({ pressed }) => [styles.videoRow, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.videoRow, grid && styles.gridCard, pressed && styles.cardPressed]}
     >
-      <View style={styles.rowThumbnailWrap}>
+      <View style={[styles.rowThumbnailWrap, grid && { width: '100%' as const, borderRadius: 16 }]}>
         <Image
           source={item.thumbnailUrl}
           recyclingKey={item.id}
@@ -64,8 +69,8 @@ const VideoRow = memo(function VideoRow({
           contentFit="cover"
           transition={150}
         />
-        <View style={styles.rowPlayButton}>
-          <PlayGlyph size={15} color="#FFFFFF" />
+        <View style={[styles.rowPlayButton, grid && styles.gridPlayButton]}>
+          <PlayGlyph size={grid ? 22 : 15} color="#FFFFFF" />
         </View>
         {item.progress > 0 ? (
           <View style={styles.rowProgressTrack}>
@@ -73,15 +78,15 @@ const VideoRow = memo(function VideoRow({
           </View>
         ) : null}
       </View>
-      <View style={styles.rowCopy}>
-        <Txt weight="black" size={14} lineHeight={18} color={colors.parent.night} numberOfLines={3}>
+      <View style={[styles.rowCopy, grid && styles.gridCopy]}>
+        <Txt weight="black" size={grid ? 17 : 14} lineHeight={grid ? 22 : 18} color={colors.parent.night} numberOfLines={grid ? 2 : 3}>
           {item.title}
         </Txt>
-        <Txt weight="bold" size={11.5} color={colors.parent.muted} numberOfLines={1}>
+        <Txt weight="bold" size={grid ? 13 : 11.5} color={colors.parent.muted} numberOfLines={1}>
           {item.hasSavedProgress ? 'Continue watching' : 'Ready to watch'}
         </Txt>
       </View>
-      <View style={styles.rowHeart}>
+      <View style={[styles.rowHeart, grid && styles.gridHeart]}>
         <HeartButton liked={liked} onToggle={handleLike} />
       </View>
     </Pressable>
@@ -93,11 +98,14 @@ function FeaturedVideo({
   onPlay,
   liked,
   onToggleLike,
+  thumbnailHeight,
 }: {
   item: VideoChoice;
   onPlay: (index: number) => void;
   liked: boolean;
   onToggleLike: (item: VideoChoice) => void;
+  /** Caps the poster's height so a full-width hero can't swallow a wide screen. */
+  thumbnailHeight?: number;
 }) {
   const handlePress = useCallback(() => onPlay(item.originalIndex), [item.originalIndex, onPlay]);
   const handleLike = useCallback(() => onToggleLike(item), [item, onToggleLike]);
@@ -109,7 +117,7 @@ function FeaturedVideo({
       onPress={handlePress}
       style={({ pressed }) => [styles.featuredCard, pressed && styles.cardPressed]}
     >
-      <View style={styles.thumbnailWrap}>
+      <View style={[styles.thumbnailWrap, thumbnailHeight ? { aspectRatio: undefined, height: thumbnailHeight } : null]}>
         <Image
           source={item.thumbnailUrl}
           recyclingKey={item.id}
@@ -146,6 +154,26 @@ function FeaturedVideo({
 export default function ChildHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isTablet, width, height } = useResponsiveLayout();
+  const contentWidth = width - insets.left - insets.right;
+  const { videoColumns } = useResponsiveLayout(contentWidth - 48);
+  // The hero spans the full content width like the grid and footer; in landscape
+  // a 16:9 poster that wide would eat the screen, so its height is capped (the
+  // image is `cover`, so it crops rather than narrowing the card).
+  const featuredThumbHeight = isTablet
+    ? Math.min(Math.round(((contentWidth - 48) * 9) / 16), Math.round(height * 0.45))
+    : undefined;
+  const listRef = useRef<FlatList<VideoChoice[]>>(null);
+  const scrollOffset = useRef(0);
+  const headerHeight = useRef(0);
+  const rowHeight = useRef(0);
+  const firstVisibleId = useRef<string | null>(null);
+  const previousColumns = useRef(videoColumns);
+  const pendingRestore = useRef<{ id: string | null; offset: number } | null>(null);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 1 }).current;
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken<VideoChoice[]>[] }) => {
+    if (!pendingRestore.current) firstVisibleId.current = viewableItems[0]?.item[0]?.id ?? null;
+  }).current;
   const profile = useAppStore(
     (state) =>
       state.childProfiles.find((candidate) => candidate.id === state.activeChildProfileId) ??
@@ -160,6 +188,9 @@ export default function ChildHome() {
   const watched = useSecondsWatchedToday(profile?.id ?? null);
   const remaining = remainingSeconds(profile?.dailyLimitMinutes, watched);
   const pastBedtime = useBedtimeReached(profile?.id ?? null);
+  // Kid devices belong to one child and have no grown-up controls on them.
+  const kidDevice = useKidDeviceStore((s) => s.paired);
+  const pullToRefresh = useKidPullToRefresh();
   const [visibleVideoCount, setVisibleVideoCount] = useState(VIDEO_PAGE_SIZE);
   const featuredIndex = useMemo(() => {
     let latestIndex = -1;
@@ -205,6 +236,30 @@ export default function ChildHome() {
     () => videoChoices.slice(1, visibleVideoCount),
     [videoChoices, visibleVideoCount],
   );
+
+  // Group rows ourselves so a column change doesn't remount the virtualized list.
+  const rows = useMemo(() => {
+    const result: VideoChoice[][] = [];
+    for (let i = 0; i < visibleVideos.length; i += videoColumns) result.push(visibleVideos.slice(i, i + videoColumns));
+    return result;
+  }, [visibleVideos, videoColumns]);
+  useLayoutEffect(() => {
+    if (previousColumns.current === videoColumns) return;
+    pendingRestore.current = {
+      id: scrollOffset.current >= headerHeight.current ? firstVisibleId.current : null,
+      offset: scrollOffset.current,
+    };
+    rowHeight.current = 0;
+    previousColumns.current = videoColumns;
+  }, [videoColumns]);
+  const restorePosition = () => {
+    const pending = pendingRestore.current;
+    if (!pending || (pending.id && !rowHeight.current)) return;
+    const index = pending.id ? rows.findIndex((row) => row.some((item) => item.id === pending.id)) : -1;
+    const offset = index >= 0 ? headerHeight.current + index * (rowHeight.current + 12) : pending.offset;
+    listRef.current?.scrollToOffset({ offset, animated: false });
+    pendingRestore.current = null;
+  };
 
   useEffect(() => {
     if (pastBedtime) {
@@ -252,33 +307,96 @@ export default function ChildHome() {
   }, [videoChoices.length]);
 
   const renderVideo = useCallback(
-    ({ item }: ListRenderItemInfo<VideoChoice>) => (
-      <VideoRow
-        item={item}
-        onPlay={play}
-        liked={likedSet.has(item.providerVideoId)}
-        onToggleLike={toggleLike}
-      />
+    ({ item }: ListRenderItemInfo<VideoChoice[]>) => (
+      <View style={{ flexDirection: 'row', gap: 16 }} onLayout={(event) => { rowHeight.current = event.nativeEvent.layout.height; }}>
+        {item.map((video) => (
+          <View key={video.id} style={{ width: (contentWidth - 48 - (videoColumns - 1) * 16) / videoColumns }}>
+            <VideoRow item={video} onPlay={play} liked={likedSet.has(video.providerVideoId)} onToggleLike={toggleLike} grid={videoColumns > 1} />
+          </View>
+        ))}
+      </View>
     ),
-    [play, likedSet, toggleLike],
+    [play, likedSet, toggleLike, videoColumns, contentWidth],
   );
-
-  const keyExtractor = useCallback((item: VideoChoice) => item.id, []);
+  const keyExtractor = useCallback((row: VideoChoice[]) => row[0].id, []);
 
   return (
     <View style={styles.root}>
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.child.sky, '#7FD4E8']}
+        colors={[colors.child.sky, '#7FD4E8', colors.child.cream]}
+        locations={[0, 0.72, 1]}
         style={[styles.headerBackdrop, { height: insets.top + 250 }]}
       />
+      {/* Greeting and time left stay put while the choices scroll underneath. */}
+      <View style={[styles.stickyHeader, { width: contentWidth, paddingTop: insets.top + 18 }]}>
+        <View style={styles.header}>
+          <View style={styles.greeting}>
+            <Txt weight="black" size={30} color={colors.parent.night} numberOfLines={1}>
+              Hi, {profile?.nickname ?? 'friend'}!
+            </Txt>
+            <Txt weight="bold" size={17} color={colors.parent.night}>
+              Pick a video
+            </Txt>
+          </View>
+          <View style={styles.headerActions}>
+            {kidDevice ? null : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Grown-ups"
+                onPress={openGrownups}
+                style={({ pressed }) => [styles.grownups, pressed && styles.grownupsPressed]}
+              >
+                <LockGlyph color="#716878" scale={0.65} />
+                <Txt weight="black" size={11.5} color="#716878">Grown-ups</Txt>
+              </Pressable>
+            )}
+            {kidDevice ? (
+              <View style={styles.avatar}>
+                {profile ? <ChildAvatar avatar={profile.avatar} size={50} /> : null}
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Switch child profile"
+                onPress={switchProfile}
+                style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
+              >
+                {profile ? <ChildAvatar avatar={profile.avatar} size={50} /> : null}
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        <TimerBadge
+          remainingSeconds={remaining}
+          totalSeconds={profile?.dailyLimitMinutes ? profile.dailyLimitMinutes * 60 : null}
+        />
+      </View>
       <FlatList
-        data={visibleVideos}
+        ref={listRef}
+        data={rows}
+        onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
+        onContentSizeChange={restorePosition}
+        extraData={videoColumns}
         renderItem={renderVideo}
         keyExtractor={keyExtractor}
         ItemSeparatorComponent={VideoSeparator}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 18 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40, width: contentWidth }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          pullToRefresh ? (
+            <RefreshControl
+              refreshing={pullToRefresh.refreshing}
+              onRefresh={pullToRefresh.onRefresh}
+              tintColor={colors.parent.night}
+              colors={[colors.primaryDark]}
+            />
+          ) : undefined
+        }
         onEndReached={loadMoreVideos}
         onEndReachedThreshold={0.45}
         initialNumToRender={VIDEO_PAGE_SIZE - 1}
@@ -300,44 +418,10 @@ export default function ChildHome() {
           </Pressable>
         }
         ListHeaderComponent={(
-          <View style={styles.listHeader}>
-            <View style={styles.header}>
-              <View style={styles.greeting}>
-                <Txt weight="black" size={30} color={colors.parent.night} numberOfLines={1}>
-                  Hi, {profile?.nickname ?? 'friend'}!
-                </Txt>
-                <Txt weight="bold" size={17} color={colors.parent.night}>
-                  Pick a video
-                </Txt>
-              </View>
-              <View style={styles.headerActions}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Grown-ups"
-                  onPress={openGrownups}
-                  style={({ pressed }) => [styles.grownups, pressed && styles.grownupsPressed]}
-                >
-                  <LockGlyph color="#716878" scale={0.65} />
-                  <Txt weight="black" size={11.5} color="#716878">Grown-ups</Txt>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Switch child profile"
-                  onPress={switchProfile}
-                  style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
-                >
-                  {profile ? <ChildAvatar avatar={profile.avatar} size={50} /> : null}
-                </Pressable>
-              </View>
-            </View>
-
-            <TimerBadge
-              remainingSeconds={remaining}
-              totalSeconds={profile?.dailyLimitMinutes ? profile.dailyLimitMinutes * 60 : null}
-            />
-
+          <View style={styles.listHeader} onLayout={(event) => { headerHeight.current = event.nativeEvent.layout.height; }}>
             {featuredVideo ? (
               <FeaturedVideo
+                thumbnailHeight={featuredThumbHeight}
                 item={featuredVideo}
                 onPlay={play}
                 liked={likedSet.has(featuredVideo.providerVideoId)}
@@ -353,7 +437,6 @@ export default function ChildHome() {
                 </Txt>
               </View>
             )}
-
             {visibleVideos.length > 0 ? (
               <Txt weight="black" size={16} color={colors.parent.night}>
                 More videos
@@ -382,7 +465,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  listHeader: { gap: 20, paddingBottom: 14 },
+  listHeader: { gap: 20, paddingTop: 16, paddingBottom: 14 },
+  // Sits above the list so its soft edge reads as a scroll boundary.
+  stickyHeader: { paddingHorizontal: 24, paddingBottom: 12, gap: 16, zIndex: 2 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -407,6 +492,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     ...shadows.cardLg,
   },
+  gridCard: { flexDirection: 'column', alignItems: 'stretch', flexGrow: 1, padding: 10, paddingBottom: 14, borderRadius: 22, gap: 10 },
+  gridCopy: { flex: 1, width: '100%', gap: 4 },
+  gridPlayButton: { width: 58, height: 58, marginLeft: -29, marginTop: -29, borderRadius: 29, borderWidth: 4 },
+  gridHeart: { position: 'absolute', top: 18, right: 18 },
   videoRow: {
     minHeight: 98,
     padding: 8,

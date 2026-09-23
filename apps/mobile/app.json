@@ -2,18 +2,19 @@
   "expo": {
     "name": "LittleLoop",
     "slug": "littleloop",
-    "version": "1.0.3",
+    "version": "1.1.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "littleloop",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "app.littleloop.mobile",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "requireFullScreen": true
     },
     "android": {
       "package": "app.littleloop.mobile",
@@ -36,7 +37,7 @@
       [
         "expo-screen-orientation",
         {
-          "initialOrientation": "PORTRAIT_UP"
+          "initialOrientation": "DEFAULT"
         }
       ],
       "expo-secure-store",
@@ -49,7 +50,9 @@
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
             "NSExtensionActivationSupportsText": true
           },
-          "androidIntentFilters": ["text/*"]
+          "androidIntentFilters": [
+            "text/*"
+          ]
         }
       ],
       [

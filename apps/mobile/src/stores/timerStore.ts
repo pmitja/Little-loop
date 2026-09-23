@@ -43,6 +43,11 @@ interface TimerState {
   reconcile: () => void;
   /** Drop counts and history for a child (profile deleted). */
   removeChildData: (childProfileId: string) => void;
+  /**
+   * Adopt the server's cross-device total for today. Never lowers the local
+   * count: seconds this device hasn't reported yet are only known locally.
+   */
+  adoptServerSeconds: (childProfileId: string, seconds: number) => void;
 }
 
 /** Roll persisted counts across the local-midnight boundary. */
@@ -122,6 +127,16 @@ export const useTimerStore = create<TimerState>()(
                 : sess,
             ),
             activeSessionId: null,
+          };
+        }),
+      adoptServerSeconds: (childProfileId, seconds) =>
+        set((s) => {
+          const fresh = withFreshDay(s);
+          const local = fresh.secondsByChild[childProfileId] ?? 0;
+          if (seconds <= local) return fresh === s ? s : fresh;
+          return {
+            ...fresh,
+            secondsByChild: { ...fresh.secondsByChild, [childProfileId]: seconds },
           };
         }),
       removeChildData: (childProfileId) =>

@@ -79,6 +79,7 @@ export default function Settings() {
 
     <SectionLabel>Family</SectionLabel>
     <SettingsGroup>
+      <SettingsRow icon={<AppIcon name="kid-device" />} iconBg="transparent" title="Kid devices" value="Child’s own phone or tablet" chevron onPress={() => router.push('/(parent)/kid-devices')} />
       <SettingsRow icon={<AppIcon name="profile" />} iconBg="transparent" title="Caregivers" value={isOwner ? 'Manage access' : 'Shared with you'} chevron onPress={() => router.push('/(parent)/caregivers')} />
     </SettingsGroup>
 

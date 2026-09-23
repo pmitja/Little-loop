@@ -10,6 +10,8 @@ export default function ParentLayout() {
       <Stack.Screen name="add-child" />
       <Stack.Screen name="edit-child" />
       <Stack.Screen name="caregivers" />
+      <Stack.Screen name="kid-devices" />
+      <Stack.Screen name="pair-kid-device" />
       <Stack.Screen name="change-pin" />
       <Stack.Screen name="child-mode-gate" />
       <Stack.Screen name="time-limit" />

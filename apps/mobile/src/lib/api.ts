@@ -28,19 +28,28 @@ export function apiConfigured(): boolean {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const cookie = getCookie();
+  // better-auth validates the session from the Cookie header; the app talks to
+  // a separate origin, so the cookie is attached explicitly rather than by the
+  // platform cookie jar.
+  return apiRequest<T>(path, init, cookie ? { Cookie: cookie } : {});
+}
+
+/** Shared transport: JSON in/out, contract-shaped errors → ApiError. */
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit | undefined,
+  authHeaders: Record<string, string>,
+): Promise<T> {
   if (!BASE_URL) {
     throw new ApiError(0, 'NOT_CONFIGURED', 'EXPO_PUBLIC_API_URL is not set');
   }
-  const cookie = getCookie();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
-    // better-auth validates the session from the Cookie header; the app talks to
-    // a separate origin, so the cookie is attached explicitly rather than by the
-    // platform cookie jar.
     credentials: 'omit',
     headers: {
       'Content-Type': 'application/json',
-      ...(cookie ? { Cookie: cookie } : {}),
+      ...authHeaders,
       ...init?.headers,
     },
   });

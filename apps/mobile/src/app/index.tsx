@@ -18,6 +18,8 @@ import { useLockStore } from '@/stores/lockStore';
 import { useTimerStore } from '@/stores/timerStore';
 import { useAuthStatus } from '@/lib/auth';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
+import { syncKidStateIfStale } from '@/features/kid/kidSync';
+import { useKidDeviceStore } from '@/stores/kidDeviceStore';
 
 /** The splash waits this long at most for server profiles before routing anyway. */
 const PROFILE_SYNC_TIMEOUT_MS = 4000;
@@ -50,11 +52,31 @@ export default function Splash() {
   const pinSet = useLockStore((s) => s.pinSet);
   const childModeActive = useLockStore((s) => s.childMode.active);
   const pendingFamilyInvite = useAppStore((s) => s.pendingFamilyInvite);
+  const kidDevice = useKidDeviceStore((s) => s.paired);
+  const kidSetupMode = useKidDeviceStore((s) => s.setupMode);
 
   useEffect(() => {
     if (!hydrated || !isLoaded) return;
     // Close any session left open by an app kill before anything can start a new one.
     useTimerStore.getState().reconcile();
+    // A child's own device never passes through parent sign-in: it goes
+    // straight to its videos (refreshed first, capped like the profile sync).
+    if (kidDevice) {
+      let cancelled = false;
+      void Promise.race([
+        syncKidStateIfStale(0).catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, PROFILE_SYNC_TIMEOUT_MS)),
+      ]).then(() => {
+        if (!cancelled) router.replace('/(child)');
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (kidSetupMode) {
+      router.replace('/kid-setup');
+      return;
+    }
     // Authentication is the outermost gate. Do not hold a signed-out user on
     // the branded splash when the only valid destinations are sign in/sign up.
     if (!isSignedIn) {
@@ -103,6 +125,8 @@ export default function Splash() {
     hydrated,
     isLoaded,
     isSignedIn,
+    kidDevice,
+    kidSetupMode,
     hasShareIntent,
     onboardingComplete,
     pinSet,

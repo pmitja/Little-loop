@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,14 +24,19 @@ import { configurePurchases } from '@/lib/purchases';
 import { initAttribution, logSignUp, setAttributionUser } from '@/lib/attribution';
 import { initMonitoring } from '@/lib/monitoring';
 import { queryClient } from '@/lib/query';
-import { useStoresHydrated } from '@/stores/appStore';
+import { useAppStore, useStoresHydrated } from '@/stores/appStore';
 import { useLockStore } from '@/stores/lockStore';
 import { AppDialogHost } from '@/components';
 import { useTimerStore } from '@/stores/timerStore';
-import { syncCompletedWatchSessions } from '@/features/family/watchSessionSync';
+import {
+  openActiveWatchSession,
+  syncCompletedWatchSessions,
+} from '@/features/family/watchSessionSync';
 // Load every persisted store at startup so the splash hydration gate can resolve.
 import '@/stores/playlistStore';
 import '@/stores/requestStore';
+import { useKidDeviceStore } from '@/stores/kidDeviceStore';
+import { syncKidStateIfStale } from '@/features/kid/kidSync';
 
 SplashScreen.preventAutoHideAsync();
 initMonitoring();
@@ -67,16 +74,81 @@ function ApiSessionBridge() {
 
 function WatchSessionBridge() {
   const { isSignedIn } = useAuthStatus();
+  const kidDevice = useKidDeviceStore((s) => s.paired);
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn && !kidDevice) return;
     const sync = () => {
       void syncCompletedWatchSessions(useTimerStore.getState().sessions).catch(() => {});
     };
+    const openActive = () => {
+      // Kid devices report through their own heartbeat (KidDeviceBridge).
+      if (kidDevice) return;
+      const { sessions, activeSessionId } = useTimerStore.getState();
+      const active = sessions.find((session) => session.id === activeSessionId);
+      if (active) void openActiveWatchSession(active);
+    };
     sync();
+    openActive();
     return useTimerStore.subscribe((state, previous) => {
       if (state.sessions !== previous.sessions) sync();
+      if (state.activeSessionId !== previous.activeSessionId) openActive();
     });
-  }, [isSignedIn]);
+  }, [isSignedIn, kidDevice]);
+  return null;
+}
+
+/**
+ * Kid-device sync budget. Nothing is polled while a video plays or while the
+ * app is closed; watch time is reported once per viewing stretch, not live.
+ */
+const KID_SYNC_ON_FOREGROUND_MS = 30_000;
+const KID_SYNC_AFTER_VIDEO_MS = 2 * 60_000;
+const KID_SYNC_IDLE_MS = 5 * 60_000;
+
+/**
+ * Keeps a child's own device in step with the parent's phone for the price of
+ * a few requests an hour: it syncs on launch and foreground, after leaving the
+ * player, and at most every 5 minutes otherwise. Going to the background
+ * closes the viewing stretch, which WatchSessionBridge reports in one write.
+ */
+function KidDeviceBridge() {
+  const kidDevice = useKidDeviceStore((s) => s.paired);
+  const pathname = usePathname();
+  const playing = pathname.endsWith('/player');
+  // A child waiting on "time's up" is exactly when a parent raises the limit.
+  const idleMs = pathname.endsWith('/times-up') ? KID_SYNC_AFTER_VIDEO_MS : KID_SYNC_IDLE_MS;
+
+  useEffect(() => {
+    if (!kidDevice) return;
+    const sync = (maxAgeMs: number) => void syncKidStateIfStale(maxAgeMs).catch(() => {});
+    // The splash screen already synced on launch; this only catches a miss.
+    sync(KID_SYNC_ON_FOREGROUND_MS);
+    const subscription = AppState.addEventListener('change', (state) => {
+      const timer = useTimerStore.getState();
+      if (state === 'active') {
+        const childId = useAppStore.getState().activeChildProfileId;
+        if (!timer.activeSessionId && childId) timer.startSession(childId);
+        sync(KID_SYNC_ON_FOREGROUND_MS);
+      } else if (state === 'background' && timer.activeSessionId) {
+        timer.endSession('app_closed');
+      }
+    });
+    return () => subscription.remove();
+  }, [kidDevice]);
+
+  // Leaving the player (or landing on "time's up") is a natural moment to
+  // pick up new videos or a raised limit; the idle timer covers the rest.
+  useEffect(() => {
+    if (!kidDevice || playing) return;
+    void syncKidStateIfStale(KID_SYNC_AFTER_VIDEO_MS).catch(() => {});
+    const idle = setInterval(() => {
+      if (AppState.currentState === 'active') {
+        void syncKidStateIfStale(idleMs).catch(() => {});
+      }
+    }, 60_000);
+    return () => clearInterval(idle);
+  }, [kidDevice, playing, idleMs]);
+
   return null;
 }
 
@@ -86,9 +158,20 @@ function AppStack() {
   const childModeActive = useLockStore((s) => s.childMode.active);
   const storesHydrated = useStoresHydrated();
   const { isLoaded, isSignedIn } = useAuthStatus();
-  const signedInChildModeActive = isSignedIn && childModeActive;
+  // A paired kid device only ever mounts kid mode — no sign-in, no parent zone.
+  const kidDevice = useKidDeviceStore((s) => s.paired);
+  const signedInChildModeActive = isSignedIn && childModeActive && !kidDevice;
+  const parentZone = isSignedIn && !kidDevice;
   const router = useRouter();
   const pathname = usePathname();
+  const { isTablet } = useResponsiveLayout();
+  useEffect(() => {
+    if (isTablet) {
+      void ScreenOrientation.unlockAsync().catch(() => {});
+    } else if (pathname !== '/player' && !pathname.endsWith('/player')) {
+      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+  }, [isTablet, pathname]);
   const { hasShareIntent } = useShareIntentContext();
   const routedShareIntent = useRef(false);
 
@@ -126,14 +209,17 @@ function AppStack() {
 
   return (
     <>
-      <StatusBar style={signedInChildModeActive ? 'light' : 'dark'} />
+      <StatusBar style={signedInChildModeActive || kidDevice ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFF9F1' } }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="accept-invite" />
-        <Stack.Protected guard={!isSignedIn}>
+        <Stack.Protected guard={!kidDevice}>
+          <Stack.Screen name="accept-invite" />
+          <Stack.Screen name="kid-setup" options={{ gestureEnabled: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!isSignedIn && !kidDevice}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
-        <Stack.Protected guard={isSignedIn}>
+        <Stack.Protected guard={parentZone}>
           {/* These are the only signed-in bridge routes shared by parent and
               child mode: profile switching and the PIN-protected parent exit. */}
           <Stack.Screen name="whos-watching" options={{ gestureEnabled: false }} />
@@ -142,14 +228,14 @@ function AppStack() {
             options={{ presentation: 'modal', gestureEnabled: false }}
           />
         </Stack.Protected>
-        <Stack.Protected guard={isSignedIn && !signedInChildModeActive}>
+        <Stack.Protected guard={parentZone && !signedInChildModeActive}>
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(parent)" />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="gallery" />
           <Stack.Screen name="share-video" options={{ presentation: 'modal' }} />
         </Stack.Protected>
-        <Stack.Protected guard={signedInChildModeActive}>
+        <Stack.Protected guard={signedInChildModeActive || kidDevice}>
           <Stack.Screen name="(child)" options={{ gestureEnabled: false }} />
         </Stack.Protected>
       </Stack>
@@ -174,6 +260,9 @@ export default function RootLayout() {
     // give iOS another chance if it discarded a request as `undetermined`.
     const splashHidden = SplashScreen.hideAsync();
     const initialize = () => {
+      // A child's own device never shows the tracking prompt or reports ads.
+      const kid = useKidDeviceStore.getState();
+      if (kid.paired || kid.setupMode) return;
       void splashHidden.then(initAttribution).catch(() => {});
     };
 
@@ -192,6 +281,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AppStack />
           <WatchSessionBridge />
+          <KidDeviceBridge />
           <AppDialogHost />
         </QueryClientProvider>
       </GestureHandlerRootView>

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { type StyleProp, type ImageStyle } from 'react-native';
+import { scaleUi } from '@/theme/tokens';
 
 export type AppIconName =
   | 'profile'
@@ -17,7 +18,8 @@ export type AppIconName =
   | 'add-video'
   | 'parent-hq'
   | 'weekend'
-  | 'warning';
+  | 'warning'
+  | 'kid-device';
 
 const ICONS: Record<AppIconName, number> = {
   profile: require('../../assets/images/icons/profile.png'),
@@ -36,6 +38,7 @@ const ICONS: Record<AppIconName, number> = {
   'parent-hq': require('../../assets/images/icons/parent-hq.png'),
   weekend: require('../../assets/images/icons/weekend.png'),
   warning: require('../../assets/images/icons/warning.png'),
+  'kid-device': require('../../assets/images/icons/kid-device.png'),
 };
 
 /** Decorative icon art; the surrounding row/tab owns the accessible label. */
@@ -50,11 +53,12 @@ export function AppIcon({
   muted?: boolean;
   style?: StyleProp<ImageStyle>;
 }) {
+  const box = scaleUi(size);
   return (
     <Image
       source={ICONS[name]}
       style={[
-        { width: size, height: size, opacity: muted ? 0.52 : 1 },
+        { width: box, height: box, opacity: muted ? 0.52 : 1 },
         style,
       ]}
       contentFit="cover"

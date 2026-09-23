@@ -9,6 +9,7 @@ import { SocialButton, type SocialProvider } from '@/features/auth/SocialButton'
 import { APPLE_SIGN_IN_ENABLED, signInWithProvider } from '@/features/auth/socialSignIn';
 import { useLockStore } from '@/stores/lockStore';
 import { useAppStore } from '@/stores/appStore';
+import { useKidDeviceStore } from '@/stores/kidDeviceStore';
 
 function useNextRoute() {
   const onboardingComplete = useAppStore((s) => s.onboardingComplete);
@@ -119,6 +120,19 @@ function AuthSignIn() {
           </Pressable>
         </Link>
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        hitSlop={8}
+        onPress={() => {
+          useKidDeviceStore.getState().setSetupMode(true);
+          router.replace('/kid-setup');
+        }}
+      >
+        <Txt weight="extrabold" size={14} color={colors.primaryDark} center style={styles.kidDevice}>
+          Setting up your child’s phone or tablet?
+        </Txt>
+      </Pressable>
     </ScreenContainer>
   );
 }
@@ -136,4 +150,5 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   footer: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 24 },
+  kidDevice: { marginTop: 18 },
 });

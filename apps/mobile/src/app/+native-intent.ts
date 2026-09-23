@@ -1,4 +1,5 @@
 import { getShareExtensionKey } from 'expo-share-intent';
+import { useKidDeviceStore } from '@/stores/kidDeviceStore';
 
 /**
  * iOS opens the app from the Share Extension via our scheme, carrying the shared
@@ -14,6 +15,15 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
   try {
     if (path.includes(`dataUrl=${getShareExtensionKey()}`)) {
       return '/pin-unlock?next=%2Fshare-video';
+    }
+    // littleloop://pair?code=123456 — a parent phone's camera scanned the QR a
+    // kid device is showing. Claiming is a parent action, so it goes through
+    // the PIN gate. A kid device opening the link just stays on its videos.
+    const pair = /^\/?pair\?(?:.*&)?code=(\d{6})/.exec(path.replace(/^littleloop:\/\//, ''));
+    if (pair) {
+      if (useKidDeviceStore.getState().paired) return '/';
+      const next = `/(parent)/pair-kid-device?code=${pair[1]}`;
+      return `/pin-unlock?next=${encodeURIComponent(next)}`;
     }
     return path;
   } catch {

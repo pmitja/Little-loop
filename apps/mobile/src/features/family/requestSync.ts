@@ -1,8 +1,10 @@
 import type { ChildProfile } from '@littleloop/shared';
 import { api, apiConfigured } from '@/lib/api';
 import { useRequestStore, type WatchRequest } from '@/stores/requestStore';
+import { isKidDevice } from '@/stores/kidDeviceStore';
+import { kidApi } from '@/features/kid/kidApi';
 
-interface ServerRequest {
+export interface ServerRequest {
   id: string;
   childProfileId: string;
   kind: WatchRequest['kind'];
@@ -51,16 +53,22 @@ export async function syncFamilyRequests(profiles: ChildProfile[]): Promise<void
       const { requests } = await api<{ requests: ServerRequest[] }>(
         `/requests?childProfileId=${encodeURIComponent(profile.id)}`,
       );
-      const serverRequests = requests.map(toStoreRequest);
-      const serverKeys = new Set(serverRequests.map(coalesceKey));
-      const localUnsynced = (
-        useRequestStore.getState().requestsByChild[profile.id] ?? []
-      ).filter((r) => r.status === 'pending' && !serverKeys.has(coalesceKey(r)));
-      useRequestStore
-        .getState()
-        .setServerRequests(profile.id, [...serverRequests, ...localUnsynced]);
+      adoptServerRequests(profile.id, requests);
     }),
   );
+}
+
+/** Merge one child's server queue into the local store (see syncFamilyRequests). */
+export function adoptServerRequests(childProfileId: string, requests: ServerRequest[]): void {
+  const serverRequests = requests.map(toStoreRequest);
+  const serverKeys = new Set(serverRequests.map(coalesceKey));
+  const localUnsynced = (
+    useRequestStore.getState().requestsByChild[childProfileId] ?? []
+  ).filter((r) => r.status === 'pending' && !serverKeys.has(coalesceKey(r)));
+  const next = [...serverRequests, ...localUnsynced];
+  const current = useRequestStore.getState().requestsByChild[childProfileId] ?? [];
+  if (JSON.stringify(current) === JSON.stringify(next)) return;
+  useRequestStore.getState().setServerRequests(childProfileId, next);
 }
 
 /** POST a request to the shared queue; failures are swallowed (offline stays local-only). */
@@ -71,6 +79,11 @@ async function pushRequest(
 ): Promise<void> {
   if (!apiConfigured()) return;
   try {
+    if (isKidDevice()) {
+      // A kid device's token is already scoped to its one child.
+      await kidApi('/kid/requests', { method: 'POST', body: JSON.stringify({ kind, ...opts }) });
+      return;
+    }
     await api('/requests', {
       method: 'POST',
       body: JSON.stringify({ childProfileId, kind, ...opts }),
