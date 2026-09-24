@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Button, ParentHeader, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt } from '@/components';
+import { Button, ParentHeader, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt, usePane } from '@/components';
 import {
   createFamilyInvite,
   fetchFamily,
@@ -17,6 +17,7 @@ const FAMILY_QUERY_KEY = ['family'] as const;
 
 export default function Caregivers() {
   const router = useRouter();
+  const pane = usePane();
   const queryClient = useQueryClient();
   const premium = usePremium();
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export default function Caregivers() {
 
   return (
     <ScreenContainer scroll style={styles.root}>
-      <ParentHeader title="Caregivers" onBack={() => router.back()} />
+      <ParentHeader title="Caregivers" onBack={pane.canGoBack ? pane.back : undefined} />
       <Txt size={13.5} color={colors.muted} lineHeight={20}>
         Caregivers can manage profiles, time limits, and approved videos. Only the main caregiver can delete profiles, invite people, or manage billing.
       </Txt>

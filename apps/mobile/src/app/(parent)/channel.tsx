@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeOutLeft, LinearTransition } from 'react-native-reanimated';
@@ -13,6 +13,7 @@ import {
   ScreenContainer,
   showAppAlert,
   Txt,
+  usePane,
 } from '@/components';
 import { colors, controls, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
@@ -46,8 +47,8 @@ function sameChannel(a: string | undefined, b: string): boolean {
  * from it already live for the child, and the way to stop following it.
  */
 export default function ChannelDetail() {
-  const router = useRouter();
-  const { id, title = 'Channel' } = useLocalSearchParams<{ id?: string; title?: string }>();
+  const pane = usePane<{ id?: string; title?: string }>();
+  const { id, title = 'Channel' } = pane.params;
   const profile = useAppStore(
     (s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
@@ -126,7 +127,7 @@ export default function ChannelDetail() {
             try {
               await removeChannel(id);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              router.back();
+              pane.back();
             } catch {
               setRemoving(false);
               showAppAlert('Couldn’t remove channel', 'Check your connection and try again.');
@@ -140,7 +141,7 @@ export default function ChannelDetail() {
   return (
     <ScreenContainer scroll style={styles.root}>
       <Appear index={0}>
-        <ParentHeader title="Channel" onBack={() => router.back()} />
+        <ParentHeader title="Channel" onBack={pane.canGoBack ? pane.back : undefined} />
       </Appear>
       <Appear index={1} style={styles.hero}>
         <View style={styles.art}>

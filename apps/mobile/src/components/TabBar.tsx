@@ -10,7 +10,7 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
-import { colors } from '@/theme/tokens';
+import { colors, exactType, uiScale } from '@/theme/tokens';
 import { springs } from '@/theme/motion';
 import { Txt } from './Txt';
 import { AppIcon, type AppIconName } from './AppIcon';
@@ -62,16 +62,16 @@ function Tab({
       onPress={onPress}
       style={[styles.tab, sidebar && styles.sidebarTab]}
     >
-      <Animated.View style={[StyleSheet.absoluteFill, styles.activePill, pillStyle]} />
+      <Animated.View style={[StyleSheet.absoluteFill, styles.activePill, sidebar && { borderRadius: 18 }, pillStyle]} />
       <Animated.View style={iconStyle}>
-        <AppIcon name={icon} size={26} muted={!active} style={styles.icon} />
+        <AppIcon name={icon} size={sidebar ? 30 / uiScale : 26} muted={!active} style={styles.icon} />
       </Animated.View>
       {badge > 0 ? (
-        <View style={[styles.badge, sidebar && { right: 6, top: 6 }]}>
+        <View style={[styles.badge, sidebar && styles.railBadge]}>
           <Txt weight="black" size={9.5} color="#fff">{badge}</Txt>
         </View>
       ) : null}
-      <Txt weight="extrabold" size={sidebar ? 14 : 11} color={active ? colors.child.skyDeep : colors.parent.muted}>
+      <Txt weight="extrabold" size={sidebar ? exactType(12) : 11} color={active ? colors.child.skyDeep : colors.parent.muted}>
         {label}
       </Txt>
     </Pressable>
@@ -113,8 +113,19 @@ export function TabBar({ state, navigation, sidebar = false }: BottomTabBarProps
 }
 
 const styles = StyleSheet.create({
-  sidebar: { flexDirection: 'column', gap: 8, marginHorizontal: 10 },
-  sidebarTab: { flex: 0, flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: 12, gap: 10, minHeight: 56 },
+  // The iPad rail: bare icon-over-label tiles, no floating card behind them.
+  sidebar: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  sidebarTab: { flex: 0, width: 78, minHeight: 70, borderRadius: 18, gap: 4 },
+  railBadge: { top: 6, right: 14 },
   bar: {
     flexDirection: 'row',
     gap: 4,

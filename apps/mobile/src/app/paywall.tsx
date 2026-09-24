@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, ZoomIn } from 'react-native-reanimated';
 import { FREE_LIMITS } from '@littleloop/shared';
 import {
   AppDialogHost,
@@ -17,7 +17,8 @@ import {
   Txt,
   type AppIconName,
 } from '@/components';
-import { colors } from '@/theme/tokens';
+import { colors, exactType } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import {
   getPlans,
   purchasePlan,
@@ -85,6 +86,8 @@ function Cross() {
 export default function Paywall() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // iPad: the plan picker is a centred card rather than a bottom sheet.
+  const { isTablet } = useResponsiveLayout();
   const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: Trigger; child?: string }>();
   const premium = usePremium();
   const canManageBilling = useAppStore((state) => state.familyRole !== 'caregiver');
@@ -194,7 +197,8 @@ export default function Paywall() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+          isTablet && styles.contentTablet,
+          { paddingTop: insets.top + (isTablet ? 40 : 20), paddingBottom: insets.bottom + (isTablet ? 40 : 20) },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -202,8 +206,8 @@ export default function Paywall() {
           <Txt weight="black" size={12} color={GREEN_DARK} center style={styles.eyebrow}>
             {eyebrow(trigger, child).toUpperCase()}
           </Txt>
-          <Txt weight="black" size={34} lineHeight={39} center>Go Premium</Txt>
-          <Txt weight="bold" size={15} lineHeight={21} color="#4A5670" center style={styles.subtitle}>
+          <Txt weight="black" size={isTablet ? exactType(42) : 34} lineHeight={isTablet ? exactType(46) : 39} center>Go Premium</Txt>
+          <Txt weight="bold" size={isTablet ? exactType(17) : 15} lineHeight={isTablet ? exactType(24) : 21} color="#4A5670" center style={isTablet ? undefined : styles.subtitle}>
             Room for every kid, every device and every favourite.
           </Txt>
         </Appear>
@@ -280,12 +284,16 @@ export default function Paywall() {
               style={styles.dim}
             />
           </Animated.View>
-          <Animated.View
-            entering={SlideInDown.springify().damping(22).stiffness(200)}
-            exiting={SlideOutDown.duration(220)}
-            style={[styles.sheet, { paddingBottom: insets.bottom + 18 }]}
+          <View
+            pointerEvents="box-none"
+            style={[StyleSheet.absoluteFill, isTablet && [styles.centerWrap, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }]]}
           >
-            <View style={styles.grabber} />
+          <Animated.View
+            entering={isTablet ? ZoomIn.springify().damping(20).stiffness(220) : SlideInDown.springify().damping(22).stiffness(200)}
+            exiting={isTablet ? FadeOut.duration(160) : SlideOutDown.duration(220)}
+            style={isTablet ? styles.card : [styles.sheet, { paddingBottom: insets.bottom + 18 }]}
+          >
+            {isTablet ? null : <View style={styles.grabber} />}
             <View style={styles.sheetTitle}>
               <View style={styles.starDisc}>
                 <AppIcon name="premium" size={34} style={{ borderRadius: 10 }} />
@@ -365,6 +373,7 @@ export default function Paywall() {
               </Pressable>
             </View>
           </Animated.View>
+          </View>
         </>
       ) : null}
       {/* This screen is presented as a modal, so dialogs must draw inside it;
@@ -378,6 +387,24 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { flexGrow: 1, paddingHorizontal: 22, gap: 4 },
+  contentTablet: { width: '100%', maxWidth: 760 + 112, alignSelf: 'center', paddingHorizontal: 56 },
+  centerWrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  card: {
+    width: 600,
+    maxWidth: '100%',
+    backgroundColor: MINT,
+    borderRadius: 34,
+    paddingTop: 34,
+    paddingBottom: 30,
+    paddingHorizontal: 36,
+    gap: 16,
+    alignItems: 'stretch',
+    shadowColor: '#1B2233',
+    shadowOffset: { width: 0, height: 30 },
+    shadowOpacity: 0.25,
+    shadowRadius: 70,
+    elevation: 12,
+  },
   header: { alignItems: 'center', gap: 6, marginBottom: 18 },
   eyebrow: { letterSpacing: 1.7 },
   subtitle: { maxWidth: 290 },

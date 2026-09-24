@@ -5,7 +5,8 @@ import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon, Appear, Breathe, ChildAvatar, Float, LockGlyph, PopIn, PressableScale, SchoolTimeArt, Twinkle, Txt } from '@/components';
-import { colors, controls, shadows } from '@/theme/tokens';
+import { colors, controls, exactType, shadows } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useAppStore, useChildRules, useWatchBlock } from '@/stores/appStore';
 import { schoolEndLabel } from '@/lib/schoolTime';
 import { useKidDeviceStore } from '@/stores/kidDeviceStore';
@@ -29,6 +30,8 @@ const GRADIENTS = {
 export default function TimesUp() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // iPad: the same screen drawn bigger (design 09/10/10b).
+  const { isTablet: big } = useResponsiveLayout();
   const { reason } = useLocalSearchParams<{ reason?: string }>();
   const bedtime = reason === 'bedtime';
   const p = useAppStore(s => s.childProfiles.find(x => x.id === s.activeChildProfileId) ?? s.childProfiles[0]);
@@ -74,16 +77,16 @@ export default function TimesUp() {
     </> : null}
     <ScrollView contentContainerStyle={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 96 }]}>
       <Appear index={0}>
-        {mode === 'school' ? <View style={styles.halo}><View style={[styles.disc, styles.discSchool]}><SchoolTimeArt width={150} /></View></View>
-          : mode === 'bedtime' ? <View style={styles.nightOuter}>
-            <View style={styles.nightInner}><Float distance={5} sway={2} duration={2600}><ChildAvatar avatar={p?.avatar ?? 'fox'} size={118} /></Float></View>
-            <Breathe from={0.96} to={1.04} duration={2400} style={styles.moon}><View style={styles.moonFace}><View style={styles.moonBite} /></View></Breathe>
+        {mode === 'school' ? <View style={[styles.halo, big && styles.haloBig]}><View style={[styles.disc, styles.discSchool, big && styles.discBig]}><SchoolTimeArt width={big ? 190 : 150} /></View></View>
+          : mode === 'bedtime' ? <View style={[styles.nightOuter, big && styles.nightOuterBig]}>
+            <View style={[styles.nightInner, big && styles.nightInnerBig]}><Float distance={5} sway={2} duration={2600}><ChildAvatar avatar={p?.avatar ?? 'fox'} size={big ? 148 : 118} /></Float></View>
+            <Breathe from={0.96} to={1.04} duration={2400} style={styles.moon}><View style={[styles.moonFace, big && styles.moonBig]}><View style={[styles.moonBite, big && styles.moonBiteBig]} /></View></Breathe>
           </View>
-          : <View style={styles.halo}><View style={styles.disc}><PopIn wiggleEvery={3200}><ChildAvatar avatar="star" size={130} /></PopIn></View></View>}
+          : <View style={[styles.halo, big && styles.haloBig]}><View style={[styles.disc, big && styles.discBig]}><PopIn wiggleEvery={3200}><ChildAvatar avatar="star" size={big ? 164 : 130} /></PopIn></View></View>}
       </Appear>
-      <Appear index={1}><Txt weight="black" size={30} lineHeight={35} color={ink} center style={styles.title}>{title}</Txt></Appear>
-      <Appear index={2}><Txt weight="bold" size={15.5} lineHeight={23} color={night ? 'rgba(255,255,255,.9)' : '#4A5670'} center style={styles.body}>{body}</Txt></Appear>
-      {night ? null : <Appear index={3} style={styles.backCard}>
+      <Appear index={1}><Txt weight="black" size={big ? exactType(44) : 30} lineHeight={big ? exactType(50) : 35} color={ink} center style={big ? styles.titleBig : styles.title}>{title}</Txt></Appear>
+      <Appear index={2}><Txt weight="bold" size={big ? exactType(19) : 15.5} lineHeight={big ? exactType(28) : 23} color={night ? 'rgba(255,255,255,.9)' : '#4A5670'} center style={big ? styles.bodyBig : styles.body}>{body}</Txt></Appear>
+      {night ? null : <Appear index={3} style={[styles.backCard, big && styles.backCardBig]}>
         <AppIcon name="time" size={30} style={{ borderRadius: 9 }} />
         <View>
           <Txt weight="bold" size={12} color={colors.parent.muted}>{mode === 'school' ? 'Videos are back at' : 'Videos are back'}</Txt>
@@ -99,7 +102,7 @@ export default function TimesUp() {
         accessibilityRole="button"
         accessibilityLabel={kidDevice ? 'Grown-ups' : `${grownupsLabel} — enter PIN`}
         onPress={() => router.push(kidDevice ? '/kid-sign-out' : '/pin-unlock')}
-        style={[styles.parentOnly, { backgroundColor: night ? 'rgba(255,255,255,.14)' : 'rgba(42,59,92,.08)' }]}
+        style={[styles.parentOnly, big && styles.parentOnlyBig, { backgroundColor: night ? 'rgba(255,255,255,.14)' : 'rgba(42,59,92,.08)' }]}
       >
         <LockGlyph color={ink} scale={0.66} />
         <Txt weight="extrabold" size={13} color={ink}>{grownupsLabel}</Txt>
@@ -118,6 +121,16 @@ const styles = StyleSheet.create({
   moonFace:{width:52,height:52,borderRadius:26,backgroundColor:'#FFE7A8',overflow:'hidden'},
   moonBite:{position:'absolute',top:-8,left:-14,width:52,height:52,borderRadius:26,backgroundColor:'#2C3C63'},
   title:{maxWidth:300},
+  haloBig:{padding:24},
+  discBig:{width:240,height:240,borderRadius:120},
+  nightOuterBig:{width:250,height:250,borderRadius:125},
+  nightInnerBig:{width:188,height:188,borderRadius:94},
+  moonBig:{width:64,height:64,borderRadius:32},
+  moonBiteBig:{top:-10,left:-17,width:64,height:64,borderRadius:32},
+  titleBig:{maxWidth:560},
+  bodyBig:{maxWidth:420},
+  backCardBig:{gap:12,borderRadius:22,paddingVertical:14,paddingHorizontal:24},
+  parentOnlyBig:{minHeight:48,paddingHorizontal:20,borderRadius:24},
   body:{maxWidth:280},
   backCard:{flexDirection:'row',alignItems:'center',gap:10,backgroundColor:'#FFFFFF',borderRadius:20,paddingVertical:12,paddingHorizontal:20,...shadows.card},
   footer:{position:'absolute',left:0,right:0,alignItems:'center'},

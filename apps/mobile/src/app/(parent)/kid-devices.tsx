@@ -12,6 +12,7 @@ import {
   SettingsRow,
   showAppAlert,
   Txt,
+  usePane,
 } from '@/components';
 import { FREE_LIMITS } from '@littleloop/shared';
 import { ApiError } from '@/lib/api';
@@ -31,6 +32,7 @@ import { colors, shadows } from '@/theme/tokens';
 /** Settings → Kid devices: the child's own phones/tablets and their controls. */
 export default function KidDevices() {
   const router = useRouter();
+  const pane = usePane();
   const queryClient = useQueryClient();
   const profiles = useAppStore((s) => s.childProfiles);
   const premium = usePremium();
@@ -97,7 +99,7 @@ export default function KidDevices() {
 
   return (
     <ScreenContainer scroll style={styles.root}>
-      <ParentHeader title="Kid devices" onBack={() => router.back()} />
+      <ParentHeader title="Kid devices" onBack={pane.canGoBack ? pane.back : undefined} />
       <Txt size={13.5} color={colors.muted} lineHeight={20}>
         Give your child their own phone or tablet. It only plays the videos you approve, shares
         the same daily limit, and has no settings on it. Everything is managed from here. New

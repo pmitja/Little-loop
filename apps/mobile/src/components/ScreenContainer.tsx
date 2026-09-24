@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '@/theme/tokens';
+import { useInPane } from './DetailPane';
 
 interface ScreenContainerProps {
   children: ReactNode;
@@ -21,6 +22,10 @@ export function ScreenContainer({
   style,
 }: ScreenContainerProps) {
   const insets = useSafeAreaInsets();
+  // Beside a list on an iPad the screen sits on the lighter pane paper with
+  // roomier margins (see features/tablet/PaneHost).
+  const inPane = useInPane();
+  const padX = inPane ? 40 : spacing.screenX;
   const resolvedStyle = StyleSheet.flatten(style) ?? {};
   const extraTop = typeof resolvedStyle.paddingTop === 'number' ? resolvedStyle.paddingTop : 0;
   const extraBottom = typeof resolvedStyle.paddingBottom === 'number' ? resolvedStyle.paddingBottom : 0;
@@ -32,7 +37,7 @@ export function ScreenContainer({
     {
       flex: 1,
       ...safeBottomStyle,
-      paddingHorizontal: padded ? spacing.screenX : 0,
+      paddingHorizontal: padded ? padX : 0,
     },
     style,
     safeTopStyle,
@@ -47,7 +52,7 @@ export function ScreenContainer({
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
         safeBottomStyle,
-        padded ? { paddingHorizontal: spacing.screenX } : null,
+        padded ? { paddingHorizontal: padX } : null,
         style,
         safeTopStyle,
         safeBottomStyle,
@@ -69,7 +74,7 @@ export function ScreenContainer({
     );
   }
   return (
-    <View style={[styles.flex, { backgroundColor: mode === 'dark' ? colors.playerBg : colors.bg }]}>
+    <View style={[styles.flex, { backgroundColor: mode === 'dark' ? colors.playerBg : inPane ? '#FBF9F5' : colors.bg }]}>
       {body}
     </View>
   );

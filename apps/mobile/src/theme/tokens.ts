@@ -87,6 +87,13 @@ export const typography = {
 
 export type FontWeight = keyof typeof fonts;
 
+/**
+ * A Txt size that renders at exactly `points` on this device. Tablet-only
+ * layouts are drawn 1:1 in the iPad design, so they opt out of the tablet
+ * type bump rather than being scaled twice.
+ */
+export const exactType = (points: number): number => points / typography.scale;
+
 export const shadows = {
   // 0 8 20 rgba(91,174,247,.35) — primary button
   primaryButton: {

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Appear, ScreenContainer, StepHeader, Txt } from '@/components';
-import { colors } from '@/theme/tokens';
+import { colors, exactType } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { ChildProfileForm } from '@/features/family/ChildProfileForm';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
 import { useDeleteAccount } from '@/features/security/deleteAccount';
@@ -16,6 +17,8 @@ import { useAppStore } from '@/stores/appStore';
  */
 export default function ChildProfileScreen() {
   const router = useRouter();
+  // iPad: roomier margins; in landscape the name and the buddies sit side by side.
+  const { isTablet, landscape } = useResponsiveLayout();
   const hasProfile = useAppStore((s) => s.childProfiles.length > 0);
   // Set only by the parent tabs bouncing here. onboardingComplete can't stand in for
   // this — welcome.tsx flips it at the *start* of onboarding, not the end.
@@ -68,10 +71,10 @@ export default function ChildProfileScreen() {
   }
 
   return (
-    <ScreenContainer scroll style={styles.container}>
+    <ScreenContainer scroll style={[styles.container, isTablet && styles.tablet]}>
       {!forced ? <View style={styles.stepLabel}><StepHeader step={2} total={3} /></View> : null}
       <Appear index={0}>
-        <Txt weight="black" size={30} lineHeight={35}>
+        <Txt weight="black" size={isTablet ? exactType(38) : 30} lineHeight={isTablet ? exactType(44) : 35}>
           {forced ? 'Add a child to continue' : 'Who is this for?'}
         </Txt>
         <Txt weight="bold" size={15} color={colors.muted} style={{ marginTop: 6, marginBottom: 22 }}>
@@ -80,8 +83,9 @@ export default function ChildProfileScreen() {
             : 'Only a nickname. You can add more kids later.'}
         </Txt>
       </Appear>
-      <Appear index={1}>
+      <Appear index={1} style={isTablet && landscape ? styles.fill : undefined}>
       <ChildProfileForm
+        columns={isTablet && landscape}
         submitLabel="Continue"
         onCreated={finishNewProfile}
         // A 402 here means the server already has this account's child — adopt it
@@ -109,5 +113,7 @@ const styles = StyleSheet.create({
   container: { paddingTop: 16 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stepLabel: { marginBottom: 24 },
+  tablet: { paddingTop: 24, paddingHorizontal: 56, paddingBottom: 24 },
+  fill: { flex: 1 },
   deleteLink: { alignSelf: 'center', marginTop: 26, padding: 8 },
 });

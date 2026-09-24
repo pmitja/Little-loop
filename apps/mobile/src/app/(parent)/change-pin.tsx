@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ParentHeader, PINBoxes, PINKeypad, ScreenContainer, Txt } from '@/components';
+import { ParentHeader, PINBoxes, PINKeypad, ScreenContainer, Txt, usePane } from '@/components';
 import { colors } from '@/theme/tokens';
 import { savePin, verifyPin } from '@/lib/pin';
 
@@ -18,7 +17,7 @@ const COPY: Record<Step, { title: string; body: string }> = {
 
 /** Settings → Parent PIN: verify current, then enter + confirm a new one (reuses s05 keypad). */
 export default function ChangePin() {
-  const router = useRouter();
+  const pane = usePane();
   const [step, setStep] = useState<Step>('current');
   const [pin, setPin] = useState('');
   const [currentPin, setCurrentPin] = useState('');
@@ -76,7 +75,7 @@ export default function ChangePin() {
       setBusy(true);
       await savePin(next);
       setBusy(false);
-      router.back();
+      pane.back();
     } else {
       fail('enter');
     }
@@ -84,7 +83,7 @@ export default function ChangePin() {
 
   return (
     <ScreenContainer scroll style={styles.container}>
-      <ParentHeader title="Parent PIN" onBack={() => router.back()} />
+      <ParentHeader title="Parent PIN" onBack={pane.canGoBack ? pane.back : undefined} />
       <View style={styles.body}>
         <Txt weight="black" size={12} color={colors.primaryDark} style={styles.stepLabel}>
           STEP {step === 'current' ? '1' : step === 'enter' ? '2' : '3'} OF 3

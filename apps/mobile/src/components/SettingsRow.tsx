@@ -16,22 +16,25 @@ interface SettingsRowProps {
   onPress?: () => void;
   /** Tints the title (e.g. colors.red for destructive rows). */
   titleColor?: string;
+  /** Marks the row whose screen is open beside the list (iPad split view). */
+  selected?: boolean;
 }
 
-export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle, onPress, titleColor }: SettingsRowProps) {
+export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle, onPress, titleColor, selected }: SettingsRowProps) {
   return (
     <PressableScale
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={title ?? label}
+      accessibilityState={selected ? { selected } : undefined}
       onPress={onPress}
       disabled={!onPress}
       pressedScale={0.975}
-      style={styles.row}
+      style={[styles.row, selected && styles.selected]}
     >
       <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
         {typeof icon === 'string' ? <Txt size={15}>{icon}</Txt> : icon}
       </View>
-      <Txt weight="extrabold" size={15} color={titleColor} numberOfLines={1} ellipsizeMode="tail" style={styles.title}>
+      <Txt weight="extrabold" size={15} color={selected ? colors.child.skyDeep : titleColor} numberOfLines={1} ellipsizeMode="tail" style={styles.title}>
         {title ?? label}
       </Txt>
       {value ? (
@@ -99,6 +102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  selected: { backgroundColor: '#DCEFF6', borderRadius: 14, marginHorizontal: -8, paddingHorizontal: 8 },
   title: { flex: 1, minWidth: 0 },
   value: { maxWidth: '42%' },
   divider: { height: 1, backgroundColor: '#F0EBE1' },

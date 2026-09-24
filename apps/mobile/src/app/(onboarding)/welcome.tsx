@@ -17,7 +17,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { Button, Float, Txt } from '@/components';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { colors } from '@/theme/tokens';
+import { colors, exactType } from '@/theme/tokens';
 import { springs } from '@/theme/motion';
 import { useAppStore } from '@/stores/appStore';
 import { authConfigured, useAuthStatus } from '@/lib/auth';
@@ -54,7 +54,7 @@ const BACKDROPS = PAGES.map((p) => p.bg);
 export default function Welcome() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const { isTablet } = useResponsiveLayout();
+  const { isTablet, landscape } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const progress = useSharedValue(0);
@@ -89,22 +89,32 @@ export default function Welcome() {
     backgroundColor: interpolateColor(progress.value, [0, 1, 2], BACKDROPS),
   }));
 
-  const sheetWidth = isTablet ? Math.min(width, 620) : width;
-  const artWidth = Math.min(width, isTablet ? 620 : width, (height * 0.46) / ART_ASPECT);
+  // iPad: art and words side by side in landscape, stacked halves in portrait.
+  const side = isTablet && landscape;
+  const sheetWidth = isTablet ? (side ? width / 2 : width) : width;
+  const artWidth = isTablet
+    ? Math.min(side ? width / 2 : width, 640, ((side ? height : height / 2) * 0.9) / ART_ASPECT)
+    : Math.min(width, (height * 0.46) / ART_ASPECT);
   const current = PAGES[page];
 
   return (
     <GestureDetector gesture={swipe}>
-      <Animated.View style={[styles.root, bgStyle]}>
+      <Animated.View style={[styles.root, side && styles.rootSide, bgStyle]}>
         <StatusBar style="dark" />
-        <View style={[styles.artArea, { paddingTop: insets.top + 24 }]}>
+        <View style={[styles.artArea, side && styles.artSide, { paddingTop: isTablet ? 0 : insets.top + 24 }]}>
           <Animated.View key={page} entering={FadeIn.duration(360)} exiting={FadeOut.duration(200)}>
             <Float distance={8} sway={1} duration={2800}>
               <Image source={current.art} style={{ width: artWidth, height: artWidth * ART_ASPECT }} contentFit="cover" accessible={false} />
             </Float>
           </Animated.View>
         </View>
-        <View style={[styles.sheet, { width: sheetWidth, paddingBottom: insets.bottom + 20 }]}>
+        <View
+          style={[
+            styles.sheet,
+            isTablet && (side ? styles.sheetSide : styles.sheetStacked),
+            { width: sheetWidth, paddingBottom: insets.bottom + (isTablet ? 48 : 20) },
+          ]}
+        >
           <View style={styles.dots}>
             {PAGES.map((_, i) => (
               <Pressable key={i} accessibilityRole="button" accessibilityLabel={`Page ${i + 1}`} hitSlop={8} onPress={() => setPage(i)}>
@@ -113,16 +123,16 @@ export default function Welcome() {
             ))}
           </View>
           <Animated.View key={`copy-${page}`} entering={FadeInDown.springify().damping(20).stiffness(170)} style={styles.copy}>
-            <Txt weight="black" size={30} lineHeight={35} color={colors.parent.night}>
+            <Txt weight="black" size={isTablet ? exactType(44) : 30} lineHeight={isTablet ? exactType(48) : 35} color={colors.parent.night} style={isTablet && styles.measure}>
               {current.title}
             </Txt>
-            <Txt weight="bold" size={15.5} lineHeight={23} color={colors.parent.muted}>
+            <Txt weight="bold" size={isTablet ? exactType(18) : 15.5} lineHeight={isTablet ? exactType(27) : 23} color={colors.parent.muted} style={isTablet && styles.measure}>
               {current.body}
             </Txt>
           </Animated.View>
-          <Button title={current.cta} onPress={advance} style={styles.cta} />
+          <Button title={current.cta} onPress={advance} style={[styles.cta, isTablet && styles.ctaTablet]} />
           {!isSignedIn ? (
-            <Pressable onPress={signIn} hitSlop={8} style={styles.signIn}>
+            <Pressable onPress={signIn} hitSlop={8} style={[styles.signIn, isTablet && styles.ctaTablet]}>
               <Txt weight="extrabold" size={14} color={colors.parent.muted} center>
                 I already have an account
               </Txt>
@@ -145,6 +155,12 @@ function Dot({ active }: { active: boolean }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center' },
+  rootSide: { flexDirection: 'row', alignItems: 'stretch' },
+  artSide: { width: '50%', flex: 0 },
+  sheetSide: { borderTopLeftRadius: 0, borderTopRightRadius: 0, justifyContent: 'center', paddingHorizontal: 72, gap: 18 },
+  sheetStacked: { flex: 1, borderTopLeftRadius: 40, borderTopRightRadius: 40, justifyContent: 'center', paddingHorizontal: 72, gap: 18 },
+  measure: { maxWidth: 460 },
+  ctaTablet: { maxWidth: 400, alignSelf: 'stretch', width: '100%' },
   artArea: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF',

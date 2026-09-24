@@ -10,7 +10,8 @@ import { Appear, ChildAvatar, Float, LikeToast, PopIn, PressableScale, Txt } fro
 import { useAppStore } from '@/stores/appStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
 import { raiseRequestAndSync } from '@/features/family/requestSync';
-import { colors, controls, shadows } from '@/theme/tokens';
+import { colors, controls, exactType, shadows } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface ChannelChoice {
   channelTitle: string;
@@ -22,6 +23,10 @@ interface ChannelChoice {
 export default function ChildRequest() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // iPad (design 08): a header row, then up to three tall cards side by side.
+  const { isTablet: big, width } = useResponsiveLayout();
+  const columns = big ? (width - insets.left - insets.right >= 900 ? 3 : 2) : 1;
+  const cardWidth = big ? Math.floor((width - insets.left - insets.right - 96 - 22 * (columns - 1)) / columns) : 0;
   const profile = useAppStore(
     (s) => s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null,
   );
@@ -68,16 +73,17 @@ export default function ChildRequest() {
         style={StyleSheet.absoluteFill}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.content, big && styles.contentBig, { paddingTop: insets.top + (big ? 24 : 14), paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={big ? styles.headBig : undefined}>
         <Appear index={0}>
           <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Go back"
             onPress={() => router.back()}
             pressedScale={0.9}
-            style={styles.back}
+            style={[styles.back, big && styles.backBig]}
           >
             <Svg width={30} height={30} viewBox="0 0 24 24">
               <Path d="M15 4 7 12l8 8" stroke={colors.child.skyDeep} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -85,10 +91,11 @@ export default function ChildRequest() {
           </PressableScale>
         </Appear>
         <Appear index={1} style={{ gap: 4 }}>
-          <Txt weight="black" size={34} color={colors.parent.night}>Want more?</Txt>
-          <Txt weight="extrabold" size={17} color="rgba(42,59,92,.75)">Tap a heart. We’ll tell your grown-up.</Txt>
+          <Txt weight="black" size={big ? exactType(44) : 34} color={colors.parent.night}>Want more?</Txt>
+          <Txt weight="extrabold" size={big ? exactType(19) : 17} color="rgba(42,59,92,.75)">Tap a heart. We’ll tell your grown-up.</Txt>
         </Appear>
-        <View style={styles.list}>
+        </View>
+        <View style={[styles.list, big && styles.listBig]}>
           {rows.map((row, i) => {
             const chosen = picked === row.key;
             return (
@@ -98,19 +105,19 @@ export default function ChildRequest() {
                   accessibilityLabel={row.channel ? `Ask for more from ${row.channel.channelTitle}` : 'Ask for more videos'}
                   onPress={() => submit(row.channel ? 'channel' : 'more', row.channel)}
                   haptic="medium"
-                  style={styles.row}
+                  style={big ? [styles.card, { width: cardWidth }] : styles.row}
                 >
-                  <View style={styles.art}>
+                  <View style={[styles.art, big && styles.artBig]}>
                     {row.channel ? (
                       <Image source={row.channel.thumbnailUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
                     ) : (
-                      <Float distance={3} sway={4}><ChildAvatar avatar={profile?.avatar ?? 'fox'} size={72} /></Float>
+                      <Float distance={3} sway={4}><ChildAvatar avatar={profile?.avatar ?? 'fox'} size={big ? 112 : 72} /></Float>
                     )}
                   </View>
-                  <Txt weight="black" size={20} color={colors.parent.night} numberOfLines={2} style={{ flex: 1 }}>
+                  <Txt weight="black" size={big ? exactType(24) : 20} color={colors.parent.night} numberOfLines={2} center={big} style={big ? undefined : { flex: 1 }}>
                     {row.label}
                   </Txt>
-                  <View style={[styles.heart, (i === 0 || chosen) && styles.heartHot]}>
+                  <View style={[styles.heart, big && styles.heartBig, (i === 0 || chosen) && styles.heartHot]}>
                     {chosen ? (
                       <PopIn><Txt weight="black" size={34} color="#FFFFFF">♥</Txt></PopIn>
                     ) : (
@@ -149,6 +156,22 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   list: { gap: 14, marginTop: 6 },
+  contentBig: { maxWidth: undefined, paddingHorizontal: 48, gap: 30, flexGrow: 1 },
+  headBig: { flexDirection: 'row', alignItems: 'center', gap: 22 },
+  backBig: { width: 84, height: 84, borderRadius: 42 },
+  listBig: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 22, alignContent: 'center', marginTop: 0 },
+  card: {
+    alignItems: 'center',
+    gap: 18,
+    paddingTop: 28,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderRadius: 36,
+    backgroundColor: '#FFFFFF',
+    ...shadows.cardLg,
+  },
+  artBig: { width: 150, height: 150, borderRadius: 75 },
+  heartBig: { width: 100, height: 100, borderRadius: 50 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

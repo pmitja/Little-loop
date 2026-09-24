@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Appear, Float, PINBoxes, PINKeypad, ScreenContainer, StepHeader, StoryIllustration, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { savePin } from '@/lib/pin';
 import { useLockStore } from '@/stores/lockStore';
 import { useAppStore } from '@/stores/appStore';
@@ -12,6 +13,10 @@ const PIN_LENGTH = 4;
 type Step = 'enter' | 'confirm';
 
 /** s05 — parent PIN setup: enter → confirm. The PIN is the only unlock method. */
+const ART_PHONE = 190;
+// iPad: a smaller picture so the whole PIN step sits centred without scrolling in landscape.
+const ART_TABLET = 110;
+
 export default function PinSetup() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('enter');
@@ -60,13 +65,15 @@ export default function PinSetup() {
   };
 
   const isConfirm = step === 'confirm';
+  const { isTablet } = useResponsiveLayout();
 
   return (
     <ScreenContainer scroll style={styles.container}>
       <StepHeader step={1} total={3} onBack={router.canGoBack() ? () => router.back() : undefined} />
+      {isTablet ? <View style={{ flex: 1 }} /> : null}
       <Appear index={0} style={styles.art}>
         <Float distance={5} sway={1.5} duration={2400}>
-          <StoryIllustration scene="pin-safe" width={190} />
+          <StoryIllustration scene="pin-safe" width={isTablet ? ART_TABLET : ART_PHONE} />
         </Float>
       </Appear>
       <Appear index={1} key={step} style={styles.copy}>
@@ -80,7 +87,7 @@ export default function PinSetup() {
       <Appear index={2} style={styles.dots}>
         <PINBoxes length={PIN_LENGTH} filled={errorFlash ? PIN_LENGTH : pin.length} error={errorFlash} checking={saving} />
       </Appear>
-      <View style={{ flex: 1 }} />
+      <View style={isTablet ? { height: 12 } : { flex: 1 }} />
       <Appear index={3} style={styles.keypad}>
         <PINKeypad
           onDigit={onDigit}
@@ -88,6 +95,7 @@ export default function PinSetup() {
           disabled={saving}
         />
       </Appear>
+      {isTablet ? <View style={{ flex: 1 }} /> : null}
     </ScreenContainer>
   );
 }

@@ -40,6 +40,8 @@ interface ChildProfileFormProps {
   /** Rendered under the submit button (e.g. the remove-profile link on Edit profile). */
   after?: ReactNode;
   submitLabel?: string;
+  /** Lay the form out in two columns (iPad onboarding and the settings pane). */
+  columns?: boolean;
 }
 
 /** Shared profile form: nickname, age range, avatar — creates (s06 / s22) or edits. */
@@ -51,6 +53,7 @@ export function ChildProfileForm({
   footer,
   after,
   submitLabel,
+  columns = false,
 }: ChildProfileFormProps) {
   const addChildProfile = useAppStore((s) => s.addChildProfile);
   const [nickname, setNickname] = useState(editing?.nickname ?? '');
@@ -125,7 +128,7 @@ export function ChildProfileForm({
     onCreated(profile);
   };
 
-  return (
+  const fields = (
     <>
       <SectionLabel style={{ marginBottom: 8 }}>Name or nickname</SectionLabel>
       <TextInput
@@ -165,7 +168,10 @@ export function ChildProfileForm({
           );
         })}
       </View>
-
+    </>
+  );
+  const buddies = (
+    <>
       <SectionLabel style={{ marginTop: 22, marginBottom: 12 }}>
         {nickname.trim() ? `Pick ${nickname.trim()}’s buddy` : 'Pick a buddy'}
       </SectionLabel>
@@ -199,7 +205,10 @@ export function ChildProfileForm({
           );
         })}
       </View>
-
+    </>
+  );
+  const limitRow = (
+    <>
       {showLimitRow ? (
         <>
           <Pressable
@@ -231,15 +240,46 @@ export function ChildProfileForm({
           />
         </>
       ) : null}
+    </>
+  );
+  const submitButton = (
+    <Button
+      title={submitLabel ?? (editing ? 'Save changes' : 'Create profile')}
+      onPress={submit}
+      loading={submitting}
+      style={columns ? styles.columnsSubmit : undefined}
+    />
+  );
 
+  // iPad: name on the left, buddies on the right, the action at the bottom right.
+  if (columns) {
+    return (
+      <View style={styles.columnsRoot}>
+        <View style={styles.columns}>
+          <View style={{ flex: 1 }}>
+            {fields}
+            {limitRow}
+            {footer}
+          </View>
+          <View style={{ flex: 1.3 }}>{buddies}</View>
+        </View>
+        <View style={styles.columnsActions}>
+          <View style={{ flex: 1 }}>{after}</View>
+          {submitButton}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {fields}
+      {buddies}
+      {limitRow}
       {footer}
 
       <View style={{ height: 28 }} />
-      <Button
-        title={submitLabel ?? (editing ? 'Save changes' : 'Create profile')}
-        onPress={submit}
-        loading={submitting}
-      />
+      {submitButton}
       {after}
     </>
   );
@@ -307,4 +347,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   pressed: { opacity: 0.7 },
+  columnsRoot: { flex: 1, gap: 28 },
+  columns: { flex: 1, flexDirection: 'row', gap: 40 },
+  columnsActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  columnsSubmit: { width: 320 },
 });

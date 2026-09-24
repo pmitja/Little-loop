@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Appear, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { Redirect } from 'expo-router';
+import { Appear, ParentHeader, ScreenContainer, showAppAlert, Txt, usePane } from '@/components';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { ChildProfileForm } from '@/features/family/ChildProfileForm';
@@ -14,8 +14,8 @@ import { deleteChildProfile } from '@/features/family/deleteChildProfile';
  * be active, which is not something a parent should have to reason about.
  */
 export default function EditChild() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const pane = usePane<{ id?: string }>();
+  const params = pane.params;
   const profile = useAppStore(
     (s) =>
       s.childProfiles.find((p) => p.id === (params.id ?? s.activeChildProfileId)) ??
@@ -38,7 +38,7 @@ export default function EditChild() {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            router.back();
+            pane.back();
             void deleteChildProfile(profile.id);
           },
         },
@@ -49,7 +49,7 @@ export default function EditChild() {
   return (
     <ScreenContainer scroll style={styles.container}>
       <Appear index={0}>
-        <ParentHeader title="Edit profile" onBack={() => router.back()} />
+        <ParentHeader title="Edit profile" onBack={pane.canGoBack ? pane.back : undefined} />
       </Appear>
       <Appear index={1} style={styles.intro}>
         <Txt weight="black" size={28} lineHeight={33}>Name and buddy</Txt>
@@ -57,10 +57,10 @@ export default function EditChild() {
           {profile.nickname} sees their buddy on every kid screen.
         </Txt>
       </Appear>
-      <Appear index={2}>
+      <Appear index={2} style={pane.inPane ? styles.paneForm : undefined}>
         <ChildProfileForm
           profile={profile}
-          onCreated={() => router.back()}
+          onCreated={pane.back}
           after={isOwner ? (
             <Pressable
               accessibilityRole="button"
@@ -83,6 +83,7 @@ export default function EditChild() {
 const styles = StyleSheet.create({
   container: { paddingTop: 16, gap: 22 },
   intro: { gap: 6 },
+  paneForm: { maxWidth: 520 },
   remove: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 16, marginTop: 4 },
   pressed: { opacity: 0.6 },
 });

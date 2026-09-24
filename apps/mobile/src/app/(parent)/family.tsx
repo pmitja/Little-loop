@@ -10,6 +10,8 @@ import {
   PressableScale,
   ScreenContainer,
   Txt,
+  usePane,
+  usePaneColumns,
 } from '@/components';
 import { fetchFamily } from '@/features/family/familyApi';
 import { CHILD_DEVICES_QUERY_KEY, fetchChildDevices, lastSeenLabel } from '@/features/kid/childDevicesApi';
@@ -47,6 +49,8 @@ function AddRow({ label, hint, onPress }: { label: string; hint?: string; onPres
  */
 export default function Family() {
   const router = useRouter();
+  const pane = usePane();
+  const twoColumns = usePaneColumns();
   const premium = usePremium();
   const identity = useParentIdentity();
   const profiles = useAppStore((s) => s.childProfiles);
@@ -63,14 +67,28 @@ export default function Family() {
 
   return (
     <ScreenContainer scroll style={styles.root}>
-      <Appear index={0}>
-        <ParentHeader title="Family" onBack={() => router.back()} />
-      </Appear>
-      <Appear index={1} style={styles.art}>
-        <Float distance={6} sway={1.5} duration={2600}>
-          <KidDevicesArt width={170} />
-        </Float>
-      </Appear>
+      {pane.inPane ? (
+        // In the iPad pane the art sits beside the title instead of above the lists.
+        <Appear index={0} style={styles.paneHead}>
+          <View style={{ flex: 1 }}>
+            <ParentHeader title="Family" onBack={pane.canGoBack ? pane.back : undefined} />
+          </View>
+          <KidDevicesArt width={120} />
+        </Appear>
+      ) : (
+        <>
+          <Appear index={0}>
+            <ParentHeader title="Family" onBack={pane.canGoBack ? pane.back : undefined} />
+          </Appear>
+          <Appear index={1} style={styles.art}>
+            <Float distance={6} sway={1.5} duration={2600}>
+              <KidDevicesArt width={170} />
+            </Float>
+          </Appear>
+        </>
+      )}
+      <View style={twoColumns ? styles.columns : styles.stack}>
+      <View style={twoColumns ? styles.column : styles.stack}>
 
       <Appear index={2} style={styles.sectionHead}>
         <Txt weight="black" size={17}>Kid devices</Txt>
@@ -90,7 +108,7 @@ export default function Family() {
                 key={device.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${device.name}, manage`}
-                onPress={() => router.push('/(parent)/kid-devices')}
+                onPress={() => pane.open('kid-devices')}
                 pressedScale={0.98}
                 style={[styles.row, styles.divider]}
               >
@@ -113,6 +131,8 @@ export default function Family() {
         )}
         <AddRow label="Pair a kid device" hint="Scan a code on the child’s phone or tablet" onPress={pairDevice} />
       </Appear>
+      </View>
+      <View style={twoColumns ? styles.column : styles.stack}>
 
       <Appear index={4} style={styles.sectionHead}>
         <Txt weight="black" size={17}>Caregivers</Txt>
@@ -128,7 +148,7 @@ export default function Family() {
                 key={member.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${member.name}, ${member.role === 'owner' ? 'main caregiver' : 'caregiver'}`}
-                onPress={() => router.push('/(parent)/caregivers')}
+                onPress={() => pane.open('caregivers')}
                 pressedScale={0.98}
                 style={[styles.row, styles.divider]}
               >
@@ -155,12 +175,14 @@ export default function Family() {
             label={premium ? 'Invite a caregiver' : 'Unlock caregiver sharing'}
             onPress={() =>
               premium
-                ? router.push('/(parent)/caregivers')
+                ? pane.open('caregivers')
                 : router.push({ pathname: '/paywall', params: { trigger: 'settings' } })
             }
           />
         ) : null}
       </Appear>
+      </View>
+      </View>
     </ScreenContainer>
   );
 }
@@ -168,6 +190,10 @@ export default function Family() {
 const styles = StyleSheet.create({
   root: { paddingTop: 16, gap: 14 },
   art: { alignItems: 'center' },
+  paneHead: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  stack: { gap: 14 },
+  columns: { flexDirection: 'row', gap: 20, alignItems: 'flex-start' },
+  column: { flex: 1, minWidth: 0, gap: 10 },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 },
   group: { backgroundColor: '#FFFFFF', borderRadius: 20, paddingHorizontal: 16, ...shadows.card },
   loading: { paddingVertical: 20 },

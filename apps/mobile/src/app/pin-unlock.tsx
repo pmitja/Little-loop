@@ -5,6 +5,7 @@ import { useShareIntentContext } from 'expo-share-intent';
 import { AppDialogHost, Appear, Float, PINBoxes, PINKeypad, PressableScale, ScreenContainer, StoryIllustration, Txt } from '@/components';
 import { useAppStore } from '@/stores/appStore';
 import { colors, shadows } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { verifyPin } from '@/lib/pin';
 import { recordSecurityEvent } from '@/lib/monitoring';
 import { useLockStore } from '@/stores/lockStore';
@@ -16,6 +17,7 @@ const PIN_LENGTH = 4;
 /** PIN unlock modal — the only exit from child mode (PLAN §10/§11). */
 export default function PinUnlock() {
   const router = useRouter();
+  const { isTablet } = useResponsiveLayout();
   // Optional destination after a successful unlock (e.g. who's-watching → dashboard).
   const { next, completing } = useLocalSearchParams<{ next?: string; completing?: string }>();
   const shareFlow = next === '/share-video';
@@ -154,7 +156,7 @@ export default function PinUnlock() {
         <View style={{ flex: 0.5 }} />
         <Appear index={0}>
           <Float distance={4} sway={1.5} duration={2400}>
-            <StoryIllustration scene="pin-safe" width={170} style={styles.lockStage} />
+            <StoryIllustration scene="pin-safe" width={isTablet ? 110 : 170} style={styles.lockStage} />
           </Float>
         </Appear>
         <Txt weight="black" size={28} color={colors.parent.night} center style={{ marginTop: 6 }}>

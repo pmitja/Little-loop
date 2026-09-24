@@ -1,7 +1,6 @@
 import { StyleSheet, Switch, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { formatDailyLimit } from '@littleloop/shared';
-import { AppIcon, Appear, Button, ChildSwitcher, DailyLimitOptions, OwlBubble, ParentHeader, PressableScale, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt } from '@/components';
+import { AppIcon, Appear, Button, ChildSwitcher, DailyLimitOptions, OwlBubble, ParentHeader, PressableScale, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt, usePane, usePaneColumns } from '@/components';
 import { updateChildProfile } from '@/features/family/updateChildProfile';
 import { updateSharedChildRules } from '@/features/family/updateChildRules';
 import { formatBedtime, parseBedtime } from '@/lib/bedtime';
@@ -10,7 +9,9 @@ import { DEFAULT_CHILD_RULES, useAppStore } from '@/stores/appStore';
 import { colors, controls, radii, shadows } from '@/theme/tokens';
 
 export default function TimeLimit() {
-  const router = useRouter();
+  const pane = usePane();
+  // Beside the settings list on a landscape iPad the limits and the rules sit side by side.
+  const twoColumns = usePaneColumns();
   const profiles = useAppStore(s => s.childProfiles);
   const profile = useAppStore(s => s.childProfiles.find(p => p.id === s.activeChildProfileId) ?? s.childProfiles[0] ?? null);
   const rules = useAppStore(s => profile ? s.childRules[profile.id] ?? DEFAULT_CHILD_RULES : DEFAULT_CHILD_RULES);
@@ -34,13 +35,8 @@ export default function TimeLimit() {
     }
   };
 
-  return <ScreenContainer scroll style={styles.root}>
-    <Appear index={0}><ParentHeader title="Daily time" onBack={() => router.back()} /></Appear>
-    {profiles.length > 1 ? <Appear index={1}>
-      <ChildSwitcher profiles={profiles} activeId={profile?.id ?? null} onSelect={id => useAppStore.getState().setActiveChildProfileId(id)} />
-    </Appear> : null}
-    <Appear index={2}><OwlBubble avatar={profile?.avatar ?? 'fox'}>How long can {profile?.nickname ?? 'your child'} watch each day?</OwlBubble></Appear>
-    <Appear index={3}><DailyLimitOptions value={limit} onChange={(minutes) => { void saveLimit(minutes); }} /></Appear>
+  const limits = <Appear index={3}><DailyLimitOptions value={limit} onChange={(minutes) => { void saveLimit(minutes); }} /></Appear>;
+  const rulesBlocks = <>
     <Appear index={4} style={styles.section}>
     <SectionLabel>Bedtime</SectionLabel>
     <View style={styles.bedtimeCard}>
@@ -76,7 +72,24 @@ export default function TimeLimit() {
       <SettingsRow icon={<AppIcon name="warning" />} iconBg="transparent" title="5-minute warning" value="Gentle heads-up" toggle={{ value: rules.warningEnabled, onChange: value => update({ warningEnabled: value }) }} />
     </SettingsGroup>
     </Appear>
-    <Button title={`Save for ${profile?.nickname ?? 'child'}`} onPress={() => router.back()} />
+  </>;
+
+  return <ScreenContainer scroll style={styles.root}>
+    <Appear index={0}><ParentHeader title="Daily time" onBack={pane.canGoBack ? pane.back : undefined} /></Appear>
+    {/* In the iPad pane the settings list beside it already has the child switcher. */}
+    {profiles.length > 1 && !pane.inPane ? <Appear index={1}>
+      <ChildSwitcher profiles={profiles} activeId={profile?.id ?? null} onSelect={id => useAppStore.getState().setActiveChildProfileId(id)} />
+    </Appear> : null}
+    <Appear index={2}><OwlBubble avatar={profile?.avatar ?? 'fox'}>How long can {profile?.nickname ?? 'your child'} watch each day?</OwlBubble></Appear>
+    {twoColumns ? (
+      <View style={styles.columns}>
+        <View style={styles.column}>{limits}</View>
+        <View style={styles.column}>{rulesBlocks}</View>
+      </View>
+    ) : <>{limits}{rulesBlocks}</>}
+    {/* Every change above saves as it is made; on a phone this is the way out.
+        The iPad pane has nowhere to go back to, so it has no button. */}
+    {pane.inPane ? null : <Button title={`Save for ${profile?.nickname ?? 'child'}`} onPress={pane.back} />}
   </ScreenContainer>;
 }
 
@@ -106,6 +119,8 @@ function TimeStepper({ label, value, hint, step, disabled, onChange }: {
 const styles = StyleSheet.create({
   root: { paddingTop: 16, gap: 18 },
   section: { gap: 12 },
+  columns: { flexDirection: 'row', gap: 18, alignItems: 'flex-start' },
+  column: { flex: 1, minWidth: 0, gap: 18 },
   bedtimeCard: { backgroundColor: colors.card, borderRadius: radii.card, padding: 16, gap: 18, ...shadows.card },
   bedtimeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bedtimeCopy: { flex: 1, gap: 2 },

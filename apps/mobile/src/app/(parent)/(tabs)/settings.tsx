@@ -1,8 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { DAILY_LIMIT_MINUTES, formatDailyLimit } from '@littleloop/shared';
-import { AppIcon, Appear, ChildSwitcher, IdentityCard, ParentHeader, PremiumBanner, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt } from '@/components';
+import { AppIcon, Appear, ChildSwitcher, IdentityCard, ParentHeader, PremiumBanner, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt, type PaneEntry } from '@/components';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { PaneHost, SplitView } from '@/features/tablet/PaneHost';
 import { useParentIdentity } from '@/lib/auth';
 import { colors } from '@/theme/tokens';
 import { DEFAULT_CHILD_RULES, useAppStore } from '@/stores/appStore';
@@ -14,8 +16,25 @@ import { useDeleteAccount } from '@/features/security/deleteAccount';
 import { useSignOut } from '@/features/security/signOut';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
 
+/** Which row's screen is open beside the list on an iPad. */
+type Detail = 'daily' | 'bedtime' | 'school' | 'profile' | 'pin' | 'family';
+
+const DETAIL_ROUTES: Record<Detail, PaneEntry> = {
+  daily: { route: 'time-limit' },
+  bedtime: { route: 'time-limit' },
+  school: { route: 'time-limit' },
+  profile: { route: 'edit-child' },
+  pin: { route: 'safety' },
+  family: { route: 'family' },
+};
+
 export default function Settings() {
   const router = useRouter();
+  const { split, listWidth } = useResponsiveLayout();
+  const [detail, setDetail] = useState<Detail>('daily');
+  // Phone: push the screen. iPad: open it beside the list.
+  const open = (key: Detail, push: () => void) => (split ? () => setDetail(key) : push);
+  const on = (key: Detail) => split && detail === key;
   const profiles = useAppStore((state) => state.childProfiles);
   const active = useAppStore((state) => state.activeChildProfileId);
   const profile = profiles.find((candidate) => candidate.id === active) ?? profiles[0] ?? null;
@@ -57,7 +76,7 @@ export default function Settings() {
   let block = 0;
   const next = () => block++;
 
-  return <ScreenContainer scroll style={styles.root}>
+  const list = <ScreenContainer scroll style={styles.root}>
     <Appear index={next()}><ParentHeader title="Settings" /></Appear>
     <Appear index={next()}><IdentityCard name={identity.name ?? 'Parent'} email={identity.email ?? undefined} /></Appear>
     {isOwner && !premium ? (
@@ -78,10 +97,10 @@ export default function Settings() {
     </Appear>
     <Appear index={next()}>
       <SettingsGroup>
-        <SettingsRow icon={<AppIcon name="time" size={32} />} iconBg="transparent" title="Daily time" value={limitLabel} chevron onPress={() => router.push('/(parent)/time-limit')} />
-        <SettingsRow icon={<AppIcon name="weekend" size={32} />} iconBg="transparent" title="Bedtime" value={rules.bedtimeEnabled ? rules.bedtime : 'Off'} chevron onPress={() => router.push('/(parent)/time-limit')} />
-        <SettingsRow icon={<AppIcon name="school" size={32} />} iconBg="transparent" title="School hours" value={rules.schoolTimeEnabled ? `${rules.schoolStart} – ${rules.schoolEnd}` : 'Off'} chevron onPress={() => router.push('/(parent)/time-limit')} />
-        {profile ? <SettingsRow icon={<AppIcon name="profile" size={32} />} iconBg="transparent" title="Name and buddy" value={`${profile.nickname} · ${profile.avatar[0].toUpperCase()}${profile.avatar.slice(1)}`} chevron onPress={() => router.push({ pathname: '/(parent)/edit-child', params: { id: profile.id } })} /> : null}
+        <SettingsRow icon={<AppIcon name="time" size={32} />} iconBg="transparent" title="Daily time" value={limitLabel} chevron selected={on('daily')} onPress={open('daily', () => router.push('/(parent)/time-limit'))} />
+        <SettingsRow icon={<AppIcon name="weekend" size={32} />} iconBg="transparent" title="Bedtime" value={rules.bedtimeEnabled ? rules.bedtime : 'Off'} chevron selected={on('bedtime')} onPress={open('bedtime', () => router.push('/(parent)/time-limit'))} />
+        <SettingsRow icon={<AppIcon name="school" size={32} />} iconBg="transparent" title="School hours" value={rules.schoolTimeEnabled ? `${rules.schoolStart} – ${rules.schoolEnd}` : 'Off'} chevron selected={on('school')} onPress={open('school', () => router.push('/(parent)/time-limit'))} />
+        {profile ? <SettingsRow icon={<AppIcon name="profile" size={32} />} iconBg="transparent" title="Name and buddy" value={`${profile.nickname} · ${profile.avatar[0].toUpperCase()}${profile.avatar.slice(1)}`} chevron selected={on('profile')} onPress={open('profile', () => router.push({ pathname: '/(parent)/edit-child', params: { id: profile.id } }))} /> : null}
         <SettingsRow icon={<AppIcon name="videos" size={32} />} iconBg="transparent" title="Approved videos" value={`${approvedCount}`} chevron onPress={() => router.navigate('/(parent)/(tabs)/playlist')} />
       </SettingsGroup>
     </Appear>
@@ -89,8 +108,8 @@ export default function Settings() {
     <Appear index={next()}><SectionLabel style={styles.label}>Safety and family</SectionLabel></Appear>
     <Appear index={next()}>
       <SettingsGroup>
-        <SettingsRow icon={<AppIcon name="pin" size={32} />} iconBg="transparent" title="Grown-up PIN" value="Change or reset" chevron onPress={() => router.push('/(parent)/safety')} />
-        <SettingsRow icon={<AppIcon name="kid-device" size={32} />} iconBg="transparent" title="Family" value={isOwner ? 'Devices and caregivers' : 'Shared with you'} chevron onPress={() => router.push('/(parent)/family')} />
+        <SettingsRow icon={<AppIcon name="pin" size={32} />} iconBg="transparent" title="Grown-up PIN" value="Change or reset" chevron selected={on('pin')} onPress={open('pin', () => router.push('/(parent)/safety'))} />
+        <SettingsRow icon={<AppIcon name="kid-device" size={32} />} iconBg="transparent" title="Family" value={isOwner ? 'Devices and caregivers' : 'Shared with you'} chevron selected={on('family')} onPress={open('family', () => router.push('/(parent)/family'))} />
       </SettingsGroup>
     </Appear>
 
@@ -114,6 +133,11 @@ export default function Settings() {
       </SettingsGroup>
     </Appear>
   </ScreenContainer>;
+
+  if (!split) return list;
+  // Keyed to the child, so picking another child in the list reloads their form.
+  const root = detail === 'profile' && profile ? { route: 'edit-child' as const, params: { id: profile.id } } : DETAIL_ROUTES[detail];
+  return <SplitView listWidth={listWidth} list={list} detail={<PaneHost root={root} />} />;
 }
 const styles = StyleSheet.create({
   root: { paddingTop: 16, gap: 14 },

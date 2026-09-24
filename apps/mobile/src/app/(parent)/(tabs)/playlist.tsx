@@ -24,6 +24,9 @@ import {
   Txt,
 } from '@/components';
 import { colors, controls, shadows } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { PaneHost, PanePlaceholder, SplitView } from '@/features/tablet/PaneHost';
+import { ReviewPane } from '@/features/tablet/ReviewPane';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 import { usePendingRequests } from '@/stores/requestStore';
@@ -76,6 +79,10 @@ export default function Playlist() {
   const [pending, setPending] = useState<PendingVideo[]>([]);
   const [channels, setChannels] = useState<ApprovedChannel[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const { split, listWidth } = useResponsiveLayout();
+  // iPad: which waiting video / channel is open beside the list.
+  const [pickedWaiting, setPickedWaiting] = useState<string | null>(null);
+  const [pickedChannel, setPickedChannel] = useState<string | null>(null);
   const params = useLocalSearchParams<{ segment?: Segment }>();
   const [segment, setSegment] = useState<Segment>(params.segment === 'channels' ? 'channels' : 'videos');
   useEffect(() => {
@@ -156,6 +163,25 @@ export default function Playlist() {
       showAppAlert('Couldn’t approve channel', channelApprovalErrorMessage(error));
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  /** Approve a video's whole channel from the iPad review pane; true when it went through. */
+  const approveChannelFor = async (providerVideoId: string): Promise<boolean> => {
+    if (!profile) return false;
+    if (!premium) {
+      router.push({ pathname: '/paywall', params: { trigger: 'channels', child: name } });
+      return false;
+    }
+    try {
+      const res = await approveChannel(profile.id, providerVideoId);
+      void refreshChannels();
+      useChannelSuggestionStore.getState().set(profile.id, res.channel.channelTitle, res.suggestions);
+      router.push('/(parent)/channel-approved');
+      return true;
+    } catch (error) {
+      showAppAlert('Couldn’t approve channel', channelApprovalErrorMessage(error));
+      return false;
     }
   };
 
@@ -290,9 +316,47 @@ export default function Playlist() {
     </ScaleDecorator>
   );
 
+  const waitingIds = [...reviewVideos.map((item) => item.id), ...pending.map((item) => item.id)];
+  const activeWaiting = pickedWaiting && waitingIds.includes(pickedWaiting) ? pickedWaiting : waitingIds[0] ?? null;
+  const activeChannel = channels.find((channel) => channel.id === pickedChannel) ?? channels[0] ?? null;
+
+  /** iPad: a waiting video is a single row; it opens beside the list for the decision. */
+  const waitRow = (id: string, video: PlaylistVideo['video'], tag: string, meta: string) => {
+    const on = id === activeWaiting;
+    return (
+      <Animated.View key={id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)}>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel={`Review ${video.title}`}
+          accessibilityState={{ selected: on }}
+          onPress={() => setPickedWaiting(id)}
+          pressedScale={0.98}
+          style={[styles.waitCard, styles.waitTop, on && styles.waitPicked]}
+        >
+          <View>
+            <Image source={{ uri: video.thumbnailUrl }} style={styles.waitThumb} transition={150} />
+            <View style={styles.reviewTag}>
+              <Txt weight="black" size={9} color={colors.amberText}>{tag}</Txt>
+            </View>
+          </View>
+          <View style={styles.copy}>
+            <Txt weight="extrabold" size={15} numberOfLines={1}>{video.title}</Txt>
+            <Txt weight="bold" size={12} color={colors.parent.muted} numberOfLines={1}>{meta}</Txt>
+          </View>
+          <Txt weight="black" size={22} color={colors.subtle}>›</Txt>
+        </PressableScale>
+      </Animated.View>
+    );
+  };
+
+  const durationMeta = (video: PlaylistVideo['video']) =>
+    `${video.channelTitle}${video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}`;
+
   const waitingCards = (
     <>
-      {reviewVideos.map((item) => (
+      {split ? reviewVideos.map((item) => waitRow(item.id, item.video, 'REVIEW', durationMeta(item.video))) : null}
+      {split ? pending.map((item) => waitRow(item.id, item.video, 'NEW', item.channelTitle)) : null}
+      {split ? null : reviewVideos.map((item) => (
         <Animated.View key={item.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.waitCard}>
           <Pressable
             accessibilityRole="button"
@@ -329,7 +393,7 @@ export default function Playlist() {
           </View>
         </Animated.View>
       ))}
-      {pending.map((item) => (
+      {split ? null : pending.map((item) => (
         <Animated.View key={item.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.waitCard}>
           <View style={styles.waitTop}>
             <View>
@@ -389,9 +453,18 @@ export default function Playlist() {
               <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${channel.channelTitle}`}
-                onPress={() => router.push({ pathname: '/(parent)/channel', params: { id: channel.id, title: channel.channelTitle } })}
+                accessibilityState={split ? { selected: channel.id === activeChannel?.id } : undefined}
+                onPress={() =>
+                  split
+                    ? setPickedChannel(channel.id)
+                    : router.push({ pathname: '/(parent)/channel', params: { id: channel.id, title: channel.channelTitle } })
+                }
                 pressedScale={0.98}
-                style={[styles.groupRow, i < channels.length - 1 && styles.groupDivider]}
+                style={[
+                  styles.groupRow,
+                  i < channels.length - 1 && styles.groupDivider,
+                  split && channel.id === activeChannel?.id && styles.channelPicked,
+                ]}
               >
                 <View style={styles.channelArt}>
                   <AppIcon name="channels" size={30} />
@@ -471,7 +544,7 @@ export default function Playlist() {
       ? `${channels.length} ${channels.length === 1 ? 'channel' : 'channels'} approved`
       : `${liveVideos.length} live${waitingCount ? ` · ${waitingCount} waiting` : ''}${premium ? '' : ` · ${videos.length} of ${FREE_LIMITS.videosPerPlaylist}`}`;
 
-  return (
+  const list = (
     <ScreenContainer padded={false}>
       <DraggableFlatList
         data={segment === 'videos' ? liveVideos : []}
@@ -569,6 +642,52 @@ export default function Playlist() {
       />
     </ScreenContainer>
   );
+
+  if (!split) return list;
+
+  const reviewItem = reviewVideos.find((item) => item.id === activeWaiting);
+  const pendingItem = pending.find((item) => item.id === activeWaiting);
+  let detail;
+  if (segment === 'channels') {
+    detail = activeChannel ? (
+      <PaneHost
+        root={{ route: 'channel', params: { id: activeChannel.id, title: activeChannel.channelTitle } }}
+        onExit={() => {
+          setPickedChannel(null);
+          void refreshChannels();
+        }}
+      />
+    ) : (
+      <PanePlaceholder text="Pick a channel to see it here" />
+    );
+  } else if (reviewItem) {
+    detail = (
+      <ReviewPane
+        key={reviewItem.id}
+        video={reviewItem.video}
+        meta={durationMeta(reviewItem.video)}
+        name={name}
+        onApprove={() => onApproveReview(reviewItem)}
+        onDecline={() => onDeclineReview(reviewItem)}
+        onApproveChannel={() => approveChannelFor(reviewItem.video.providerVideoId)}
+      />
+    );
+  } else if (pendingItem) {
+    detail = (
+      <ReviewPane
+        key={pendingItem.id}
+        video={pendingItem.video}
+        meta={`New from ${pendingItem.channelTitle}`}
+        name={name}
+        onApprove={() => onApprovePending(pendingItem)}
+        onDecline={() => void onRejectPending(pendingItem)}
+      />
+    );
+  } else {
+    detail = <PanePlaceholder text="Pick a video to see it here" />;
+  }
+
+  return <SplitView listWidth={listWidth} list={list} detail={detail} />;
 }
 
 const styles = StyleSheet.create({
@@ -648,6 +767,8 @@ const styles = StyleSheet.create({
   group: { backgroundColor: '#FFFFFF', borderRadius: 20, paddingHorizontal: 14, ...shadows.card },
   groupRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
   groupDivider: { borderBottomWidth: 1, borderBottomColor: '#F0EBE1' },
+  waitPicked: { borderWidth: 2.5, borderColor: colors.child.skyDeep, padding: 9.5 },
+  channelPicked: { backgroundColor: '#DCEFF6', borderRadius: 14, marginHorizontal: -8, paddingHorizontal: 8 },
   channelArt: {
     width: 52,
     height: 52,

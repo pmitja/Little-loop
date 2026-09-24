@@ -76,6 +76,42 @@ export default function Today() {
     .filter(Boolean)
     .join(' · ');
 
+  const hero = (
+    <Appear index={2} style={styles.hero}>
+      <View style={[styles.statusPill, liveCount === 0 && styles.statusPillIdle]}>
+        {liveCount > 0 ? (
+          <Breathe from={0.8} to={1.2} duration={900} fade>
+            <View style={styles.liveDot} />
+          </Breathe>
+        ) : (
+          <View style={[styles.liveDot, { backgroundColor: colors.amber }]} />
+        )}
+        <Txt weight="extrabold" size={12.5} color={liveCount > 0 ? colors.greenDark : colors.amberText}>
+          {liveCount > 0
+            ? `${liveCount} ${liveCount === 1 ? 'video' : 'videos'} ready for ${name}`
+            : `Add a video for ${name}`}
+        </Txt>
+      </View>
+      <View style={styles.bigRow}>
+        <Txt weight="black" size={48} lineHeight={52}>{minutes} min</Txt>
+        {limit !== null ? (
+          <Txt weight="extrabold" size={15} color={colors.parent.muted}>of {limit} today</Txt>
+        ) : null}
+      </View>
+      <View style={styles.track}>
+        <AnimatedFill progress={limit ? minutes / limit : 0} style={styles.fill}>
+          <LinearGradient
+            colors={[colors.child.grass, colors.child.sun]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </AnimatedFill>
+      </View>
+      <Txt weight="bold" size={13.5} color={colors.parent.muted}>{footnote}</Txt>
+    </Appear>
+  );
+
   return (
     <ScreenContainer scroll style={styles.root}>
       <Appear index={0} style={styles.titleRow}>
@@ -94,45 +130,14 @@ export default function Today() {
         />
       </Appear>
 
+      {/* iPad: the time card spans the page; what needs you and the week sit below it. */}
+      {dashboardColumns ? hero : null}
       <View
         onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}
         style={[styles.dashboard, dashboardColumns && styles.columns]}
       >
         <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
-          <Appear index={2} style={styles.hero}>
-            <View style={[styles.statusPill, liveCount === 0 && styles.statusPillIdle]}>
-              {liveCount > 0 ? (
-                <Breathe from={0.8} to={1.2} duration={900} fade>
-                  <View style={styles.liveDot} />
-                </Breathe>
-              ) : (
-                <View style={[styles.liveDot, { backgroundColor: colors.amber }]} />
-              )}
-              <Txt weight="extrabold" size={12.5} color={liveCount > 0 ? colors.greenDark : colors.amberText}>
-                {liveCount > 0
-                  ? `${liveCount} ${liveCount === 1 ? 'video' : 'videos'} ready for ${name}`
-                  : `Add a video for ${name}`}
-              </Txt>
-            </View>
-            <View style={styles.bigRow}>
-              <Txt weight="black" size={48} lineHeight={52}>{minutes} min</Txt>
-              {limit !== null ? (
-                <Txt weight="extrabold" size={15} color={colors.parent.muted}>of {limit} today</Txt>
-              ) : null}
-            </View>
-            <View style={styles.track}>
-              <AnimatedFill progress={limit ? minutes / limit : 0} style={styles.fill}>
-                <LinearGradient
-                  colors={[colors.child.grass, colors.child.sun]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </AnimatedFill>
-            </View>
-            <Txt weight="bold" size={13.5} color={colors.parent.muted}>{footnote}</Txt>
-          </Appear>
-
+          {dashboardColumns ? null : hero}
           {waiting > 0 ? (
             <Appear index={3}>
               <PressableScale
@@ -219,7 +224,7 @@ const styles = StyleSheet.create({
   root: { paddingTop: 16, gap: 16 },
   titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   dashboard: { gap: 16 },
-  columns: { flexDirection: 'row', alignItems: 'flex-start' },
+  columns: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
   column: { gap: 16 },
   hero: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, gap: 12, ...shadows.cardLg },
   statusPill: {

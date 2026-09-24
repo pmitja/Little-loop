@@ -22,7 +22,7 @@ import Svg, { Path } from 'react-native-svg';
 import { formatDuration } from '@littleloop/shared';
 import { Appear, HeartButton, LikeToast, PressableScale, Txt } from '@/components';
 import { TimerBadge } from '@/components/TimerBadge';
-import { colors, shadows } from '@/theme/tokens';
+import { colors, exactType, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, useWatchBlock } from '@/stores/appStore';
 import { useLikedVideoIds } from '@/stores/requestStore';
@@ -109,9 +109,11 @@ function CornersIcon({ expand }: { expand: boolean }) {
 export default function ChildPlayer() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width, height, isTablet } = useResponsiveLayout();
+  const { width, height, isTablet, landscape } = useResponsiveLayout();
   const [tabletFullscreen, setTabletFullscreen] = useState(false);
-  const fullscreen = isTablet ? tabletFullscreen : width > height;
+  // A landscape iPad is always full-bleed: the controls float over the video.
+  const immersive = isTablet && landscape;
+  const fullscreen = immersive || (isTablet ? tabletFullscreen : width > height);
   const params = useLocalSearchParams<{ index?: string }>();
 
   const profile = useAppStore((s) =>
@@ -128,6 +130,10 @@ export default function ChildPlayer() {
   const prevIndex = index > 0 ? index - 1 : null;
   const nextIndex = index + 1 < videos.length ? index + 1 : null;
   const next = nextIndex !== null ? videos[nextIndex] : undefined;
+  const upNext = [nextIndex, nextIndex !== null && nextIndex + 1 < videos.length ? nextIndex + 1 : null]
+    .filter((i): i is number => i !== null)
+    .slice(0, isTablet ? 2 : 1)
+    .map((itemIndex) => ({ item: videos[itemIndex], itemIndex }));
   const initialProgress =
     profile && current
       ? usePlaylistStore.getState().playbackProgressByChild?.[profile.id]?.[
@@ -417,7 +423,7 @@ export default function ChildPlayer() {
   // playlist root. In fullscreen, back exits landscape rather than the video.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (fullscreen) {
+      if (fullscreen && !immersive) {
         exitFullscreen();
         return true;
       }
@@ -425,7 +431,7 @@ export default function ChildPlayer() {
       return true;
     });
     return () => sub.remove();
-  }, [fullscreen, exitFullscreen, router]);
+  }, [fullscreen, immersive, exitFullscreen, router]);
 
   if (!current) {
     // Playlist emptied out from under us — nothing to play.
@@ -645,32 +651,64 @@ export default function ChildPlayer() {
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          <View style={[styles.landscapeTop, { top: insets.top + 8, left: insets.left + 16, right: insets.right + 16 }]}>
-            {backPill(() => {
-              exitFullscreen();
-            })}
-            <Txt weight="extrabold" size={15} color="rgba(255,255,255,.9)" numberOfLines={1} style={{ flexShrink: 1, marginHorizontal: 12 }}>
-              {current.video.title}
-            </Txt>
-            <TimerBadge remainingSeconds={remaining} variant="dark" />
-          </View>
-          <View style={styles.landscapeCenter} pointerEvents="box-none">
-            {transportControls(width < 600 ? 12 : 36, 76, width < 600 ? 44 : 56)}
-          </View>
-          <View style={[styles.landscapeBottom, { bottom: insets.bottom + 14, left: insets.left + 16, right: insets.right + 16 }]}>
-            <View style={{ flex: 1 }}>{progressBar()}</View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Exit full screen"
-              onPress={() => {
-                revealControls();
+          {immersive ? (
+            <>
+              <View style={[styles.landscapeTop, { top: insets.top + 16, left: insets.left + 40, right: insets.right + 40 }]}>
+                <PressableScale
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to my videos"
+                  onPress={() => router.back()}
+                  haptic="light"
+                  pressedScale={0.9}
+                  style={[styles.backRound, styles.backRoundBig]}
+                >
+                  <Svg width={22} height={28} viewBox="0 0 10 16">
+                    <Path d="M8 2 L2 8 L8 14" stroke="#FFFFFF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  </Svg>
+                </PressableScale>
+                <TimerBadge remainingSeconds={remaining} variant="dark" />
+              </View>
+              <View style={[styles.landscapeBottom, styles.immersiveBottom, { bottom: insets.bottom + 40, left: insets.left + 40, right: insets.right + 40 }]}>
+                {transportControls(18, 120, 88, true)}
+                <View style={styles.immersiveTitle}>
+                  <Txt weight="black" size={exactType(30)} lineHeight={exactType(36)} color="#FFFFFF" numberOfLines={2}>
+                    {current.video.title}
+                  </Txt>
+                  {progressBar()}
+                </View>
+                <HeartButton liked={liked} onToggle={onToggleLike} variant="chip" size={80} />
+              </View>
+            </>
+          ) : (
+            <>
+            <View style={[styles.landscapeTop, { top: insets.top + 8, left: insets.left + 16, right: insets.right + 16 }]}>
+              {backPill(() => {
                 exitFullscreen();
-              }}
-              style={styles.cornerButton}
-            >
-              <CornersIcon expand={false} />
-            </Pressable>
-          </View>
+              })}
+              <Txt weight="extrabold" size={15} color="rgba(255,255,255,.9)" numberOfLines={1} style={{ flexShrink: 1, marginHorizontal: 12 }}>
+                {current.video.title}
+              </Txt>
+              <TimerBadge remainingSeconds={remaining} variant="dark" />
+            </View>
+            <View style={styles.landscapeCenter} pointerEvents="box-none">
+              {transportControls(width < 600 ? 12 : 36, 76, width < 600 ? 44 : 56)}
+            </View>
+            <View style={[styles.landscapeBottom, { bottom: insets.bottom + 14, left: insets.left + 16, right: insets.right + 16 }]}>
+              <View style={{ flex: 1 }}>{progressBar()}</View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Exit full screen"
+                onPress={() => {
+                  revealControls();
+                  exitFullscreen();
+                }}
+                style={styles.cornerButton}
+              >
+                <CornersIcon expand={false} />
+              </Pressable>
+            </View>
+            </>
+          )}
         </Animated.View>
               ) : (
                 <Animated.View
@@ -707,32 +745,39 @@ export default function ChildPlayer() {
           <Txt weight="extrabold" size={11} color="rgba(255,255,255,.55)" style={styles.upNextLabel}>
             {`Up next in ${profile?.nickname ?? 'the'}’s playlist`.toUpperCase()}
           </Txt>
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel={`Play next video, ${next.video.title}`}
-            haptic="light"
-            pressedScale={0.97}
-            onPress={() => {
-              if (nextIndex !== null) goTo(nextIndex);
-            }}
-            style={styles.upNextCard}
-          >
-            <View style={styles.upNextThumb}>
-              <Image
-                source={{ uri: next.video.thumbnailUrl }}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-              />
-            </View>
-            <View style={{ flexShrink: 1 }}>
-              <Txt weight="black" size={17} color="#FFFFFF" numberOfLines={1}>
-                {next.video.title}
-              </Txt>
-              <Txt weight="extrabold" size={12} color={colors.child.grass} style={{ marginTop: 3 }}>
-                ✓ Picked by your grown-up
-              </Txt>
-            </View>
-          </PressableScale>
+          {/* iPad portrait has room for the next two, side by side. */}
+          <View style={styles.upNextRow}>
+            {upNext.map(({ item, itemIndex }) => (
+              <View key={item.id} style={isTablet ? { flex: 1, minWidth: 0 } : undefined}>
+                <PressableScale
+                  accessibilityRole="button"
+                  accessibilityLabel={`Play ${item.video.title}`}
+                  haptic="light"
+                  pressedScale={0.97}
+                  onPress={() => {
+                    goTo(itemIndex);
+                  }}
+                  style={[styles.upNextCard, isTablet && { flex: 1, minWidth: 0 }]}
+                >
+                  <View style={styles.upNextThumb}>
+                    <Image
+                      source={{ uri: item.video.thumbnailUrl }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <View style={{ flexShrink: 1 }}>
+                    <Txt weight="black" size={17} color="#FFFFFF" numberOfLines={1}>
+                      {item.video.title}
+                    </Txt>
+                    <Txt weight="extrabold" size={12} color={colors.child.grass} style={{ marginTop: 3 }}>
+                      ✓ Picked by your grown-up
+                    </Txt>
+                  </View>
+                </PressableScale>
+              </View>
+            ))}
+          </View>
         </>
       ) : null}
           </View>
@@ -846,6 +891,9 @@ const styles = StyleSheet.create({
   },
   controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   playerSideButton: { backgroundColor: 'rgba(255,255,255,.12)' },
+  backRoundBig: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,.16)' },
+  immersiveBottom: { gap: 28 },
+  immersiveTitle: { flex: 1, minWidth: 0, gap: 4 },
   backRound: {
     width: 64,
     height: 64,
@@ -860,6 +908,7 @@ const styles = StyleSheet.create({
   likeRow: { marginTop: 18, alignItems: 'center' },
   likeToastWrap: { position: 'absolute', left: 0, right: 0, bottom: 120, alignItems: 'center' },
   upNextLabel: { letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
+  upNextRow: { flexDirection: 'row', gap: 12 },
   upNextCard: {
     flexDirection: 'row',
     alignItems: 'center',

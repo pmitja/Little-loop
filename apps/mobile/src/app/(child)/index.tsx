@@ -38,7 +38,7 @@ import { useKidPullToRefresh } from '@/features/kid/useKidPullToRefresh';
 import { useLivePlaylistVideos, usePlaybackProgress } from '@/stores/playlistStore';
 import { remainingSeconds, useSecondsWatchedToday } from '@/stores/timerStore';
 import { timerLabel } from '@/components/TimerBadge';
-import { colors, shadows } from '@/theme/tokens';
+import { colors, exactType, shadows } from '@/theme/tokens';
 import { KID_SKIES, KID_TINTS } from '@/theme/kid';
 import { springs } from '@/theme/motion';
 
@@ -183,6 +183,207 @@ function AskCardFace({ thumbHeight }: { thumbHeight: number }) {
           </View>
         </Breathe>
       </View>
+    </View>
+  );
+}
+
+/** Where slot `k` sits relative to the focus, wrapped so the ends meet. */
+function wrapOffset(k: number, pos: number, n: number, loop: boolean): number {
+  'worklet';
+  const raw = k - pos;
+  if (!loop) return raw;
+  let d = ((raw % n) + n) % n;
+  if (d > n / 2) d -= n;
+  return d;
+}
+
+const TabletSlot = memo(function TabletSlot({
+  index,
+  count,
+  loop,
+  pos,
+  step,
+  width,
+  children,
+}: {
+  index: number;
+  count: number;
+  loop: boolean;
+  pos: SharedValue<number>;
+  step: number;
+  width: number;
+  children: React.ReactNode;
+}) {
+  const style = useAnimatedStyle(() => {
+    const d = wrapOffset(index, pos.value, count, loop);
+    const ad = Math.abs(d);
+    return {
+      zIndex: 10 - Math.round(ad),
+      opacity: interpolate(ad, [0, 1, 1.5], [1, 0.7, 0], Extrapolation.CLAMP),
+      transform: [{ translateX: d * step }, { scale: interpolate(ad, [0, 1], [1, 0.86], Extrapolation.CLAMP) }],
+    };
+  });
+  return <Animated.View style={[styles.tabletSlot, { width, marginLeft: -width / 2 }, style]}>{children}</Animated.View>;
+});
+
+/**
+ * iPad kid home: three cards in view, the middle one in focus. It loops — the
+ * last video sits to the left of the first — so there is never a dead end.
+ * Swipe, tap an arrow, or tap a side card to bring it to the middle.
+ */
+function TabletCarousel({
+  items,
+  cardWidth,
+  likedSet,
+  onToggleLike,
+  onPlay,
+  onAsk,
+}: {
+  items: CarouselItem[];
+  cardWidth: number;
+  likedSet: Set<string>;
+  onToggleLike: (item: VideoChoice) => void;
+  onPlay: (originalIndex: number) => void;
+  onAsk: () => void;
+}) {
+  const count = items.length;
+  // Two cards can't loop without one showing on both sides at once.
+  const loop = count >= 3;
+  const step = Math.round(cardWidth * 1.063);
+  const thumbHeight = Math.round(((cardWidth - 28) * 11) / 16);
+  const pos = useSharedValue(0);
+  const start = useSharedValue(0);
+  const [focus, setFocus] = useState(0);
+  const focusRef = useRef(0);
+
+  const settle = useCallback(
+    (target: number) => {
+      if (!loop && (target < 0 || target > count - 1)) {
+        // The end of the line: a double bump, and the row springs home.
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+        setTimeout(() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid), 70);
+        pos.value = withSpring(focusRef.current, springs.bouncy);
+        return;
+      }
+      if (target !== focusRef.current) void Haptics.selectionAsync();
+      focusRef.current = target;
+      setFocus(target);
+      pos.value = withSpring(target, springs.bouncy);
+    },
+    [count, loop, pos],
+  );
+
+  // The playlist can shrink under us (a parent removed a video from their phone).
+  // Looping, the focus is an unbounded position and wraps on its own; once the
+  // row stops looping it has to come back inside 0…count-1.
+  useEffect(() => {
+    const slot = ((focusRef.current % count) + count) % count;
+    if (!loop && slot !== focusRef.current) {
+      focusRef.current = slot;
+      setFocus(slot);
+      pos.value = slot;
+    }
+  }, [count, loop, pos]);
+
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-12, 12])
+        .failOffsetY([-16, 16])
+        .onBegin(() => {
+          start.value = Math.round(pos.value);
+        })
+        .onUpdate((event) => {
+          const raw = start.value - event.translationX / step;
+          const max = count - 1;
+          // Rubber-band past either end when the row doesn't loop.
+          pos.value = loop ? raw : raw < 0 ? raw / 3 : raw > max ? max + (raw - max) / 3 : raw;
+        })
+        .onEnd((event) => {
+          const moved = -(event.translationX + event.velocityX * 0.15) / step;
+          const delta = moved > 0.3 ? 1 : moved < -0.3 ? -1 : 0;
+          scheduleOnRN(settle, start.value + delta);
+        }),
+    [count, loop, pos, settle, start, step],
+  );
+
+  const slotOf = (target: number) => ((target % count) + count) % count;
+  const current = slotOf(focus);
+
+  const onCardPress = (slot: number) => {
+    const d = Math.round(wrapOffset(slot, focus, count, loop));
+    // A side card comes into focus first; only the middle card acts.
+    if (d !== 0) {
+      if (Math.abs(d) === 1) settle(focus + d);
+      return;
+    }
+    const item = items[slot];
+    if (item.kind === 'ask') onAsk();
+    else onPlay(item.originalIndex);
+  };
+
+  const cardHeight = thumbHeight + 120;
+  return (
+    <View style={styles.tabletStage}>
+      <GestureDetector gesture={pan}>
+        <View style={[styles.tabletTrack, { height: cardHeight + 60 }]}>
+          {items.map((item, slot) => {
+            const near = Math.abs(wrapOffset(slot, focus, count, loop)) <= 2;
+            return (
+              <TabletSlot key={item.id} index={slot} count={count} loop={loop} pos={pos} step={step} width={cardWidth}>
+                {near ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      item.kind === 'ask'
+                        ? 'Ask a grown-up for more videos'
+                        : `${item.hasSavedProgress ? 'Continue' : 'Play'} ${item.title}`
+                    }
+                    accessibilityElementsHidden={slot !== current}
+                    importantForAccessibility={slot === current ? 'auto' : 'no-hide-descendants'}
+                    onPress={() => onCardPress(slot)}
+                  >
+                    {item.kind === 'ask' ? (
+                      <AskCardFace thumbHeight={thumbHeight} />
+                    ) : (
+                      <VideoCardFace
+                        item={item}
+                        thumbHeight={thumbHeight}
+                        liked={likedSet.has(item.providerVideoId)}
+                        onToggleLike={onToggleLike}
+                      />
+                    )}
+                  </Pressable>
+                ) : null}
+              </TabletSlot>
+            );
+          })}
+        </View>
+      </GestureDetector>
+      {count > 1 ? (
+        <View style={styles.tabletArrows}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Previous video"
+            accessibilityState={{ disabled: !loop && focus === 0 }}
+            onPress={() => settle(focus - 1)}
+            pressedScale={0.88}
+            style={[styles.arrow, styles.tabletArrow, !loop && focus === 0 && styles.arrowDim]}
+          >
+            <Chevron direction="left" />
+          </PressableScale>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Next video"
+            accessibilityState={{ disabled: !loop && focus === count - 1 }}
+            onPress={() => settle(focus + 1)}
+            pressedScale={0.88}
+            style={[styles.arrow, styles.tabletArrow, !loop && focus === count - 1 && styles.arrowDim]}
+          >
+            <Chevron direction="right" />
+          </PressableScale>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -395,6 +596,107 @@ export default function ChildHome() {
   const lowTime = remaining !== null && remaining <= 120;
   const onlyAsk = count === 1;
 
+  const avatarArt = isTablet ? 66 : 52;
+  const avatarNode = (
+    kidDevice ? (
+      <View style={[styles.avatar, isTablet && styles.tabletAvatar, { backgroundColor: KID_TINTS[avatar] }]}>
+        <ChildAvatar avatar={avatar} size={avatarArt} />
+      </View>
+    ) : (
+      <PressableScale
+        accessibilityRole="button"
+        accessibilityLabel="Switch child profile"
+        onPress={switchProfile}
+        pressedScale={0.9}
+        style={[styles.avatar, isTablet && styles.tabletAvatar, { backgroundColor: KID_TINTS[avatar] }]}
+      >
+        <Float distance={3} sway={4} duration={1800}>
+          <ChildAvatar avatar={avatar} size={avatarArt} />
+        </Float>
+      </PressableScale>
+    )
+  );
+  const meterNode = (
+    <View
+      accessibilityRole="text"
+      accessibilityLabel={timerLabel(remaining)}
+      style={[styles.meter, isTablet && styles.tabletMeter]}
+    >
+      <AppIcon name="time" size={32} style={styles.meterIcon} />
+      <View style={styles.meterTrack}>
+        <AnimatedFill progress={meter} style={styles.meterFill}>
+          <LinearGradient
+            colors={lowTime ? [colors.child.coral, colors.child.coral] : [colors.child.grass, colors.child.sun]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </AnimatedFill>
+      </View>
+      <Txt weight="black" size={15} color={lowTime ? colors.child.coral : colors.parent.night}>
+        {remaining === null ? 'All day' : `${Math.max(0, Math.ceil(remaining / 60))} min`}
+      </Txt>
+    </View>
+  );
+
+  if (isTablet) {
+    const tabletCard = Math.round(Math.max(340, Math.min(460, height * 0.46, contentWidth * 0.34)));
+    return (
+      <View style={styles.root}>
+        <LinearGradient pointerEvents="none" colors={sky} locations={[0, 0.4, 0.72]} style={StyleSheet.absoluteFill} />
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16, paddingLeft: insets.left, paddingRight: insets.right },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            pullToRefresh ? (
+              <RefreshControl
+                refreshing={pullToRefresh.refreshing}
+                onRefresh={pullToRefresh.onRefresh}
+                tintColor={colors.parent.night}
+                colors={[colors.primaryDark]}
+              />
+            ) : undefined
+          }
+        >
+          <Appear index={0} style={styles.tabletHeader}>
+            <View style={styles.tabletHello}>
+              {avatarNode}
+              <Txt weight="black" size={exactType(44)} color={colors.parent.night} numberOfLines={1} style={{ flexShrink: 1 }}>
+                Hi, {profile?.nickname ?? 'friend'}!
+              </Txt>
+            </View>
+            {meterNode}
+          </Appear>
+          <Appear index={1} style={styles.tabletMiddle}>
+            <TabletCarousel
+              items={items}
+              cardWidth={tabletCard}
+              likedSet={likedSet}
+              onToggleLike={toggleLike}
+              onPlay={play}
+              onAsk={askForMore}
+            />
+          </Appear>
+          <Appear index={2} style={styles.grownupsWrap}>
+            <PressableScale accessibilityRole="button" accessibilityLabel="Grown-ups" onPress={openGrownups} style={[styles.grownups, styles.tabletGrownups]}>
+              <LockGlyph color="#716878" scale={0.8} />
+              <Txt weight="extrabold" size={exactType(14)} color="#716878">Grown-ups</Txt>
+            </PressableScale>
+          </Appear>
+        </ScrollView>
+        {likeToast ? (
+          <View pointerEvents="none" style={[styles.toastWrap, { bottom: insets.bottom + 40 }]}>
+            <LikeToast text="Told your grown-up ♥" avatar={avatar} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+
   return (
     <View style={styles.root}>
       <LinearGradient pointerEvents="none" colors={sky} locations={[0, 0.4, 0.72]} style={StyleSheet.absoluteFill} />
@@ -416,49 +718,14 @@ export default function ChildHome() {
         }
       >
         <Appear index={0} style={styles.header}>
-          {kidDevice ? (
-            <View style={[styles.avatar, { backgroundColor: KID_TINTS[avatar] }]}>
-              <ChildAvatar avatar={avatar} size={52} />
-            </View>
-          ) : (
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel="Switch child profile"
-              onPress={switchProfile}
-              pressedScale={0.9}
-              style={[styles.avatar, { backgroundColor: KID_TINTS[avatar] }]}
-            >
-              <Float distance={3} sway={4} duration={1800}>
-                <ChildAvatar avatar={avatar} size={52} />
-              </Float>
-            </PressableScale>
-          )}
+          {avatarNode}
           <Txt weight="black" size={32} color={colors.parent.night} numberOfLines={1} style={{ flex: 1 }}>
             Hi, {profile?.nickname ?? 'friend'}!
           </Txt>
         </Appear>
 
         <Appear index={1}>
-          <View
-            accessibilityRole="text"
-            accessibilityLabel={timerLabel(remaining)}
-            style={styles.meter}
-          >
-            <AppIcon name="time" size={32} style={styles.meterIcon} />
-            <View style={styles.meterTrack}>
-              <AnimatedFill progress={meter} style={styles.meterFill}>
-                <LinearGradient
-                  colors={lowTime ? [colors.child.coral, colors.child.coral] : [colors.child.grass, colors.child.sun]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </AnimatedFill>
-            </View>
-            <Txt weight="black" size={15} color={lowTime ? colors.child.coral : colors.parent.night}>
-              {remaining === null ? 'All day' : `${Math.max(0, Math.ceil(remaining / 60))} min`}
-            </Txt>
-          </View>
+          {meterNode}
         </Appear>
 
         <Appear index={2} style={styles.carousel}>
@@ -666,5 +933,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
   },
+  tabletAvatar: { width: 88, height: 88, borderRadius: 44, borderWidth: 5 },
+  tabletMeter: { width: 340, marginTop: 0, marginHorizontal: 0, paddingVertical: 10, paddingLeft: 10, paddingRight: 20 },
+  tabletHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 20,
+    paddingHorizontal: 48,
+  },
+  tabletHello: { flexDirection: 'row', alignItems: 'center', gap: 18, flexShrink: 1 },
+  tabletMiddle: { flex: 1, justifyContent: 'center', paddingVertical: 12 },
+  tabletStage: { gap: 8 },
+  tabletTrack: { width: '100%', overflow: 'hidden' },
+  tabletSlot: { position: 'absolute', top: 20, left: '50%' },
+  tabletArrows: { flexDirection: 'row', justifyContent: 'center', gap: 150 },
+  tabletArrow: { width: 104, height: 104, borderRadius: 52 },
+  tabletGrownups: { minHeight: 48, paddingHorizontal: 20, borderRadius: 24, gap: 8 },
   toastWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

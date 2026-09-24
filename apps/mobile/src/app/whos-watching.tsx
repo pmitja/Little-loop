@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Appear, ChildAvatar, Float, LockGlyph, NoVideosModal, PressableScale, Twinkle, Txt } from '@/components';
 import { KID_TINTS } from '@/theme/kid';
 import { FREE_LIMITS } from '@littleloop/shared';
-import { colors, controls } from '@/theme/tokens';
+import { colors, controls, exactType } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
 import { usePremium } from '@/stores/entitlementStore';
@@ -103,12 +103,12 @@ export default function WhosWatching() {
         ]}
       >
         <Appear index={0}>
-          <Txt weight="black" size={32} color="#FFFFFF" center>
+          <Txt weight="black" size={isTablet ? exactType(46) : 32} color="#FFFFFF" center>
             Who’s watching?
           </Txt>
         </Appear>
 
-        <View style={[styles.profileGrid, isTablet && { maxWidth: 720 }]}>
+        <View style={[styles.profileGrid, isTablet && styles.profileGridBig]}>
           {profiles.map((profile, i) => (
             <Appear key={profile.id} index={i + 1}>
               <PressableScale
@@ -119,12 +119,12 @@ export default function WhosWatching() {
                 pressedScale={0.92}
                 style={styles.kid}
               >
-                <View style={[styles.face, { backgroundColor: KID_TINTS[profile.avatar] ?? KID_TINTS.fox }]}>
+                <View style={[styles.face, isTablet && styles.faceBig, { backgroundColor: KID_TINTS[profile.avatar] ?? KID_TINTS.fox }]}>
                   <Float distance={5} sway={3} duration={2000} phase={i * 450}>
-                    <ChildAvatar avatar={profile.avatar} size={112} />
+                    <ChildAvatar avatar={profile.avatar} size={isTablet ? 148 : 112} />
                   </Float>
                 </View>
-                <Txt weight="black" size={22} color="#FFFFFF" numberOfLines={1}>
+                <Txt weight="black" size={isTablet ? exactType(30) : 22} color="#FFFFFF" numberOfLines={1}>
                   {profile.nickname}
                 </Txt>
               </PressableScale>
@@ -201,6 +201,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
+  // iPad (design 05): bigger faces, spread wider apart.
+  profileGridBig: { maxWidth: 880, columnGap: 56, rowGap: 40 },
+  faceBig: { width: 200, height: 200, borderRadius: 100, borderWidth: 8 },
   face: {
     width: 150,
     height: 150,

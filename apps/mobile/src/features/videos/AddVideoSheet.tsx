@@ -12,6 +12,7 @@ import Animated, {
   FadeIn,
   FadeInDown,
   SlideInDown,
+  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -19,7 +20,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { extractYouTubeId, formatDuration, type VideoMeta } from '@littleloop/shared';
 import { AppDialogHost, AppIcon, Button, ChildAvatar, PopIn, PressableScale, showAppAlert, Txt } from '@/components';
-import { colors, controls, typography } from '@/theme/tokens';
+import { colors, controls, exactType, typography } from '@/theme/tokens';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { springs } from '@/theme/motion';
 import { previewVideo, VideoPreviewError, VIDEO_ERROR_MESSAGES } from '@/lib/videos';
 import { recordHappyMoment } from '@/lib/review';
@@ -108,6 +110,8 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   }, [linkId]);
 
   const insets = useSafeAreaInsets();
+  // iPad: a centred card over the dimmed screen instead of a bottom sheet.
+  const { isTablet } = useResponsiveLayout();
   // Opened from Today, Playlist or onboarding: close back to wherever that was.
   const leave = () => {
     if (onClosed) onClosed();
@@ -225,15 +229,15 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
       <Animated.View entering={FadeIn.duration(220)} style={[StyleSheet.absoluteFill, shadeStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.backdrop} />
       </Animated.View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.avoider} pointerEvents="box-none">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.avoider, isTablet && styles.avoiderCentered]} pointerEvents="box-none">
         <GestureDetector gesture={dragToClose}>
           <Animated.View
-            entering={SlideInDown.springify().damping(22).stiffness(200)}
-            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }, dragStyle]}
+            entering={isTablet ? ZoomIn.springify().damping(20).stiffness(220) : SlideInDown.springify().damping(22).stiffness(200)}
+            style={[styles.sheet, isTablet ? styles.card : { paddingBottom: Math.max(insets.bottom, 16) + 16 }, dragStyle]}
           >
-            <View style={styles.grabber} />
+            {isTablet ? null : <View style={styles.grabber} />}
             <View style={styles.titleRow}>
-              <Txt weight="black" size={24}>Add a video</Txt>
+              <Txt weight="black" size={isTablet ? exactType(26) : 24}>Add a video</Txt>
               <PressableScale accessibilityRole="button" accessibilityLabel="Close" onPress={close} pressedScale={0.9} style={styles.closeBtn}>
                 <Txt weight="black" size={17} color={colors.parent.muted}>✕</Txt>
               </PressableScale>
@@ -369,6 +373,18 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(27,34,51,.45)' },
   avoider: { flex: 1, justifyContent: 'flex-end' },
+  avoiderCentered: { justifyContent: 'center', padding: 40 },
+  card: {
+    maxWidth: 560,
+    borderRadius: 32,
+    paddingTop: 28,
+    paddingBottom: 32,
+    paddingHorizontal: 32,
+    gap: 18,
+    shadowOffset: { width: 0, height: 30 },
+    shadowOpacity: 0.3,
+    shadowRadius: 70,
+  },
   sheet: {
     width: '100%',
     maxWidth: 620,
