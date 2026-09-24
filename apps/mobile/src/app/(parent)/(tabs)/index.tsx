@@ -76,6 +76,11 @@ export default function Today() {
     .filter(Boolean)
     .join(' · ');
 
+  // iPad: the week sits beside the "needs you" card only when there is one;
+  // with nothing to act on it takes the full width instead of half.
+  const actionCard = waiting > 0 || liveCount === 0;
+  const sideBySide = dashboardColumns && actionCard;
+
   const hero = (
     <Appear index={2} style={styles.hero}>
       <View style={[styles.statusPill, liveCount === 0 && styles.statusPillIdle]}>
@@ -134,9 +139,9 @@ export default function Today() {
       {dashboardColumns ? hero : null}
       <View
         onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}
-        style={[styles.dashboard, dashboardColumns && styles.columns]}
+        style={[styles.dashboard, sideBySide && styles.columns]}
       >
-        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
+        <View style={[styles.column, sideBySide && { flex: 1 }, dashboardColumns && !actionCard && styles.hidden]}>
           {dashboardColumns ? null : hero}
           {waiting > 0 ? (
             <Appear index={3}>
@@ -186,7 +191,7 @@ export default function Today() {
           ) : null}
         </View>
 
-        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
+        <View style={[styles.column, sideBySide && { flex: 1 }]}>
           <Appear index={4}>
             <PressableScale
               accessibilityRole="button"
@@ -226,6 +231,7 @@ const styles = StyleSheet.create({
   dashboard: { gap: 16 },
   columns: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
   column: { gap: 16 },
+  hidden: { display: 'none' },
   hero: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, gap: 12, ...shadows.cardLg },
   statusPill: {
     alignSelf: 'flex-start',
