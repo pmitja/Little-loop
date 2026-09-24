@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Keyboard, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -123,10 +123,51 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   const insets = useSafeAreaInsets();
   // iPad: a centred card over the dimmed screen instead of a bottom sheet.
   const { isTablet } = useResponsiveLayout();
-  // The sheet never grows past the screen: its middle scrolls and the Add
-  // button stays pinned at the bottom, reachable on the smallest phone.
   const { height: windowHeight } = useWindowDimensions();
-  const maxSheetHeight = windowHeight - insets.top - (isTablet ? 80 : 12);
+
+  // The sheet is not always full-screen: from the YouTube share button it opens
+  // where the PIN gate was, which the system may draw lower than the top of the
+  // screen. So measure where it really sits, and how much of it the keyboard
+  // covers, rather than trusting the window size or KeyboardAvoidingView.
+  const rootRef = useRef<View>(null);
+  const [frame, setFrame] = useState<{ y: number; height: number } | null>(null);
+  const [keyboardTop, setKeyboardTop] = useState<number | null>(null);
+  const measure = () => rootRef.current?.measureInWindow((_x, y, _w, height) => setFrame({ y, height }));
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    // Ride the keyboard's own animation on iOS instead of jumping when it lands.
+    const follow = (duration?: number) => {
+      if (Platform.OS === 'ios') {
+        LayoutAnimation.configureNext(LayoutAnimation.create(duration || 250, LayoutAnimation.Types.keyboard, LayoutAnimation.Properties.opacity));
+      }
+    };
+    // Re-measure with every keyboard change too: a first measurement taken while
+    // the screen was still sliding in would put the sheet in the wrong place.
+    const show = Keyboard.addListener(showEvent, (event) => {
+      measure();
+      follow(event.duration);
+      setKeyboardTop(event.endCoordinates.screenY);
+    });
+    const hide = Keyboard.addListener(hideEvent, (event) => {
+      measure();
+      follow(event.duration);
+      setKeyboardTop(null);
+    });
+    const settled = setTimeout(measure, 450);
+    return () => {
+      show.remove();
+      hide.remove();
+      clearTimeout(settled);
+    };
+  }, []);
+  const containerHeight = frame?.height ?? windowHeight;
+  const keyboardOverlap =
+    keyboardTop !== null && frame ? Math.max(0, frame.y + frame.height - keyboardTop) : 0;
+  // A container that starts below the status bar needs no top inset of its own.
+  const topClearance = frame && frame.y > insets.top ? 12 : insets.top + 12;
+  // Never taller than the space left: the middle scrolls, the button stays put.
+  const maxSheetHeight = containerHeight - keyboardOverlap - topClearance - (isTablet ? 68 : 0);
   // Opened from Today, Playlist or onboarding: close back to wherever that was.
   const leave = () => {
     if (onClosed) onClosed();
@@ -245,14 +286,20 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   };
 
   return (
-    <View style={styles.root}>
+    <View ref={rootRef} style={styles.root} onLayout={measure}>
       <Animated.View entering={FadeIn.duration(220)} style={[StyleSheet.absoluteFill, shadeStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.backdrop} />
       </Animated.View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.avoider, isTablet && styles.avoiderCentered]} pointerEvents="box-none">
+      <View style={[styles.avoider, isTablet && styles.avoiderCentered, { paddingBottom: keyboardOverlap + (isTablet ? 40 : 0) }]} pointerEvents="box-none">
           <Animated.View
             entering={isTablet ? ZoomIn.springify().damping(20).stiffness(220) : SlideInDown.springify().damping(22).stiffness(200)}
-            style={[styles.sheet, isTablet ? styles.card : { paddingBottom: Math.max(insets.bottom, 16) + 16 }, { maxHeight: maxSheetHeight }, dragStyle]}
+            style={[
+              styles.sheet,
+              // Resting on the keyboard there is no home indicator to clear.
+              isTablet ? styles.card : { paddingBottom: keyboardOverlap > 0 ? 16 : Math.max(insets.bottom, 16) + 16 },
+              { maxHeight: maxSheetHeight },
+              dragStyle,
+            ]}
           >
             {/* Only the header drags the sheet down, so the body can scroll freely. */}
             <GestureDetector gesture={dragToClose}>
@@ -419,7 +466,7 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
               onPress={() => void add()}
             />
           </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
       {/* Presented as a modal: dialogs must draw inside it, not behind it. */}
       <AppDialogHost nested />
     </View>
