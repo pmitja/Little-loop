@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -103,6 +103,8 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
         const meta = await previewVideo(input);
         if (ticket !== request.current) return;
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Get the keyboard out of the way so the choices and the button show.
+        Keyboard.dismiss();
         setVideo(meta);
       } catch (err) {
         if (ticket !== request.current) return;
@@ -121,6 +123,10 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   const insets = useSafeAreaInsets();
   // iPad: a centred card over the dimmed screen instead of a bottom sheet.
   const { isTablet } = useResponsiveLayout();
+  // The sheet never grows past the screen: its middle scrolls and the Add
+  // button stays pinned at the bottom, reachable on the smallest phone.
+  const { height: windowHeight } = useWindowDimensions();
+  const maxSheetHeight = windowHeight - insets.top - (isTablet ? 80 : 12);
   // Opened from Today, Playlist or onboarding: close back to wherever that was.
   const leave = () => {
     if (onClosed) onClosed();
@@ -244,147 +250,160 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.backdrop} />
       </Animated.View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.avoider, isTablet && styles.avoiderCentered]} pointerEvents="box-none">
-        <GestureDetector gesture={dragToClose}>
           <Animated.View
             entering={isTablet ? ZoomIn.springify().damping(20).stiffness(220) : SlideInDown.springify().damping(22).stiffness(200)}
-            style={[styles.sheet, isTablet ? styles.card : { paddingBottom: Math.max(insets.bottom, 16) + 16 }, dragStyle]}
+            style={[styles.sheet, isTablet ? styles.card : { paddingBottom: Math.max(insets.bottom, 16) + 16 }, { maxHeight: maxSheetHeight }, dragStyle]}
           >
-            {isTablet ? null : <View style={styles.grabber} />}
-            <View style={styles.titleRow}>
-              <Txt weight="black" size={isTablet ? exactType(26) : 24}>Add a video</Txt>
-              <PressableScale accessibilityRole="button" accessibilityLabel="Close" onPress={close} pressedScale={0.9} style={styles.closeBtn}>
-                <Txt weight="black" size={17} color={colors.parent.muted}>✕</Txt>
-              </PressableScale>
-            </View>
-
-            <View style={[styles.field, error ? styles.fieldError : null]}>
-              <TextInput
-                value={input}
-                onChangeText={(next) => {
-                  setInput(next);
-                  if (error) setError(null);
-                }}
-                placeholder="Paste a YouTube link"
-                placeholderTextColor="rgba(22,112,139,.55)"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                style={[styles.input, input.length > 0 && styles.inputMono]}
-                returnKeyType="done"
-              />
-              {input.length > 0 ? (
-                <Pressable accessibilityRole="button" accessibilityLabel="Clear link" onPress={() => setInput('')} hitSlop={8} style={styles.clear}>
-                  <Svg width={10} height={10} viewBox="0 0 10 10">
-                    <Path d="M1 1 L9 9 M9 1 L1 9" stroke={colors.child.skyDeep} strokeWidth={2} strokeLinecap="round" />
-                  </Svg>
-                </Pressable>
-              ) : clipboardAvailable ? (
-                <PressableScale accessibilityRole="button" accessibilityLabel="Paste link" onPress={() => void paste()} pressedScale={0.92} style={styles.pasteBtn}>
-                  <Txt weight="black" size={14} color="#FFFFFF">Paste</Txt>
-                </PressableScale>
-              ) : null}
-            </View>
-
-            {error ? (
-              <Animated.View entering={FadeIn}>
-                <Txt weight="bold" size={13} color={colors.red}>{error}</Txt>
-              </Animated.View>
-            ) : loading ? (
-              <View style={styles.loading}>
-                <ActivityIndicator color={colors.child.skyDeep} />
-                <Txt weight="bold" size={13} color={colors.parent.muted}>Finding the video…</Txt>
+            {/* Only the header drags the sheet down, so the body can scroll freely. */}
+            <GestureDetector gesture={dragToClose}>
+              <View style={styles.header}>
+                {isTablet ? null : <View style={styles.grabber} />}
+                <View style={styles.titleRow}>
+                  <Txt weight="black" size={isTablet ? exactType(26) : 24}>Add a video</Txt>
+                  <PressableScale accessibilityRole="button" accessibilityLabel="Close" onPress={close} pressedScale={0.9} style={styles.closeBtn}>
+                    <Txt weight="black" size={17} color={colors.parent.muted}>✕</Txt>
+                  </PressableScale>
+                </View>
               </View>
-            ) : !video ? (
-              <Txt weight="bold" size={13} lineHeight={19} color={colors.parent.muted}>
-                {clipboardAvailable
-                  ? 'Copy a link in YouTube, then tap Paste.'
-                  : 'Copy a link in YouTube, then long-press the field to paste it.'}
-              </Txt>
-            ) : null}
+            </GestureDetector>
 
-            {video ? (
-              <Animated.View entering={FadeInDown.springify().damping(18)} style={styles.stack}>
-                <View style={styles.preview}>
-                  <Image source={{ uri: video.thumbnailUrl }} style={styles.thumb} contentFit="cover" transition={200} />
-                  <View style={styles.copy}>
-                    <Txt weight="extrabold" size={15} numberOfLines={1}>{video.title}</Txt>
-                    <Txt weight="bold" size={12.5} color={colors.parent.muted} numberOfLines={1}>
-                      {video.channelTitle}
-                      {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
-                    </Txt>
-                  </View>
-                  <PopIn delay={150} style={styles.okBadge}>
-                    <Txt weight="black" size={15} color="#FFFFFF">✓</Txt>
-                  </PopIn>
-                </View>
+            <ScrollView
+              style={styles.body}
+              contentContainerStyle={styles.bodyContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
 
-                {profiles.length > 1 ? (
-                  <>
-                    <Txt weight="black" size={15}>Add for</Txt>
-                    <View style={styles.kids}>
-                      {profiles.map((kid) => {
-                        const on = chosen.includes(kid.id);
-                        return (
-                          <PressableScale
-                            key={kid.id}
-                            accessibilityRole="checkbox"
-                            accessibilityState={{ checked: on }}
-                            accessibilityLabel={`Add for ${kid.nickname}`}
-                            onPress={() => toggleChild(kid.id)}
-                            haptic="select"
-                            pressedScale={0.94}
-                            style={[styles.kid, on && styles.kidOn]}
-                          >
-                            <ChildAvatar avatar={kid.avatar} size={32} />
-                            <Txt weight="extrabold" size={15} color={on ? '#FFFFFF' : colors.parent.muted} numberOfLines={1}>
-                              {kid.nickname}
-                            </Txt>
-                            {on ? (
-                              <PopIn key={`on-${kid.id}`}>
-                                <Txt weight="black" size={13} color="#FFFFFF">✓</Txt>
-                              </PopIn>
-                            ) : null}
-                          </PressableScale>
-                        );
-                      })}
-                    </View>
-                  </>
-                ) : null}
-
-                <PressableScale
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked }}
-                  onPress={() => setChecked((on) => !on)}
-                  haptic={checked ? 'light' : 'medium'}
-                  pressedScale={0.97}
-                  style={[styles.checkRow, checked && styles.checkRowOn]}
-                >
-                  <View style={[styles.checkBox, { backgroundColor: checked ? colors.green : '#D6DEE9' }]}>
-                    <Svg width={11} height={9} viewBox="0 0 11 9">
-                      <Path d="M1.5 4.5 L4 7 L9.5 1.5" stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              <View style={[styles.field, error ? styles.fieldError : null]}>
+                <TextInput
+                  value={input}
+                  onChangeText={(next) => {
+                    setInput(next);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Paste a YouTube link"
+                  placeholderTextColor="rgba(22,112,139,.55)"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  style={[styles.input, input.length > 0 && styles.inputMono]}
+                  returnKeyType="done"
+                />
+                {input.length > 0 ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel="Clear link" onPress={() => setInput('')} hitSlop={8} style={styles.clear}>
+                    <Svg width={10} height={10} viewBox="0 0 10 10">
+                      <Path d="M1 1 L9 9 M9 1 L1 9" stroke={colors.child.skyDeep} strokeWidth={2} strokeLinecap="round" />
                     </Svg>
-                  </View>
-                  <Txt weight="extrabold" size={14.5} lineHeight={20} color={checked ? colors.greenDark : colors.parent.muted} style={{ flex: 1 }}>
-                    I’ve checked it. It’s OK for {checkedFor}.
-                  </Txt>
-                </PressableScale>
+                  </Pressable>
+                ) : clipboardAvailable ? (
+                  <PressableScale accessibilityRole="button" accessibilityLabel="Paste link" onPress={() => void paste()} pressedScale={0.92} style={styles.pasteBtn}>
+                    <Txt weight="black" size={14} color="#FFFFFF">Paste</Txt>
+                  </PressableScale>
+                ) : null}
+              </View>
 
-                <View style={styles.channelRow}>
-                  <AppIcon name="channels" size={32} style={{ borderRadius: 10 }} />
-                  <View style={styles.copy}>
-                    <Txt weight="extrabold" size={14.5}>Approve the whole channel</Txt>
-                    <Txt weight="bold" size={12} color={colors.parent.muted}>New uploads come to you first</Txt>
-                  </View>
-                  <Switch
-                    value={wholeChannel}
-                    onValueChange={toggleChannel}
-                    trackColor={{ true: colors.child.grass, false: colors.border }}
-                    thumbColor="#FFFFFF"
-                    accessibilityLabel="Approve the whole channel"
-                  />
+              {error ? (
+                <Animated.View entering={FadeIn}>
+                  <Txt weight="bold" size={13} color={colors.red}>{error}</Txt>
+                </Animated.View>
+              ) : loading ? (
+                <View style={styles.loading}>
+                  <ActivityIndicator color={colors.child.skyDeep} />
+                  <Txt weight="bold" size={13} color={colors.parent.muted}>Finding the video…</Txt>
                 </View>
-              </Animated.View>
-            ) : null}
+              ) : !video ? (
+                <Txt weight="bold" size={13} lineHeight={19} color={colors.parent.muted}>
+                  {clipboardAvailable
+                    ? 'Copy a link in YouTube, then tap Paste.'
+                    : 'Copy a link in YouTube, then long-press the field to paste it.'}
+                </Txt>
+              ) : null}
+
+              {video ? (
+                <Animated.View entering={FadeInDown.springify().damping(18)} style={styles.stack}>
+                  <View style={styles.preview}>
+                    <Image source={{ uri: video.thumbnailUrl }} style={styles.thumb} contentFit="cover" transition={200} />
+                    <View style={styles.copy}>
+                      <Txt weight="extrabold" size={15} numberOfLines={1}>{video.title}</Txt>
+                      <Txt weight="bold" size={12.5} color={colors.parent.muted} numberOfLines={1}>
+                        {video.channelTitle}
+                        {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
+                      </Txt>
+                    </View>
+                    <PopIn delay={150} style={styles.okBadge}>
+                      <Txt weight="black" size={15} color="#FFFFFF">✓</Txt>
+                    </PopIn>
+                  </View>
+
+                  {profiles.length > 1 ? (
+                    <>
+                      <Txt weight="black" size={15}>Add for</Txt>
+                      <View style={styles.kids}>
+                        {profiles.map((kid) => {
+                          const on = chosen.includes(kid.id);
+                          return (
+                            <PressableScale
+                              key={kid.id}
+                              accessibilityRole="checkbox"
+                              accessibilityState={{ checked: on }}
+                              accessibilityLabel={`Add for ${kid.nickname}`}
+                              onPress={() => toggleChild(kid.id)}
+                              haptic="select"
+                              pressedScale={0.94}
+                              style={[styles.kid, on && styles.kidOn]}
+                            >
+                              <ChildAvatar avatar={kid.avatar} size={32} />
+                              <Txt weight="extrabold" size={15} color={on ? '#FFFFFF' : colors.parent.muted} numberOfLines={1}>
+                                {kid.nickname}
+                              </Txt>
+                              {on ? (
+                                <PopIn key={`on-${kid.id}`}>
+                                  <Txt weight="black" size={13} color="#FFFFFF">✓</Txt>
+                                </PopIn>
+                              ) : null}
+                            </PressableScale>
+                          );
+                        })}
+                      </View>
+                    </>
+                  ) : null}
+
+                  <PressableScale
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                    onPress={() => setChecked((on) => !on)}
+                    haptic={checked ? 'light' : 'medium'}
+                    pressedScale={0.97}
+                    style={[styles.checkRow, checked && styles.checkRowOn]}
+                  >
+                    <View style={[styles.checkBox, { backgroundColor: checked ? colors.green : '#D6DEE9' }]}>
+                      <Svg width={11} height={9} viewBox="0 0 11 9">
+                        <Path d="M1.5 4.5 L4 7 L9.5 1.5" stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      </Svg>
+                    </View>
+                    <Txt weight="extrabold" size={14.5} lineHeight={20} color={checked ? colors.greenDark : colors.parent.muted} style={{ flex: 1 }}>
+                      I’ve checked it. It’s OK for {checkedFor}.
+                    </Txt>
+                  </PressableScale>
+
+                  <View style={styles.channelRow}>
+                    <AppIcon name="channels" size={32} style={{ borderRadius: 10 }} />
+                    <View style={styles.copy}>
+                      <Txt weight="extrabold" size={14.5}>Approve the whole channel</Txt>
+                      <Txt weight="bold" size={12} color={colors.parent.muted}>New uploads come to you first</Txt>
+                    </View>
+                    <Switch
+                      value={wholeChannel}
+                      onValueChange={toggleChannel}
+                      trackColor={{ true: colors.child.grass, false: colors.border }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel="Approve the whole channel"
+                    />
+                  </View>
+                </Animated.View>
+              ) : null}
+            </ScrollView>
 
             <Button
               title={
@@ -400,7 +419,6 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
               onPress={() => void add()}
             />
           </Animated.View>
-        </GestureDetector>
       </KeyboardAvoidingView>
       {/* Presented as a modal: dialogs must draw inside it, not behind it. */}
       <AppDialogHost nested />
@@ -440,6 +458,9 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     elevation: 16,
   },
+  header: { gap: 16 },
+  body: { flexGrow: 0, flexShrink: 1 },
+  bodyContent: { gap: 16 },
   grabber: { width: 40, height: 5, borderRadius: 3, backgroundColor: colors.dotInactive, alignSelf: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   closeBtn: {
