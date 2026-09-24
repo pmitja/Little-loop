@@ -25,7 +25,7 @@ import {
 } from '@/components';
 import { colors, controls, shadows } from '@/theme/tokens';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { PaneHost, PanePlaceholder, SplitView } from '@/features/tablet/PaneHost';
+import { PaneHost, SplitView } from '@/features/tablet/PaneHost';
 import { ReviewPane } from '@/features/tablet/ReviewPane';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
@@ -544,6 +544,13 @@ export default function Playlist() {
       ? `${channels.length} ${channels.length === 1 ? 'channel' : 'channels'} approved`
       : `${liveVideos.length} live${waitingCount ? ` · ${waitingCount} waiting` : ''}${premium ? '' : ` · ${videos.length} of ${FREE_LIMITS.videosPerPlaylist}`}`;
 
+  const reviewItem = reviewVideos.find((item) => item.id === activeWaiting);
+  const pendingItem = pending.find((item) => item.id === activeWaiting);
+  // iPad: the right-hand pane only appears when there is something to open in
+  // it; otherwise the list takes the screen, held to a readable width.
+  const showPane = split && (segment === 'channels' ? activeChannel !== null : Boolean(reviewItem || pendingItem));
+  const wide = split && !showPane;
+
   const list = (
     <ScreenContainer padded={false}>
       <DraggableFlatList
@@ -553,7 +560,7 @@ export default function Playlist() {
         renderItem={renderItem}
         activationDistance={12}
         containerStyle={styles.listContainer}
-        contentContainerStyle={[styles.content, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 24) }]}
+        contentContainerStyle={[styles.content, wide && styles.contentWide, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 24) }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
@@ -643,13 +650,11 @@ export default function Playlist() {
     </ScreenContainer>
   );
 
-  if (!split) return list;
+  if (!showPane) return list;
 
-  const reviewItem = reviewVideos.find((item) => item.id === activeWaiting);
-  const pendingItem = pending.find((item) => item.id === activeWaiting);
   let detail;
-  if (segment === 'channels') {
-    detail = activeChannel ? (
+  if (segment === 'channels' && activeChannel) {
+    detail = (
       <PaneHost
         root={{ route: 'channel', params: { id: activeChannel.id, title: activeChannel.channelTitle } }}
         onExit={() => {
@@ -657,8 +662,6 @@ export default function Playlist() {
           void refreshChannels();
         }}
       />
-    ) : (
-      <PanePlaceholder text="Pick a channel to see it here" />
     );
   } else if (reviewItem) {
     detail = (
@@ -683,8 +686,6 @@ export default function Playlist() {
         onDecline={() => void onRejectPending(pendingItem)}
       />
     );
-  } else {
-    detail = <PanePlaceholder text="Pick a video to see it here" />;
   }
 
   return <SplitView listWidth={listWidth} list={list} detail={detail} />;
@@ -693,6 +694,7 @@ export default function Playlist() {
 const styles = StyleSheet.create({
   listContainer: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 24 },
+  contentWide: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: 40 },
   headerBlock: { gap: 16, paddingBottom: 10 },
   segmentBody: { gap: 12 },
   sectionTitle: { marginTop: 6 },
