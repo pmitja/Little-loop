@@ -32,5 +32,5 @@ export { ChildSwitcher, IdentityCard, OwlBubble, OptionList, PremiumBanner, Stat
 export { AnimatedFill, Appear, Breathe, FadeInView, Float, PopIn, PressableScale, Twinkle } from './Motion';
 export { Segmented } from './Segmented';
 export { StepHeader } from './StepHeader';
-export { DetailPaneProvider, useInPane, usePane, usePaneColumns, usePaneTop } from './DetailPane';
+export { DetailPaneProvider, useInPane, usePane, usePaneTop } from './DetailPane';
 export type { PaneEntry, PaneRoute } from './DetailPane';

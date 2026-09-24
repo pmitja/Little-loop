@@ -1,7 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
-import { RAIL_WIDTH } from '@/theme/layout';
 
 /** Parent screens that can open beside a list on an iPad instead of being pushed. */
 export type PaneRoute =
@@ -65,16 +63,6 @@ export function DetailPaneProvider({
 
 export function useInPane(): boolean {
   return useContext(PaneContext) !== null;
-}
-
-/**
- * True when the pane is wide enough for two ~280pt columns — a landscape iPad
- * beside a list, not portrait, where the pane is a single narrow column.
- */
-export function usePaneColumns(): boolean {
-  const inPane = useInPane();
-  const { width, listWidth } = useResponsiveLayout();
-  return inPane && width - RAIL_WIDTH - listWidth - 80 >= 576;
 }
 
 export function usePaneTop(): PaneEntry | null {
