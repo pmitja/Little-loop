@@ -21,6 +21,8 @@ import { fetchSharedActivity } from '@/features/family/activityApi';
 import { colors, controls, shadows } from '@/theme/tokens';
 import { useAppStore, useChildRules } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
+import { usePremium } from '@/stores/entitlementStore';
+import { FREE_LIMITS } from '@littleloop/shared';
 import { usePendingRequests } from '@/stores/requestStore';
 import { useSecondsWatchedToday, useTimerStore, videosWatchedToday, weeklyMinutes } from '@/stores/timerStore';
 
@@ -40,6 +42,7 @@ export default function Today() {
   const activeId = useAppStore((s) => s.activeChildProfileId);
   const profile = profiles.find((p) => p.id === activeId) ?? profiles[0] ?? null;
   const rules = useChildRules(profile?.id ?? null);
+  const premium = usePremium();
   const videos = usePlaylistVideos(profile?.id ?? null);
   const requests = usePendingRequests(profile?.id ?? null);
   const sessions = useTimerStore((s) => s.sessions);
@@ -78,8 +81,11 @@ export default function Today() {
 
   // iPad: the week sits beside the "needs you" card only when there is one;
   // with nothing to act on it takes the full width instead of half.
-  const actionCard = waiting > 0 || liveCount === 0;
-  const sideBySide = dashboardColumns && actionCard;
+  // Same gate as the Playlist's Paste bar: a full free playlist opens the paywall.
+  const addVideo = () =>
+    !premium && videos.length >= FREE_LIMITS.videosPerPlaylist
+      ? router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: name } })
+      : router.push('/(parent)/add-video');
 
   const hero = (
     <Appear index={2} style={styles.hero}>
@@ -139,9 +145,9 @@ export default function Today() {
       {dashboardColumns ? hero : null}
       <View
         onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}
-        style={[styles.dashboard, sideBySide && styles.columns]}
+        style={[styles.dashboard, dashboardColumns && styles.columns]}
       >
-        <View style={[styles.column, sideBySide && { flex: 1 }, dashboardColumns && !actionCard && styles.hidden]}>
+        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
           {dashboardColumns ? null : hero}
           {waiting > 0 ? (
             <Appear index={3}>
@@ -171,27 +177,27 @@ export default function Today() {
                 </View>
               </PressableScale>
             </Appear>
-          ) : liveCount === 0 ? (
+          ) : (
             <Appear index={3}>
               <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel="Add a video"
-                onPress={() => router.push('/(parent)/add-video')}
+                onPress={addVideo}
                 pressedScale={0.98}
                 style={styles.addCard}
               >
                 <AppIcon name="add-video" size={44} style={{ borderRadius: 12 }} />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Txt weight="black" size={16}>Add {name}’s first video</Txt>
+                  <Txt weight="black" size={16}>{liveCount === 0 ? `Add ${name}’s first video` : `Add a video for ${name}`}</Txt>
                   <Txt weight="bold" size={12.5} color={colors.child.skyDeep}>Paste a YouTube link</Txt>
                 </View>
                 <Txt weight="black" size={22} color={colors.subtle}>›</Txt>
               </PressableScale>
             </Appear>
-          ) : null}
+          )}
         </View>
 
-        <View style={[styles.column, sideBySide && { flex: 1 }]}>
+        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
           <Appear index={4}>
             <PressableScale
               accessibilityRole="button"
@@ -231,7 +237,6 @@ const styles = StyleSheet.create({
   dashboard: { gap: 16 },
   columns: { flexDirection: 'row', alignItems: 'flex-start', gap: 20 },
   column: { gap: 16 },
-  hidden: { display: 'none' },
   hero: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, gap: 12, ...shadows.cardLg },
   statusPill: {
     alignSelf: 'flex-start',
