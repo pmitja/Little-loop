@@ -10,6 +10,7 @@ import {
   Appear,
   Breathe,
   ChildSwitcher,
+  PasteVideoBar,
   PressableScale,
   ScreenContainer,
   Txt,
@@ -179,20 +180,7 @@ export default function Today() {
             </Appear>
           ) : (
             <Appear index={3}>
-              <PressableScale
-                accessibilityRole="button"
-                accessibilityLabel="Add a video"
-                onPress={addVideo}
-                pressedScale={0.98}
-                style={styles.addCard}
-              >
-                <AppIcon name="add-video" size={44} style={{ borderRadius: 12 }} />
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Txt weight="black" size={16}>{liveCount === 0 ? `Add ${name}’s first video` : `Add a video for ${name}`}</Txt>
-                  <Txt weight="bold" size={12.5} color={colors.child.skyDeep}>Paste a YouTube link</Txt>
-                </View>
-                <Txt weight="black" size={22} color={colors.subtle}>›</Txt>
-              </PressableScale>
+              <PasteVideoBar onPress={addVideo} />
             </Appear>
           )}
         </View>
@@ -282,17 +270,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.parent.night,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addCard: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.child.skyDeep,
-    backgroundColor: colors.primaryTint,
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   weekCard: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, paddingBottom: 14, gap: 14, ...shadows.card },
   weekHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },

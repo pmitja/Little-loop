@@ -18,6 +18,7 @@ import {
   ChildAvatar,
   EmptyState,
   ParentHeader,
+  PasteVideoBar,
   PressableScale,
   Segmented,
   showAppAlert,
@@ -608,16 +609,7 @@ export default function Playlist() {
               <Animated.View entering={FadeIn.duration(200)} style={styles.segmentBody}>
                 {videos.length > 0 ? (
                   <Appear index={2}>
-                    <PressableScale accessibilityRole="button" accessibilityLabel="Add a video" onPress={goPaste} pressedScale={0.98} style={styles.pasteBar}>
-                      <AppIcon name="add-video" size={42} style={styles.pasteIcon} />
-                      <View style={styles.copy}>
-                        <Txt weight="black" size={16}>Paste a YouTube link</Txt>
-                        <Txt weight="bold" size={12} color={colors.child.skyDeep}>or share from the YouTube app</Txt>
-                      </View>
-                      <View style={styles.pasteCta}>
-                        <Txt weight="black" size={14} color="#FFFFFF">Paste</Txt>
-                      </View>
-                    </PressableScale>
+                    <PasteVideoBar onPress={goPaste} />
                   </Appear>
                 ) : null}
                 {waitingCount + moreRequests.length > 0 ? (
@@ -708,28 +700,6 @@ const styles = StyleSheet.create({
   },
   editButtonActive: { backgroundColor: colors.child.skyDeep },
   hint: { backgroundColor: colors.primaryTint, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
-  pasteBar: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.child.skyDeep,
-    backgroundColor: colors.primaryTint,
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingLeft: 14,
-    paddingRight: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  pasteIcon: { borderRadius: 12 },
-  pasteCta: {
-    height: controls.minTouchParent,
-    paddingHorizontal: 16,
-    borderRadius: 22,
-    backgroundColor: colors.parent.night,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   waitCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 12, gap: 12, ...shadows.card },
   waitTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   waitThumb: { width: 84, height: 56, borderRadius: 12, backgroundColor: colors.primaryTint },

@@ -30,6 +30,7 @@ export { Txt } from './Txt';
 export { PlusIcon, VideoRow } from './VideoCard';
 export { ChildSwitcher, IdentityCard, OwlBubble, OptionList, PremiumBanner, StatusBadge, WeekBars } from './ParentPatterns';
 export { AnimatedFill, Appear, Breathe, FadeInView, Float, PopIn, PressableScale, Twinkle } from './Motion';
+export { PasteVideoBar } from './PasteVideoBar';
 export { Segmented } from './Segmented';
 export { StepHeader } from './StepHeader';
 export { DetailPaneProvider, useInPane, usePane, usePaneTop } from './DetailPane';
