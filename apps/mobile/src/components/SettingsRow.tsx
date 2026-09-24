@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Children, Fragment, isValidElement, type ReactNode } from 'react';
+import { StyleSheet, Switch, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, controls, radii, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { PressableScale } from './Motion';
 
 interface SettingsRowProps {
   icon: ReactNode;
@@ -19,12 +20,13 @@ interface SettingsRowProps {
 
 export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle, onPress, titleColor }: SettingsRowProps) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={title ?? label}
       onPress={onPress}
       disabled={!onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      pressedScale={0.975}
+      style={styles.row}
     >
       <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
         {typeof icon === 'string' ? <Txt size={15}>{icon}</Txt> : icon}
@@ -57,13 +59,23 @@ export function SettingsRow({ icon, iconBg, label, title, value, chevron, toggle
           />
         </Svg>
       ) : null}
-    </Pressable>
+    </PressableScale>
   );
 }
 
 /** White card grouping SettingsRows with hairline dividers (s18). */
 export function SettingsGroup({ children }: { children: ReactNode }) {
-  return <View style={styles.group}>{children}</View>;
+  const rows = Children.toArray(children).filter(isValidElement);
+  return (
+    <View style={styles.group}>
+      {rows.map((row, i) => (
+        <Fragment key={row.key ?? i}>
+          {i > 0 ? <View style={styles.divider} /> : null}
+          {row}
+        </Fragment>
+      ))}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -80,13 +92,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   iconBox: {
-    width: controls.iconSlot,
-    height: controls.iconSlot,
+    width: controls.iconSlot + 2,
+    height: controls.iconSlot + 2,
     borderRadius: 10,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: { flex: 1, minWidth: 0 },
   value: { maxWidth: '42%' },
-  rowPressed: { opacity: 0.68 },
+  divider: { height: 1, backgroundColor: '#F0EBE1' },
 });

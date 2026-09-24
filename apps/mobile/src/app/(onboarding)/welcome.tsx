@@ -1,42 +1,69 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StoryIllustration, Txt } from '@/components';
-import { colors, shadows } from '@/theme/tokens';
+import { Image } from 'expo-image';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { Button, Float, Txt } from '@/components';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { colors } from '@/theme/tokens';
+import { springs } from '@/theme/motion';
 import { useAppStore } from '@/stores/appStore';
 import { authConfigured, useAuthStatus } from '@/lib/auth';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const PAGES = [
   {
-    art: 'welcome',
-    title: 'You choose every video.',
-    body: 'Your child gets one calm screen with only the videos you approve.',
-    cta: 'Show me how',
+    art: require('../../../assets/images/characters/welcome.png'),
+    // Sampled from the artwork's own backdrop so the picture bleeds edge to edge.
+    bg: '#FDE7D0',
+    title: 'Only the videos you choose.',
+    body: 'Pick a few videos and hand over the phone. Your child gets no search, no suggestions and no autoplay.',
+    cta: 'Get started',
   },
   {
-    art: 'pin-safe',
+    art: require('../../../assets/images/characters/pin-safe.png'),
+    bg: '#FDE6A2',
+    title: 'A grown-up PIN keeps it that way.',
+    body: 'Leaving Child Mode, adding videos and changing time limits all need your PIN.',
+    cta: 'Next',
+  },
+  {
+    art: require('../../../assets/images/characters/add-video.png'),
+    bg: '#C4F3E1',
     title: 'Ready in three small steps.',
-    body: 'Create a parent PIN, add your child, then choose their first video.',
+    body: 'Create your PIN, add your child, then choose their first video.',
     cta: 'Start setup',
   },
 ] as const;
 
-/** Onboarding promise pager (concept §09): sky gradient, mascot circle, one idea per page. */
+const ART_ASPECT = 537 / 720;
+const BACKDROPS = PAGES.map((p) => p.bg);
+
+/** First run: one idea per page over the art, a bottom sheet that carries the words. */
 export default function Welcome() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const { isTablet } = useResponsiveLayout();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ x: page * width, animated: false });
-  }, [width, page]);
+  const progress = useSharedValue(0);
   const { isSignedIn } = useAuthStatus();
   const setOnboardingComplete = useAppStore((s) => s.setOnboardingComplete);
+
+  useEffect(() => {
+    progress.value = withSpring(page, springs.gentle);
+  }, [page, progress]);
 
   const finish = () => {
     setOnboardingComplete(true);
@@ -48,78 +75,88 @@ export default function Welcome() {
     router.replace(authConfigured ? '/(auth)/sign-in' : '/(onboarding)/pin-setup');
   };
 
-  const goTo = (index: number) => {
-    scrollRef.current?.scrollTo({ x: index * width, animated: true });
-  };
-
   const isLast = page === PAGES.length - 1;
+  const advance = () => (isLast ? finish() : setPage((p) => p + 1));
+  const swipeTo = (delta: number) => setPage((p) => Math.min(PAGES.length - 1, Math.max(0, p + delta)));
+
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .onEnd((event) => {
+      if (Math.abs(event.translationX) > 50) scheduleOnRN(swipeTo, event.translationX < 0 ? 1 : -1);
+    });
+
+  const bgStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(progress.value, [0, 1, 2], BACKDROPS),
+  }));
+
+  const sheetWidth = isTablet ? Math.min(width, 620) : width;
+  const artWidth = Math.min(width, isTablet ? 620 : width, (height * 0.46) / ART_ASPECT);
+  const current = PAGES[page];
 
   return (
-    <LinearGradient colors={[colors.child.sky, '#A5E1EF']} style={styles.root}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
-        style={{ flex: 1, marginTop: insets.top }}
-      >
-        {PAGES.map((p) => (
-          <ScrollView key={p.title} style={{ width }} contentContainerStyle={[styles.page, { minHeight: Math.max(0, height - insets.top - insets.bottom - 160) }]} showsVerticalScrollIndicator={false}>
-            <StoryIllustration scene={p.art} width={Math.min(width - 48, height * 0.38, 320)} style={styles.mascotStage} />
-            <Txt weight="black" size={26} color={colors.parent.night} center lineHeight={31} style={styles.title}>
-              {p.title}
+    <GestureDetector gesture={swipe}>
+      <Animated.View style={[styles.root, bgStyle]}>
+        <StatusBar style="dark" />
+        <View style={[styles.artArea, { paddingTop: insets.top + 24 }]}>
+          <Animated.View key={page} entering={FadeIn.duration(360)} exiting={FadeOut.duration(200)}>
+            <Float distance={8} sway={1} duration={2800}>
+              <Image source={current.art} style={{ width: artWidth, height: artWidth * ART_ASPECT }} contentFit="cover" accessible={false} />
+            </Float>
+          </Animated.View>
+        </View>
+        <View style={[styles.sheet, { width: sheetWidth, paddingBottom: insets.bottom + 20 }]}>
+          <View style={styles.dots}>
+            {PAGES.map((_, i) => (
+              <Pressable key={i} accessibilityRole="button" accessibilityLabel={`Page ${i + 1}`} hitSlop={8} onPress={() => setPage(i)}>
+                <Dot active={i === page} />
+              </Pressable>
+            ))}
+          </View>
+          <Animated.View key={`copy-${page}`} entering={FadeInDown.springify().damping(20).stiffness(170)} style={styles.copy}>
+            <Txt weight="black" size={30} lineHeight={35} color={colors.parent.night}>
+              {current.title}
             </Txt>
-            <Txt weight="semibold" size={14.5} color="#2E5566" center lineHeight={21.75} style={styles.body}>
-              {p.body}
+            <Txt weight="bold" size={15.5} lineHeight={23} color={colors.parent.muted}>
+              {current.body}
             </Txt>
-          </ScrollView>
-        ))}
-      </ScrollView>
-      <View style={styles.dots}>
-        {PAGES.map((_, i) => (
-          <View
-            key={i}
-            style={[styles.dotBase, i === page ? styles.dotActive : styles.dotIdle]}
-          />
-        ))}
-      </View>
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 22 }]}>
-        <Pressable
-          onPress={() => (isLast ? finish() : goTo(page + 1))}
-          style={({ pressed }) => [styles.cta, isTablet && { width: '100%', maxWidth: 512, alignSelf: 'center' }, shadows.coralButton, pressed && { opacity: 0.9 }]}
-        >
-          <Txt weight="black" size={16} color="#fff">{PAGES[page].cta}</Txt>
-        </Pressable>
-        {!isSignedIn ? (
-          <Pressable onPress={signIn} hitSlop={8}>
-            <Txt weight="bold" size={13} color="#2E5566" center>
-              I already have an account
-            </Txt>
-          </Pressable>
-        ) : null}
-      </View>
-    </LinearGradient>
+          </Animated.View>
+          <Button title={current.cta} onPress={advance} style={styles.cta} />
+          {!isSignedIn ? (
+            <Pressable onPress={signIn} hitSlop={8} style={styles.signIn}>
+              <Txt weight="extrabold" size={14} color={colors.parent.muted} center>
+                I already have an account
+              </Txt>
+            </Pressable>
+          ) : null}
+        </View>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
+function Dot({ active }: { active: boolean }) {
+  const w = useSharedValue(active ? 24 : 8);
+  useEffect(() => {
+    w.value = withSpring(active ? 24 : 8, springs.snappy);
+  }, [active, w]);
+  const style = useAnimatedStyle(() => ({ width: w.value }));
+  return <Animated.View style={[styles.dot, { backgroundColor: active ? colors.parent.night : colors.dotInactive }, style]} />;
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  page: { flexGrow: 1, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 34, gap: 16 },
-  mascotStage: { marginBottom: 12, borderRadius: 32 },
-  title: { maxWidth: 280 },
-  body: { maxWidth: 280 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, marginBottom: 20 },
-  dotBase: { height: 8, borderRadius: 4 },
-  dotIdle: { width: 8, backgroundColor: 'rgba(42,59,92,.25)' },
-  dotActive: { width: 22, backgroundColor: colors.parent.night },
-  footer: { paddingHorizontal: 24, gap: 16, alignItems: 'center' },
-  cta: {
-    alignSelf: 'stretch',
-    minHeight: 54,
-    borderRadius: 999,
-    backgroundColor: colors.child.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
+  root: { flex: 1, alignItems: 'center' },
+  artArea: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingTop: 30,
+    paddingHorizontal: 28,
+    gap: 14,
   },
+  dots: { flexDirection: 'row', gap: 6 },
+  dot: { height: 8, borderRadius: 4 },
+  copy: { gap: 10, minHeight: 140 },
+  cta: { marginTop: 8 },
+  signIn: { paddingVertical: 6 },
 });

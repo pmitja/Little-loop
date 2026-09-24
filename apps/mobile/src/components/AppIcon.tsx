@@ -19,7 +19,8 @@ export type AppIconName =
   | 'parent-hq'
   | 'weekend'
   | 'warning'
-  | 'kid-device';
+  | 'kid-device'
+  | 'school';
 
 const ICONS: Record<AppIconName, number> = {
   profile: require('../../assets/images/icons/profile.png'),
@@ -39,6 +40,7 @@ const ICONS: Record<AppIconName, number> = {
   weekend: require('../../assets/images/icons/weekend.png'),
   warning: require('../../assets/images/icons/warning.png'),
   'kid-device': require('../../assets/images/icons/kid-device.png'),
+  school: require('../../assets/images/icons/school.png'),
 };
 
 /** Decorative icon art; the surrounding row/tab owns the accessible label. */

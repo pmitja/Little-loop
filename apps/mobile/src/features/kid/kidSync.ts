@@ -7,7 +7,7 @@ import { useAppStore } from '@/stores/appStore';
 import { useKidDeviceStore, type KidPairing } from '@/stores/kidDeviceStore';
 import { usePlaylistStore } from '@/stores/playlistStore';
 import { useRequestStore } from '@/stores/requestStore';
-import { useTimerStore } from '@/stores/timerStore';
+import { serverEndReason, useTimerStore, type SessionEndReason } from '@/stores/timerStore';
 import { adoptServerRequests, type ServerRequest } from '@/features/family/requestSync';
 import { clearKidToken, getKidToken, kidApi, setKidRevokedHandler, setKidToken } from './kidApi';
 
@@ -28,10 +28,11 @@ type PollResponse =
   | { status: 'paired'; device: { id: string; childProfileId: string; name: string } };
 
 /**
- * Wipe everything this device knew about its child and return to the pairing
- * screen. Runs when a parent unpairs the device (or deletes the child).
+ * Wipe everything this device knew about its child. Unpaired from a parent
+ * phone (or child deleted) → back to the pairing screen; logged out here with
+ * the PIN → back to sign-in, so the device can be used however the grown-up wants.
  */
-export async function resetKidDevice(): Promise<void> {
+export async function resetKidDevice(opts: { toSetup?: boolean } = {}): Promise<void> {
   const childId = useKidDeviceStore.getState().childProfileId;
   await clearKidToken();
   useTimerStore.getState().reconcile();
@@ -41,7 +42,16 @@ export async function resetKidDevice(): Promise<void> {
     useTimerStore.getState().removeChildData(childId);
   }
   useAppStore.getState().setChildProfiles([]);
-  useKidDeviceStore.getState().reset();
+  useKidDeviceStore.getState().reset(opts.toSetup ?? true);
+}
+
+/**
+ * Log this kid device out with the parent PIN. The server checks the PIN (any
+ * caregiver's) and unpairs the device; only then is local data wiped.
+ */
+export async function signOutKidDevice(pin: string): Promise<void> {
+  await kidApi('/kid/sign-out', { method: 'POST', body: JSON.stringify({ pin }) });
+  await resetKidDevice({ toSetup: false });
 }
 
 let resetting = false;
@@ -210,7 +220,7 @@ export async function reportKidSession(session: {
   startedAt: string;
   seconds: number;
   videoIds: string[];
-  endReason: string | null;
+  endReason: SessionEndReason | null;
   endedAt: string | null;
 }): Promise<void> {
   if (!session.endedAt) return;
@@ -222,7 +232,7 @@ export async function reportKidSession(session: {
       endedAt: session.endedAt,
       totalSeconds: session.seconds,
       providerVideoIds: session.videoIds.slice(0, 200),
-      endReason: session.endReason === 'bedtime' ? 'time_limit' : (session.endReason ?? 'unknown'),
+      endReason: session.endReason ? serverEndReason(session.endReason) : 'unknown',
     }),
   });
 }

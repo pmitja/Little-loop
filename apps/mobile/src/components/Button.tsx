@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   View,
   type StyleProp,
@@ -10,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { PressableScale } from './Motion';
 
 export type ButtonVariant = 'primary' | 'coral' | 'outline' | 'ghost';
 export type ButtonSize = 'lg' | 'md';
@@ -25,7 +25,7 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const HEIGHTS: Record<ButtonSize, number> = { lg: scaleUi(56), md: scaleUi(48) };
+const HEIGHTS: Record<ButtonSize, number> = { lg: scaleUi(58), md: scaleUi(48) };
 
 export function Button({
   title,
@@ -54,7 +54,7 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Txt weight="extrabold" size={size === 'lg' ? 17 : 15} color={textColor}>
+          <Txt weight="black" size={size === 'lg' ? 17 : 15} color={textColor}>
             {title}
           </Txt>
         </>
@@ -70,7 +70,7 @@ export function Button({
 
   if (variant === 'coral') {
     return (
-      <Pressable onPress={onPress} disabled={inactive} style={[shadows.coralButton, style]}>
+      <PressableScale onPress={onPress} disabled={inactive} haptic="light" style={[shadows.coralButton, style]}>
         <LinearGradient
           colors={colors.coralGrad}
           start={{ x: 0, y: 0 }}
@@ -79,32 +79,33 @@ export function Button({
         >
           {content}
         </LinearGradient>
-      </Pressable>
+      </PressableScale>
     );
   }
 
   const variantStyle: ViewStyle =
     variant === 'primary'
-      ? { backgroundColor: colors.primary }
+      ? { backgroundColor: colors.parent.night }
       : variant === 'outline'
         ? { backgroundColor: colors.card, borderWidth: 2, borderColor: colors.primary }
         : { backgroundColor: 'transparent' };
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [
+      haptic={variant === 'ghost' ? false : 'light'}
+      pressedScale={0.97}
+      style={[
         styles.fill,
         shape,
         variantStyle,
-        variant === 'primary' && !inactive ? shadows.primaryButton : null,
-        pressed && !inactive ? { transform: [{ scale: 0.98 }] } : null,
+        variant === 'primary' && !inactive ? shadows.navyButton : null,
         style,
       ]}
     >
       {content}
-    </Pressable>
+    </PressableScale>
   );
 }
 

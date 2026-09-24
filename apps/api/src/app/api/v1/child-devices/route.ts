@@ -45,7 +45,7 @@ export const POST = handle(async (req) => {
   if (!session) {
     throw new HttpError(404, 'PAIRING_NOT_FOUND', 'That code is wrong or has expired');
   }
-  await assertKidDeviceAllowed(db, child.familyId, child.id, { installId: session.installId });
+  await assertKidDeviceAllowed(db, child.familyId, { installId: session.installId });
 
   // Conditional update is the race guard: only one claim can flip claimedAt.
   const [claimed] = await db

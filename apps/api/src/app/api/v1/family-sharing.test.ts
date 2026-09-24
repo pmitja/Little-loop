@@ -73,7 +73,13 @@ describe('caregiver permissions', () => {
   it('lets a caregiver edit a shared child profile', async () => {
     await actAs(caregiver.authUserId);
     const response = await updateProfile(
-      request({ dailyLimitMinutes: 60, bedtime: '8:00 PM' }),
+      request({
+        dailyLimitMinutes: 60,
+        bedtime: '8:00 PM',
+        schoolTimeEnabled: true,
+        schoolStart: '8:15 AM',
+        schoolEnd: '2:30 PM',
+      }),
       { params: Promise.resolve({ id: profileId }) },
     );
     expect(response.status).toBe(200);
@@ -82,6 +88,9 @@ describe('caregiver permissions', () => {
     });
     expect(saved?.dailyLimitMinutes).toBe(60);
     expect(saved?.bedtime).toBe('8:00 PM');
+    expect(saved?.schoolTimeEnabled).toBe(true);
+    expect(saved?.schoolStart).toBe('8:15 AM');
+    expect(saved?.schoolEnd).toBe('2:30 PM');
   });
 
   it('inherits Premium from the main caregiver', async () => {

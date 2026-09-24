@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { DAILY_LIMIT_MINUTES, formatDailyLimit } from '@littleloop/shared';
-import { AppIcon, ChildSwitcher, IdentityCard, ParentHeader, PremiumBanner, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert } from '@/components';
+import { AppIcon, Appear, ChildSwitcher, IdentityCard, ParentHeader, PremiumBanner, ScreenContainer, SectionLabel, SettingsGroup, SettingsRow, showAppAlert, Txt } from '@/components';
 import { useParentIdentity } from '@/lib/auth';
 import { colors } from '@/theme/tokens';
 import { DEFAULT_CHILD_RULES, useAppStore } from '@/stores/appStore';
@@ -11,6 +11,7 @@ import { usePremium } from '@/stores/entitlementStore';
 import { presentCustomerCenter, restorePurchases } from '@/lib/purchases';
 import { openStoreReviewPage } from '@/lib/review';
 import { useDeleteAccount } from '@/features/security/deleteAccount';
+import { useSignOut } from '@/features/security/signOut';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
 
 export default function Settings() {
@@ -26,6 +27,7 @@ export default function Settings() {
   const premium = usePremium();
   const identity = useParentIdentity();
   const deleteAccount = useDeleteAccount();
+  const signOut = useSignOut();
   const familyRole = useAppStore((state) => state.familyRole);
   const isOwner = familyRole !== 'caregiver';
   useFocusEffect(
@@ -50,56 +52,71 @@ export default function Settings() {
         : 'No previous LittleLoop purchase was found for this store account.',
     );
   };
-  const timeSummary = `${formatDailyLimit(profile?.dailyLimitMinutes ?? DAILY_LIMIT_MINUTES.default)} daily${rules.bedtimeEnabled ? ` · bedtime ${rules.bedtime}` : ''}`;
+  const limitLabel = formatDailyLimit(profile?.dailyLimitMinutes ?? DAILY_LIMIT_MINUTES.default);
+  const name = profile?.nickname ?? 'Child';
+  let block = 0;
+  const next = () => block++;
 
   return <ScreenContainer scroll style={styles.root}>
-    <ParentHeader title="Settings" />
-    <IdentityCard name={identity.name ?? 'Parent'} email={identity.email ?? undefined} />
+    <Appear index={next()}><ParentHeader title="Settings" /></Appear>
+    <Appear index={next()}><IdentityCard name={identity.name ?? 'Parent'} email={identity.email ?? undefined} /></Appear>
+    {isOwner && !premium ? (
+      <Appear index={next()}>
+        <PremiumBanner onPress={() => router.push({ pathname: '/paywall', params: { trigger: 'settings' } })} />
+      </Appear>
+    ) : null}
 
-    <SectionLabel>Choose a child</SectionLabel>
-    <ChildSwitcher
-      profiles={profiles}
-      activeId={profile?.id ?? null}
-      onSelect={(id) => useAppStore.getState().setActiveChildProfileId(id)}
-      onAdd={() => router.push(premium ? '/(parent)/add-child' : { pathname: '/paywall', params: { trigger: 'profile-cap' } })}
-      onEdit={(id) => router.push({ pathname: '/(parent)/edit-child', params: { id } })}
-    />
+    <Appear index={next()} style={styles.rulesHead}>
+      <Txt weight="black" size={17} numberOfLines={1} style={{ flexShrink: 1 }}>{name}’s rules</Txt>
+      <ChildSwitcher
+        compact
+        profiles={profiles}
+        activeId={profile?.id ?? null}
+        onSelect={(id) => useAppStore.getState().setActiveChildProfileId(id)}
+        onAdd={profiles.length < 2 ? () => router.push(premium ? '/(parent)/add-child' : { pathname: '/paywall', params: { trigger: 'profile-cap' } }) : undefined}
+      />
+    </Appear>
+    <Appear index={next()}>
+      <SettingsGroup>
+        <SettingsRow icon={<AppIcon name="time" size={32} />} iconBg="transparent" title="Daily time" value={limitLabel} chevron onPress={() => router.push('/(parent)/time-limit')} />
+        <SettingsRow icon={<AppIcon name="weekend" size={32} />} iconBg="transparent" title="Bedtime" value={rules.bedtimeEnabled ? rules.bedtime : 'Off'} chevron onPress={() => router.push('/(parent)/time-limit')} />
+        <SettingsRow icon={<AppIcon name="school" size={32} />} iconBg="transparent" title="School hours" value={rules.schoolTimeEnabled ? `${rules.schoolStart} – ${rules.schoolEnd}` : 'Off'} chevron onPress={() => router.push('/(parent)/time-limit')} />
+        {profile ? <SettingsRow icon={<AppIcon name="profile" size={32} />} iconBg="transparent" title="Name and buddy" value={`${profile.nickname} · ${profile.avatar[0].toUpperCase()}${profile.avatar.slice(1)}`} chevron onPress={() => router.push({ pathname: '/(parent)/edit-child', params: { id: profile.id } })} /> : null}
+        <SettingsRow icon={<AppIcon name="videos" size={32} />} iconBg="transparent" title="Approved videos" value={`${approvedCount}`} chevron onPress={() => router.navigate('/(parent)/(tabs)/playlist')} />
+      </SettingsGroup>
+    </Appear>
 
-    <SectionLabel>{profile?.nickname ?? 'Child'}</SectionLabel>
-    <SettingsGroup>
-      {profile ? <SettingsRow icon={<AppIcon name="profile" />} iconBg="transparent" title="Profile" value="Name and avatar" chevron onPress={() => router.push({ pathname: '/(parent)/edit-child', params: { id: profile.id } })} /> : null}
-      <SettingsRow icon={<AppIcon name="time" />} iconBg="transparent" title="Time and bedtime" value={timeSummary} chevron onPress={() => router.push('/(parent)/time-limit')} />
-      <SettingsRow icon={<AppIcon name="videos" />} iconBg="transparent" title="Approved videos" value={`${approvedCount} ${approvedCount === 1 ? 'video' : 'videos'}`} chevron onPress={() => router.navigate('/(parent)/(tabs)/playlist')} />
-    </SettingsGroup>
+    <Appear index={next()}><SectionLabel style={styles.label}>Safety and family</SectionLabel></Appear>
+    <Appear index={next()}>
+      <SettingsGroup>
+        <SettingsRow icon={<AppIcon name="pin" size={32} />} iconBg="transparent" title="Grown-up PIN" value="Change or reset" chevron onPress={() => router.push('/(parent)/safety')} />
+        <SettingsRow icon={<AppIcon name="kid-device" size={32} />} iconBg="transparent" title="Family" value={isOwner ? 'Devices and caregivers' : 'Shared with you'} chevron onPress={() => router.push('/(parent)/family')} />
+      </SettingsGroup>
+    </Appear>
 
-    <SectionLabel>Safety</SectionLabel>
-    <SettingsGroup>
-      <SettingsRow icon={<AppIcon name="pin" />} iconBg="transparent" title="Parent PIN" value="Change or reset" chevron onPress={() => router.push('/(parent)/safety')} />
-    </SettingsGroup>
-
-    <SectionLabel>Family</SectionLabel>
-    <SettingsGroup>
-      <SettingsRow icon={<AppIcon name="kid-device" />} iconBg="transparent" title="Kid devices" value="Child’s own phone or tablet" chevron onPress={() => router.push('/(parent)/kid-devices')} />
-      <SettingsRow icon={<AppIcon name="profile" />} iconBg="transparent" title="Caregivers" value={isOwner ? 'Manage access' : 'Shared with you'} chevron onPress={() => router.push('/(parent)/caregivers')} />
-    </SettingsGroup>
-
-    {isOwner && !premium ? <PremiumBanner onPress={() => router.push({ pathname: '/paywall', params: { trigger: 'settings' } })} /> : null}
-    <SectionLabel>Account</SectionLabel>
-    <SettingsGroup>
-      {isOwner && premium ? <SettingsRow icon={<AppIcon name="premium" />} iconBg="transparent" title="Manage subscription" value="Premium" chevron onPress={manageSubscription} /> : null}
-      {isOwner ? <SettingsRow icon={<AppIcon name="restore" />} iconBg="transparent" title="Restore purchases" chevron onPress={restore} /> : null}
-      <SettingsRow icon={<AppIcon name="privacy" />} iconBg="transparent" title="Privacy policy" chevron onPress={() => router.push('/(parent)/legal')} />
-      <SettingsRow icon={<AppIcon name="terms" />} iconBg="transparent" title="Terms of use" chevron onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} />
-      <SettingsRow icon={<AppIcon name="premium" />} iconBg="transparent" title="Rate LittleLoop" chevron onPress={() => void openStoreReviewPage()} />
-    </SettingsGroup>
-    {/* Removing a child now lives on their Edit profile screen, next to their name:
-        this row acted on whichever profile was active, which was easy to get wrong
-        and hard to find. Account deletion below is a different, account-wide action. */}
-    {/* Apple 5.1.1(v): an app that creates accounts must let the user delete
+    <Appear index={next()}><SectionLabel style={styles.label}>Account</SectionLabel></Appear>
+    <Appear index={next()}>
+      <SettingsGroup>
+        {isOwner && premium ? <SettingsRow icon={<AppIcon name="premium" size={32} />} iconBg="transparent" title="Manage subscription" value="Premium" chevron onPress={manageSubscription} /> : null}
+        {isOwner ? <SettingsRow icon={<AppIcon name="restore" size={32} />} iconBg="transparent" title="Restore purchases" chevron onPress={restore} /> : null}
+        <SettingsRow icon={<AppIcon name="privacy" size={32} />} iconBg="transparent" title="Privacy policy" chevron onPress={() => router.push('/(parent)/legal')} />
+        <SettingsRow icon={<AppIcon name="terms" size={32} />} iconBg="transparent" title="Terms of use" chevron onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} />
+        <SettingsRow icon={<AppIcon name="premium" size={32} />} iconBg="transparent" title="Rate LittleLoop" chevron onPress={() => void openStoreReviewPage()} />
+      </SettingsGroup>
+    </Appear>
+    {/* Removing a child lives on their Edit profile screen, next to their name.
+        Apple 5.1.1(v): an app that creates accounts must let the user delete
         theirs from inside the app. The privacy policy also points here. */}
-    <SettingsGroup>
-      <SettingsRow icon={<AppIcon name="delete" />} iconBg="transparent" title="Delete account and data" titleColor={colors.red} chevron onPress={deleteAccount} />
-    </SettingsGroup>
+    <Appear index={next()}>
+      <SettingsGroup>
+        <SettingsRow icon={<AppIcon name="restore" size={32} />} iconBg="transparent" title="Sign out" chevron onPress={signOut} />
+        <SettingsRow icon={<AppIcon name="delete" size={32} />} iconBg="transparent" title="Delete account and data" titleColor={colors.red} chevron onPress={deleteAccount} />
+      </SettingsGroup>
+    </Appear>
   </ScreenContainer>;
 }
-const styles = StyleSheet.create({ root: { paddingTop: 16, gap: 15 } });
+const styles = StyleSheet.create({
+  root: { paddingTop: 16, gap: 14 },
+  rulesHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 },
+  label: { marginTop: 6, fontSize: 17 * 1.1 },
+});

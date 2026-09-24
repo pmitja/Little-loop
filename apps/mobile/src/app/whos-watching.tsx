@@ -1,11 +1,12 @@
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChildAvatar, LockGlyph, NoVideosModal, Txt } from '@/components';
+import { Appear, ChildAvatar, Float, LockGlyph, NoVideosModal, PressableScale, Twinkle, Txt } from '@/components';
+import { KID_TINTS } from '@/theme/kid';
 import { FREE_LIMITS } from '@littleloop/shared';
 import { colors, controls } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
@@ -64,90 +65,97 @@ export default function WhosWatching() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.child.sky, '#7FD4E8']}
-        style={[styles.headerBackdrop, { height: insets.top + 260 }]}
+        colors={['#8E71D6', colors.child.plum, '#5E43A0']}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={StyleSheet.absoluteFill}
       />
+      <Twinkle size={6} delay={0} style={{ top: insets.top + 90, left: 48 }} />
+      <Twinkle size={4} delay={500} style={{ top: insets.top + 150, right: 64 }} />
+      <Twinkle size={5} delay={900} style={{ top: insets.top + 230, left: 96 }} />
+      <Twinkle size={3} delay={1300} style={{ top: insets.top + 70, right: 128 }} />
 
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel="Open grown-up controls"
         hitSlop={8}
         onPress={() =>
           router.push({ pathname: '/pin-unlock', params: { next: '/(parent)/(tabs)' } })
         }
-        style={({ pressed }) => [
-          styles.grown,
-          { top: insets.top + 12 },
-          pressed && styles.pressed,
-        ]}
+        style={[styles.grown, { top: insets.top + 10 }]}
       >
-        <LockGlyph color={colors.parent.night} scale={0.72} />
-        <Txt weight="bold" size={12} color={colors.parent.night}>
+        <LockGlyph color="#FFFFFF" scale={0.72} />
+        <Txt weight="extrabold" size={13} color="#FFFFFF">
           Grown-ups
         </Txt>
-      </Pressable>
+      </PressableScale>
 
       <ScrollView
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 86, paddingBottom: insets.bottom + 36 },
+          { paddingTop: insets.top + 110, paddingBottom: insets.bottom + 36 },
         ]}
       >
-        <View style={styles.heading}>
-          <Txt
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            size={15}
-            color={colors.child.skyDeep}
-            style={styles.stars}
-          >
-            ✦ ✧ ✦
-          </Txt>
-          <Txt weight="black" size={28} color={colors.parent.night} center>
+        <Appear index={0}>
+          <Txt weight="black" size={32} color="#FFFFFF" center>
             Who’s watching?
           </Txt>
-        </View>
+        </Appear>
 
-        <View style={[styles.profileGrid, isTablet && { width: '100%', maxWidth: 600 }]}>
-          {profiles.map((profile) => (
-            <Pressable
-              key={profile.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Start Child Mode for ${profile.nickname}`}
-              onPress={() => start(profile.id)}
-              style={({ pressed }) => [styles.kid, pressed && styles.pressed]}
-            >
-              <View style={styles.face}>
-                <ChildAvatar avatar={profile.avatar} size={92} />
-              </View>
-              <Txt weight="black" size={15} color={colors.parent.night} numberOfLines={1}>
-                {profile.nickname}
-              </Txt>
-            </Pressable>
+        <View style={[styles.profileGrid, isTablet && { maxWidth: 720 }]}>
+          {profiles.map((profile, i) => (
+            <Appear key={profile.id} index={i + 1}>
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={`Start Child Mode for ${profile.nickname}`}
+                onPress={() => start(profile.id)}
+                haptic="medium"
+                pressedScale={0.92}
+                style={styles.kid}
+              >
+                <View style={[styles.face, { backgroundColor: KID_TINTS[profile.avatar] ?? KID_TINTS.fox }]}>
+                  <Float distance={5} sway={3} duration={2000} phase={i * 450}>
+                    <ChildAvatar avatar={profile.avatar} size={112} />
+                  </Float>
+                </View>
+                <Txt weight="black" size={22} color="#FFFFFF" numberOfLines={1}>
+                  {profile.nickname}
+                </Txt>
+              </PressableScale>
+            </Appear>
           ))}
         </View>
 
+        <View style={{ flex: 1, minHeight: 24 }} />
         {!childModeActive ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add a child profile"
-            onPress={add}
-            style={({ pressed }) => [styles.kid, styles.addKid, pressed && styles.pressed]}
-          >
-            <View style={styles.add}>
-              <Txt size={30} color={colors.parent.night}>
-                ＋
-              </Txt>
-            </View>
-            <Txt weight="black" size={14} color={colors.parent.night}>
-              Add a child
-            </Txt>
-          </Pressable>
+          <Appear index={profiles.length + 1}>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel="Add a child profile"
+              onPress={add}
+              style={styles.addRow}
+            >
+              <View style={styles.add}>
+                <Txt weight="black" size={28} color="#FFFFFF">
+                  +
+                </Txt>
+              </View>
+              <View style={{ gap: 1 }}>
+                <Txt weight="extrabold" size={15} color="#FFFFFF">
+                  Add a child
+                </Txt>
+                <Txt weight="bold" size={12} color="rgba(255,255,255,.8)">
+                  Needs the grown-up PIN
+                </Txt>
+              </View>
+            </PressableScale>
+          </Appear>
         ) : null}
       </ScrollView>
 
@@ -162,59 +170,69 @@ export default function WhosWatching() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.child.cream },
-  headerBackdrop: { position: 'absolute', left: 0, right: 0, top: 0 },
+  root: { flex: 1, backgroundColor: colors.child.plum },
   content: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 24,
-    gap: 30,
+    gap: 44,
   },
   grown: {
     position: 'absolute',
     right: 18,
     zIndex: 10,
     minHeight: controls.minTouchParent,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,.9)',
+    backgroundColor: 'rgba(255,255,255,.18)',
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heading: { alignItems: 'center', gap: 12 },
-  stars: { letterSpacing: 8, marginLeft: 8 },
-  profileGrid: {
-    width: 236,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 22,
-  },
-  kid: {
-    width: 96,
-    minHeight: controls.minTouchChild,
     alignItems: 'center',
     gap: 8,
   },
+  profileGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    columnGap: 26,
+    rowGap: 30,
+  },
+  kid: {
+    alignItems: 'center',
+    gap: 14,
+  },
   face: {
-    width: 96,
-    height: 96,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 6,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#1E0F46',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.3,
+    shadowRadius: 36,
+    elevation: 10,
   },
-  addKid: { marginTop: 2 },
-  add: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    borderWidth: 3,
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 20,
+    borderRadius: 40,
+    borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.parent.night,
+    borderColor: 'rgba(255,255,255,.5)',
+  },
+  add: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pressed: { opacity: 0.72 },
 });

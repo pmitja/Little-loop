@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
@@ -9,7 +9,7 @@ import {
   videoMetaSchema,
   type VideoMeta,
 } from '@littleloop/shared';
-import { Button, Card, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { Appear, Button, Card, ParentHeader, PressableScale, ScreenContainer, showAppAlert, Txt } from '@/components';
 import { colors, radii } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { usePremium } from '@/stores/entitlementStore';
@@ -116,6 +116,7 @@ export default function ReviewVideo() {
         onClose={() => router.dismissTo('/(parent)/(tabs)/playlist')}
       />
 
+      <Appear index={0}>
       <Card radius={radii.cardLg} padding={14} large style={styles.previewCard}>
         <View style={styles.thumbWrap}>
           <Image source={{ uri: video.thumbnailUrl }} style={styles.thumb} contentFit="cover" />
@@ -137,9 +138,15 @@ export default function ReviewVideo() {
           </Txt>
         </View>
       </Card>
+      </Appear>
 
-      <Pressable
+      <Appear index={1}>
+      <PressableScale
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: approved }}
         onPress={() => setApproved((a) => !a)}
+        haptic={approved ? 'light' : 'medium'}
+        pressedScale={0.97}
         style={[styles.approveRow, approved ? styles.approveRowOn : null]}
       >
         <CheckMark on={approved} />
@@ -149,16 +156,19 @@ export default function ReviewVideo() {
           lineHeight={20}
           color={approved ? '#1E7A4E' : colors.muted}
         >
-          I approve this video for my child.
+          I’ve checked it. It’s OK for {profile.nickname}.
         </Txt>
-      </Pressable>
+      </PressableScale>
+      </Appear>
 
-      <Pressable
+      <Appear index={2}>
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`Approve ${video.channelTitle}'s whole channel`}
         onPress={() => void onApproveChannel()}
         disabled={approvingChannel}
-        style={({ pressed }) => [styles.channelRow, pressed && { opacity: 0.7 }]}
+        pressedScale={0.97}
+        style={styles.channelRow}
       >
         <Txt weight="extrabold" size={13.5} color={colors.child.skyDeep}>
           ＋ Approve {video.channelTitle}’s whole channel
@@ -166,10 +176,11 @@ export default function ReviewVideo() {
         <Txt weight="semibold" size={11.5} color={colors.muted} style={{ marginTop: 2 }}>
           Add its popular videos now; new uploads arrive for review.
         </Txt>
-      </Pressable>
+      </PressableScale>
+      </Appear>
 
       <View style={{ flex: 1 }} />
-      <Button title="Add to Playlist" disabled={!approved} loading={saving} onPress={() => void onAdd()} />
+      <Button title={`Add to ${profile.nickname}’s playlist`} disabled={!approved} loading={saving} onPress={() => void onAdd()} />
       <Button
         title="Cancel"
         variant="ghost"

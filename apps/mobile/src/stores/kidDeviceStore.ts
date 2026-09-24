@@ -31,7 +31,8 @@ interface KidDeviceState {
   setPaired: (device: { id: string; childProfileId: string }) => void;
   setChildProfileId: (childProfileId: string) => void;
   setPremiumBlocked: (blocked: boolean) => void;
-  reset: () => void;
+  /** `toSetup`: back to the pairing screen (unpaired remotely) or to sign-in (logged out here). */
+  reset: (toSetup?: boolean) => void;
 }
 
 const initial = {
@@ -60,8 +61,7 @@ export const useKidDeviceStore = create<KidDeviceState>()(
         }),
       setChildProfileId: (childProfileId) => set({ childProfileId }),
       setPremiumBlocked: (premiumBlocked) => set({ premiumBlocked }),
-      /** Unpaired: back to the pairing screen, never to parent sign-in. */
-      reset: () => set({ ...initial, setupMode: true }),
+      reset: (toSetup = true) => set({ ...initial, setupMode: toSetup }),
     }),
     {
       name: 'kid-device-store',

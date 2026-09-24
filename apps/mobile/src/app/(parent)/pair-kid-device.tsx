@@ -46,7 +46,7 @@ export default function PairKidDevice() {
     },
     onError: (cause) => {
       if (cause instanceof ApiError && cause.code === 'PREMIUM_REQUIRED') {
-        router.push({ pathname: '/paywall', params: { trigger: 'settings' } });
+        router.push({ pathname: '/paywall', params: { trigger: 'kid-devices' } });
         return;
       }
       if (cause instanceof ApiError && cause.code === 'PAIRING_NOT_FOUND') {

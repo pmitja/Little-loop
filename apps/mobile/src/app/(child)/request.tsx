@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Txt } from '@/components';
+import { Appear, ChildAvatar, Float, LikeToast, PopIn, PressableScale, Txt } from '@/components';
 import { useAppStore } from '@/stores/appStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
 import { raiseRequestAndSync } from '@/features/family/requestSync';
@@ -41,145 +43,138 @@ export default function ChildRequest() {
     return [...seen.values()];
   }, [videos]);
 
+  const [picked, setPicked] = useState<string | null>(null);
+
   const submit = (kind: 'more' | 'channel', opts?: ChannelChoice) => {
     if (!profile || done) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     raiseRequestAndSync(profile.id, kind, opts);
+    setPicked(opts?.channelTitle ?? 'more');
     setDone(true);
-    setTimeout(() => router.back(), 1100);
+    setTimeout(() => router.back(), 1400);
   };
 
-  if (done) {
-    return (
-      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
-        <Txt weight="black" size={26} color={colors.parent.night} center>
-          Okay! 💛
-        </Txt>
-        <Txt weight="bold" size={16} color={colors.parent.muted} center style={{ marginTop: 8 }}>
-          We told your grown-up.
-        </Txt>
-      </View>
-    );
-  }
+  const rows: { key: string; label: string; channel?: ChannelChoice }[] = [
+    { key: 'more', label: 'New videos' },
+    ...channels.map((channel) => ({ key: channel.channelTitle, label: `More ${channel.channelTitle}`, channel })),
+  ];
 
   return (
     <View style={styles.root}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#C4F3E1', colors.child.cream]}
+        locations={[0, 0.55]}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView
-        contentContainerStyle={[{ width: '100%', maxWidth: 560, alignSelf: 'center' },styles.content, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Pressable
+        <Appear index={0}>
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Go back"
             onPress={() => router.back()}
-            style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+            pressedScale={0.9}
+            style={styles.back}
           >
-            <Txt weight="black" size={22} color={colors.child.skyDeep}>
-              ‹
-            </Txt>
-          </Pressable>
-          <Txt weight="black" size={26} color={colors.parent.night}>
-            Want more?
-          </Txt>
-        </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Ask for more videos"
-          onPress={() => submit('more')}
-          style={({ pressed }) => [styles.moreCard, pressed && styles.cardPressed]}
-        >
-          <Txt weight="black" size={34}>
-            💛
-          </Txt>
-          <Txt weight="black" size={18} color="#FFFFFF" center>
-            Just more videos, please
-          </Txt>
-        </Pressable>
-
-        {channels.length > 0 ? (
-          <>
-            <Txt weight="black" size={16} color={colors.parent.night} style={styles.sectionLabel}>
-              Or more from…
-            </Txt>
-            <View style={styles.grid}>
-              {channels.map((channel) => (
-                <Pressable
-                  key={channel.channelTitle}
+            <Svg width={30} height={30} viewBox="0 0 24 24">
+              <Path d="M15 4 7 12l8 8" stroke={colors.child.skyDeep} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </Svg>
+          </PressableScale>
+        </Appear>
+        <Appear index={1} style={{ gap: 4 }}>
+          <Txt weight="black" size={34} color={colors.parent.night}>Want more?</Txt>
+          <Txt weight="extrabold" size={17} color="rgba(42,59,92,.75)">Tap a heart. We’ll tell your grown-up.</Txt>
+        </Appear>
+        <View style={styles.list}>
+          {rows.map((row, i) => {
+            const chosen = picked === row.key;
+            return (
+              <Appear key={row.key} index={i + 2}>
+                <PressableScale
                   accessibilityRole="button"
-                  accessibilityLabel={`Ask for more from ${channel.channelTitle}`}
-                  onPress={() => submit('channel', channel)}
-                  style={({ pressed }) => [styles.channelTile, pressed && styles.cardPressed]}
+                  accessibilityLabel={row.channel ? `Ask for more from ${row.channel.channelTitle}` : 'Ask for more videos'}
+                  onPress={() => submit(row.channel ? 'channel' : 'more', row.channel)}
+                  haptic="medium"
+                  style={styles.row}
                 >
-                  <Image
-                    source={channel.thumbnailUrl}
-                    style={styles.channelThumb}
-                    contentFit="cover"
-                    transition={150}
-                  />
-                  <Txt
-                    weight="black"
-                    size={13}
-                    color={colors.parent.night}
-                    numberOfLines={2}
-                    center
-                    style={styles.channelName}
-                  >
-                    {channel.channelTitle}
+                  <View style={styles.art}>
+                    {row.channel ? (
+                      <Image source={row.channel.thumbnailUrl} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+                    ) : (
+                      <Float distance={3} sway={4}><ChildAvatar avatar={profile?.avatar ?? 'fox'} size={72} /></Float>
+                    )}
+                  </View>
+                  <Txt weight="black" size={20} color={colors.parent.night} numberOfLines={2} style={{ flex: 1 }}>
+                    {row.label}
                   </Txt>
-                </Pressable>
-              ))}
-            </View>
-          </>
-        ) : null}
+                  <View style={[styles.heart, (i === 0 || chosen) && styles.heartHot]}>
+                    {chosen ? (
+                      <PopIn><Txt weight="black" size={34} color="#FFFFFF">♥</Txt></PopIn>
+                    ) : (
+                      <Txt weight="black" size={34} color={i === 0 ? '#FFFFFF' : colors.child.coral}>♥</Txt>
+                    )}
+                  </View>
+                </PressableScale>
+              </Appear>
+            );
+          })}
+        </View>
       </ScrollView>
+      {done ? (
+        <View pointerEvents="none" style={[styles.toastWrap, { bottom: insets.bottom + 48 }]}>
+          <LikeToast text="Told your grown-up ♥" avatar={profile?.avatar} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.child.cream },
-  center: { alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: 24, paddingBottom: 40, gap: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  content: { width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 24, gap: 18 },
   back: {
-    width: controls.minTouchParent,
-    height: controls.minTouchParent,
-    borderRadius: controls.minTouchParent / 2,
-    backgroundColor: 'rgba(255,255,255,.72)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: { opacity: 0.7 },
-  moreCard: {
-    minHeight: 132,
-    borderRadius: 24,
-    backgroundColor: colors.child.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 20,
-    ...shadows.cardLg,
-  },
-  cardPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  sectionLabel: { marginTop: 4 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  channelTile: {
-    width: '47%',
-    flexGrow: 1,
-    padding: 10,
-    borderRadius: 18,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    gap: 8,
-    ...shadows.card,
+    justifyContent: 'center',
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  channelThumb: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: 12,
-    backgroundColor: '#DDEEFE',
+  list: { gap: 14, marginTop: 6 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 12,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
+    ...shadows.cardLg,
   },
-  channelName: { minHeight: 34 },
+  art: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    overflow: 'hidden',
+    backgroundColor: '#FFF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heart: {
+    width: controls.minTouchChild + 20,
+    height: controls.minTouchChild + 20,
+    borderRadius: (controls.minTouchChild + 20) / 2,
+    backgroundColor: colors.coralTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartHot: { backgroundColor: colors.child.coral, ...shadows.coralButton },
+  toastWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

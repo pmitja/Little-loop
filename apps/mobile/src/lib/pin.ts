@@ -1,7 +1,7 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@/lib/secureStore';
 import { api, apiConfigured } from '@/lib/api';
 
 /**
@@ -63,8 +63,21 @@ export async function savePin(pin: string): Promise<void> {
   await SecureStore.setItemAsync(PIN_SALT_KEY, salt);
   await SecureStore.setItemAsync(PIN_HASH_KEY, hash);
   await SecureStore.setItemAsync(PIN_PARAMS_KEY, JSON.stringify({ iterations: ITERATIONS }));
-  void syncPinSettings(hash);
+  void syncPinSettings(packVerifier(ITERATIONS, salt, hash));
 }
+
+/**
+ * The server copy is the full verifier (iterations, salt, hash — never the raw
+ * PIN), so a paired kid device can ask the server to check the parent PIN
+ * before logging out. Format shared with apps/api/src/lib/pinVerifier.ts.
+ */
+function packVerifier(iterations: number, salt: string, hash: string): string {
+  return `v2$${iterations}$${salt}$${hash}`;
+}
+
+/** Only a successful upload suppresses retries on later unlocks. */
+let syncedVerifier: string | null = null;
+let pendingSync: Promise<void> = Promise.resolve();
 
 /**
  * Best-effort mirror of PIN state to PUT /settings/pin (PLAN §11): the server
@@ -74,13 +87,15 @@ export async function savePin(pin: string): Promise<void> {
  */
 function syncPinSettings(pinRecoveryHash: string | null): Promise<void> {
   if (!apiConfigured()) return Promise.resolve();
-  return api('/settings/pin', {
-    method: 'PUT',
-    body: JSON.stringify({ pinRecoveryHash }),
-  }).then(
-    () => undefined,
-    () => undefined,
-  );
+  // Preserve write order when a PIN changes during an earlier upload.
+  pendingSync = pendingSync.then(async () => {
+    await api('/settings/pin', {
+      method: 'PUT',
+      body: JSON.stringify({ pinRecoveryHash }),
+    });
+    syncedVerifier = pinRecoveryHash;
+  }).catch(() => {});
+  return pendingSync;
 }
 
 export async function verifyPin(pin: string): Promise<boolean> {
@@ -95,10 +110,15 @@ export async function verifyPin(pin: string): Promise<boolean> {
   // A PIN set before the iteration change still verifies against the old count.
   // Re-save it at the current one so this parent only pays that cost once.
   if (params.iterations !== ITERATIONS) await savePin(pin);
+  else {
+    const verifier = packVerifier(params.iterations, salt, expected);
+    if (syncedVerifier !== verifier) void syncPinSettings(verifier);
+  }
   return true;
 }
 
 export async function clearPin(): Promise<void> {
+  syncedVerifier = null;
   await Promise.all([
     SecureStore.deleteItemAsync(PIN_HASH_KEY),
     SecureStore.deleteItemAsync(PIN_SALT_KEY),

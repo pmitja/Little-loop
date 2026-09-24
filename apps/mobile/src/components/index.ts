@@ -13,6 +13,7 @@ export { DailyLimitOptions, DailyLimitPopup, DAILY_LIMIT_PRESETS } from './Daily
 export { DurationPicker, DurationPickerContent } from './DurationPicker';
 export { ChildAvatar } from './ChildAvatar';
 export { StoryIllustration } from './StoryIllustration';
+export { SchoolTimeArt } from './SchoolTimeArt';
 export { EmptyState, AddVideoIllustration } from './EmptyState';
 export { LockedModal, LockGlyph } from './LockedModal';
 export { NoVideosModal } from './NoVideosModal';
@@ -28,3 +29,6 @@ export { ChildModeBar } from './ChildModeBar';
 export { Txt } from './Txt';
 export { PlusIcon, VideoRow } from './VideoCard';
 export { ChildSwitcher, IdentityCard, OwlBubble, OptionList, PremiumBanner, StatusBadge, WeekBars } from './ParentPatterns';
+export { AnimatedFill, Appear, Breathe, FadeInView, Float, PopIn, PressableScale, Twinkle } from './Motion';
+export { Segmented } from './Segmented';
+export { StepHeader } from './StepHeader';

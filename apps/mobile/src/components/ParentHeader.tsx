@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors, scaleUi, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { PressableScale } from './Motion';
 
 interface ParentHeaderProps {
   title: string;
@@ -18,11 +19,12 @@ export function ParentHeader({ title, subtitle, onBack, onClose, right }: Parent
   return (
     <View style={styles.row}>
       {onBack ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Go back"
             onPress={onBack}
             hitSlop={6}
+            pressedScale={0.9}
             style={styles.back}
           >
             <Svg width={scaleUi(16)} height={scaleUi(16)} viewBox="0 0 16 16">
@@ -35,10 +37,10 @@ export function ParentHeader({ title, subtitle, onBack, onClose, right }: Parent
                 fill="none"
               />
             </Svg>
-          </Pressable>
+          </PressableScale>
       ) : null}
       <View style={styles.titles}>
-          <Txt weight="black" size={24}>
+          <Txt weight="black" size={onBack || onClose ? 20 : 30} numberOfLines={2}>
             {title}
           </Txt>
           {subtitle ? (
@@ -49,12 +51,13 @@ export function ParentHeader({ title, subtitle, onBack, onClose, right }: Parent
       </View>
       {right}
       {onClose ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel="Close"
           onPress={onClose}
           hitSlop={6}
-          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          pressedScale={0.9}
+          style={styles.back}
         >
           <Svg width={scaleUi(14)} height={scaleUi(14)} viewBox="0 0 14 14">
             <Path
@@ -64,7 +67,7 @@ export function ParentHeader({ title, subtitle, onBack, onClose, right }: Parent
               strokeLinecap="round"
             />
           </Svg>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -81,6 +84,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.card,
   },
-  pressed: { opacity: 0.7 },
   titles: { flex: 1, gap: 2 },
 });

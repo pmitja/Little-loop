@@ -2,13 +2,9 @@ import { useRouter } from 'expo-router';
 import { api, apiConfigured } from '@/lib/api';
 import { authConfigured } from '@/lib/auth';
 import { authClient } from '@/lib/authClient';
-import { clearPin } from '@/lib/pin';
 import { useAppStore } from '@/stores/appStore';
-import { useLockStore } from '@/stores/lockStore';
-import { usePlaylistStore } from '@/stores/playlistStore';
-import { useEntitlementStore } from '@/stores/entitlementStore';
-import { todayKey, useTimerStore } from '@/stores/timerStore';
 import { showAppAlert } from '@/components';
+import { clearLocalAccountData } from './localAccountData';
 
 /**
  * Account deletion (Apple requirement, PLAN Phase 5). Deletes the account
@@ -33,28 +29,7 @@ export function useDeleteAccount(): () => void {
         return;
       }
     }
-    await clearPin();
-    useAppStore.setState({
-      onboardingComplete: false,
-      activeChildProfileId: null,
-      childProfiles: [],
-      familyRole: null,
-      pendingFamilyInvite: null,
-    });
-    usePlaylistStore.setState({ videosByChild: {}, playlistIdByChild: {} });
-    useTimerStore.setState({
-      dateKey: todayKey(),
-      secondsByChild: {},
-      sessions: [],
-      activeSessionId: null,
-    });
-    useLockStore.setState({
-      pinSet: false,
-      childMode: { active: false, enteredAt: null },
-      failedAttempts: 0,
-      lockoutUntil: null,
-    });
-    useEntitlementStore.getState().clearPremium();
+    await clearLocalAccountData();
     if (authConfigured) await authClient.signOut().catch(() => {});
     router.replace('/');
   };

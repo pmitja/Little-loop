@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useShareIntentContext } from 'expo-share-intent';
-import { AppDialogHost, PINBoxes, PINKeypad, ScreenContainer, StoryIllustration, Txt } from '@/components';
-import { colors } from '@/theme/tokens';
+import { AppDialogHost, Appear, Float, PINBoxes, PINKeypad, PressableScale, ScreenContainer, StoryIllustration, Txt } from '@/components';
+import { useAppStore } from '@/stores/appStore';
+import { colors, shadows } from '@/theme/tokens';
 import { verifyPin } from '@/lib/pin';
 import { recordSecurityEvent } from '@/lib/monitoring';
 import { useLockStore } from '@/stores/lockStore';
@@ -28,6 +29,9 @@ export default function PinUnlock() {
   const childModeActive = useLockStore((s) => s.childMode.active);
   const lockoutUntil = useLockStore((s) => s.lockoutUntil);
   const failedAttempts = useLockStore((s) => s.failedAttempts);
+  const childName = useAppStore(
+    (s) => (s.childProfiles.find((p) => p.id === s.activeChildProfileId) ?? s.childProfiles[0])?.nickname,
+  );
 
   const lockedOut = lockoutUntil !== null && lockoutUntil > now;
   const lockoutSecondsLeft = lockedOut ? Math.ceil((lockoutUntil - now) / 1000) : 0;
@@ -133,22 +137,28 @@ export default function PinUnlock() {
     <>
       <ScreenContainer scroll style={styles.container}>
         <View style={styles.closeRow}>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
-            accessibilityLabel="Close grown-up unlock"
+            accessibilityLabel={childModeActive && childName ? `Back to ${childName}` : 'Close grown-up unlock'}
             hitSlop={10}
             onPress={dismiss}
-            style={({ pressed }) => [styles.close, pressed && styles.closePressed]}
+            pressedScale={0.94}
+            style={styles.close}
           >
-            <Txt weight="bold" size={24} color={colors.parent.muted}>
-              ×
+            <Txt weight="black" size={20} color={colors.parent.night}>‹</Txt>
+            <Txt weight="extrabold" size={14} color={colors.parent.night}>
+              {childModeActive && childName ? `Back to ${childName}` : 'Back'}
             </Txt>
-          </Pressable>
+          </PressableScale>
         </View>
-        <View style={{ flex: 0.7 }} />
-        <StoryIllustration scene="pin-safe" width={124} style={styles.lockStage} />
-        <Txt weight="black" size={23} color={colors.parent.night} center style={{ marginTop: 6 }}>
-          Enter parent PIN
+        <View style={{ flex: 0.5 }} />
+        <Appear index={0}>
+          <Float distance={4} sway={1.5} duration={2400}>
+            <StoryIllustration scene="pin-safe" width={170} style={styles.lockStage} />
+          </Float>
+        </Appear>
+        <Txt weight="black" size={28} color={colors.parent.night} center style={{ marginTop: 6 }}>
+          Grown-ups only
         </Txt>
         <Txt weight="semibold" size={13.5} color={colors.parent.muted} center lineHeight={20} style={styles.sub}>
           {lockedOut
@@ -158,8 +168,8 @@ export default function PinUnlock() {
                 ? 'Unlock Parent Hub to add this shared video.'
                 : 'Unlock parent controls to add this shared video.'
               : childModeActive
-                ? 'This closes Child Mode and returns to parent controls.'
-                : 'Unlock parent controls.'}
+                ? 'Enter your PIN to leave Child Mode and open settings.'
+                : 'Enter your PIN to open settings.'}
         </Txt>
         <View style={styles.boxes}>
           <PINBoxes
@@ -207,17 +217,19 @@ const styles = StyleSheet.create({
   // collapse to let it scroll when it doesn't — e.g. landscape, exiting the player.
   container: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 28 },
   transition: { alignItems: 'center', justifyContent: 'center', gap: 16 },
-  closeRow: { width: '100%', alignItems: 'flex-end' },
+  closeRow: { width: '100%', alignItems: 'flex-start' },
   close: {
-    width: 44,
-    height: 44,
+    minHeight: 44,
+    paddingLeft: 12,
+    paddingRight: 16,
     borderRadius: 22,
     backgroundColor: colors.parent.card,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    ...shadows.card,
   },
-  closePressed: { opacity: 0.65 },
-  sub: { marginTop: 8, maxWidth: 250 },
+  sub: { marginTop: 8, maxWidth: 290 },
   lockStage: { borderRadius: 22, marginBottom: 8 },
   boxes: { marginTop: 20, marginBottom: 22 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },

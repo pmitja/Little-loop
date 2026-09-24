@@ -2,7 +2,7 @@ import { childDevices } from '@littleloop/db';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/auth';
-import { assertKidDeviceAllowed, toChildDeviceDto } from '@/lib/childDevices';
+import { toChildDeviceDto } from '@/lib/childDevices';
 import { requireFamilyMembership } from '@/lib/family';
 import { handle, HttpError, json, parseBody } from '@/lib/http';
 import { requireChildProfile } from '@/lib/ownership';
@@ -36,11 +36,9 @@ export const PATCH = handle<Ctx>(async (req, { params }) => {
   const { db, user, device } = await requireFamilyDevice(req, id);
   const body = await parseBody(req, patchSchema);
 
+  // Moving a device to another child doesn't add a device, so no plan check.
   if (body.childProfileId && body.childProfileId !== device.childProfileId) {
     await requireChildProfile(db, user.id, body.childProfileId);
-    await assertKidDeviceAllowed(db, device.familyId, body.childProfileId, {
-      deviceId: device.id,
-    });
   }
 
   const [updated] = await db

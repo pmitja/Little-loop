@@ -1,7 +1,10 @@
 import { useCallback, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
+import Reanimated, { FadeOutDown, ZoomIn } from 'react-native-reanimated';
+import type { AvatarId } from '@littleloop/shared';
+import { ChildAvatar } from './ChildAvatar';
 import { colors, shadows } from '@/theme/tokens';
 import { Txt } from './Txt';
 
@@ -25,8 +28,13 @@ function Heart({ size, filled, color }: { size: number; filled: boolean; color: 
 interface HeartButtonProps {
   liked: boolean;
   onToggle: () => void;
-  /** 'overlay' = round chip for a video thumbnail; 'pill' = big labelled button for the player. */
-  variant?: 'overlay' | 'pill';
+  /**
+   * 'overlay' = small round chip for a thumbnail; 'chip' = big white 56pt kid
+   * target; 'pill' = labelled button for the player.
+   */
+  variant?: 'overlay' | 'chip' | 'pill';
+  /** Diameter of the 'chip' variant. */
+  size?: number;
   label?: string;
   likedLabel?: string;
 }
@@ -42,6 +50,7 @@ export function HeartButton({
   variant = 'overlay',
   label = 'Like',
   likedLabel = 'Liked',
+  size = 56,
 }: HeartButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -49,8 +58,9 @@ export function HeartButton({
     void Haptics.impactAsync(
       liked ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium,
     );
-    scale.setValue(0.7);
-    Animated.spring(scale, { toValue: 1, friction: 4, tension: 140, useNativeDriver: true }).start();
+    // Liking pops the heart past full size before it settles; unliking just dips.
+    scale.setValue(liked ? 0.8 : 0.5);
+    Animated.spring(scale, { toValue: 1, friction: 3.2, tension: 160, useNativeDriver: true }).start();
     onToggle();
   }, [liked, onToggle, scale]);
 
@@ -75,6 +85,27 @@ export function HeartButton({
     );
   }
 
+  if (variant === 'chip') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: liked }}
+        accessibilityLabel={liked ? 'You liked this video' : 'Tell a grown-up you like this video'}
+        onPress={handlePress}
+        hitSlop={6}
+        style={({ pressed }) => [
+          styles.chip,
+          { width: size, height: size, borderRadius: size / 2 },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Heart size={size * 0.5} filled color={liked ? colors.child.coral : '#CFC6D2'} />
+        </Animated.View>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -92,13 +123,19 @@ export function HeartButton({
 }
 
 /** Small floating "Told your grown-up 💛" style confirmation. */
-export function LikeToast({ text }: { text: string }) {
+export function LikeToast({ text, avatar }: { text: string; avatar?: AvatarId }) {
   return (
-    <View pointerEvents="none" style={styles.toast}>
-      <Txt weight="extrabold" size={15} color="#FFFFFF">
+    <Reanimated.View
+      pointerEvents="none"
+      entering={ZoomIn.springify().damping(14).stiffness(220)}
+      exiting={FadeOutDown.duration(220)}
+      style={styles.toast}
+    >
+      {avatar ? <ChildAvatar avatar={avatar} size={30} /> : null}
+      <Txt weight="black" size={16} color="#FFFFFF">
         {text}
       </Txt>
-    </View>
+    </Reanimated.View>
   );
 }
 
@@ -110,6 +147,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,28,45,.42)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chip: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
   pill: {
     minHeight: 60,
@@ -128,10 +175,13 @@ const styles = StyleSheet.create({
   toast: {
     position: 'absolute',
     alignSelf: 'center',
-    backgroundColor: colors.child.coral,
-    borderRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.parent.night,
+    borderRadius: 99,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
     ...shadows.cardLg,
   },
 });

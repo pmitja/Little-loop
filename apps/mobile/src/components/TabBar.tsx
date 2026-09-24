@@ -1,66 +1,111 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors } from '@/theme/tokens';
+import { springs } from '@/theme/motion';
 import { Txt } from './Txt';
-import { AppIcon } from './AppIcon';
+import { AppIcon, type AppIconName } from './AppIcon';
 import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
+import { usePendingRequests } from '@/stores/requestStore';
 
-const TABS: Record<string, { label: string; icon: (active: boolean) => React.ReactNode }> = {
-  index: {
-    label: 'Home',
-    icon: (active) => <AppIcon name="home" size={25} muted={!active} />,
-  },
-  playlist: {
-    label: 'Videos',
-    icon: (active) => <AppIcon name="videos" size={25} muted={!active} />,
-  },
-  channels: {
-    label: 'Channels',
-    icon: (active) => <AppIcon name="channels" size={25} muted={!active} />,
-  },
-  settings: {
-    label: 'Settings',
-    icon: (active) => <AppIcon name="settings" size={25} muted={!active} />,
-  },
+/** Three tabs: Channels live inside Playlist now, Activity inside Today. */
+const TABS: Record<string, { label: string; icon: AppIconName }> = {
+  index: { label: 'Today', icon: 'home' },
+  playlist: { label: 'Playlist', icon: 'videos' },
+  settings: { label: 'Settings', icon: 'settings' },
 };
 
-/** Custom parent-zone tab bar matching s10: Home · Playlist · Activity · Settings. */
+function Tab({
+  label,
+  icon,
+  active,
+  badge,
+  sidebar,
+  onPress,
+}: {
+  label: string;
+  icon: AppIconName;
+  active: boolean;
+  badge: number;
+  sidebar: boolean;
+  onPress: () => void;
+}) {
+  const on = useSharedValue(active ? 1 : 0);
+  const pop = useSharedValue(1);
+
+  useEffect(() => {
+    on.value = withSpring(active ? 1 : 0, springs.snappy);
+    if (active) pop.value = withSequence(withSpring(1.18, springs.press), withSpring(1, springs.bouncy));
+  }, [active, on, pop]);
+
+  const pillStyle = useAnimatedStyle(() => ({
+    opacity: on.value,
+    transform: [{ scale: interpolate(on.value, [0, 1], [0.85, 1]) }],
+  }));
+  const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={badge > 0 ? `${label}, ${badge} waiting` : label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.tab, sidebar && styles.sidebarTab]}
+    >
+      <Animated.View style={[StyleSheet.absoluteFill, styles.activePill, pillStyle]} />
+      <Animated.View style={iconStyle}>
+        <AppIcon name={icon} size={26} muted={!active} style={styles.icon} />
+      </Animated.View>
+      {badge > 0 ? (
+        <View style={[styles.badge, sidebar && { right: 6, top: 6 }]}>
+          <Txt weight="black" size={9.5} color="#fff">{badge}</Txt>
+        </View>
+      ) : null}
+      <Txt weight="extrabold" size={sidebar ? 14 : 11} color={active ? colors.child.skyDeep : colors.parent.muted}>
+        {label}
+      </Txt>
+    </Pressable>
+  );
+}
+
 export function TabBar({ state, navigation, sidebar = false }: BottomTabBarProps & { sidebar?: boolean }) {
   const insets = useSafeAreaInsets();
-  const childId = useAppStore(s => s.activeChildProfileId);
-  const pending = usePlaylistVideos(childId).filter((video) => video.status === 'review').length;
+  const childId = useAppStore((s) => s.activeChildProfileId);
+  const waiting =
+    usePlaylistVideos(childId).filter((video) => video.status === 'review').length +
+    usePendingRequests(childId).length;
   return (
-    <View style={[styles.bar, { paddingBottom: sidebar ? 12 : Math.max(insets.bottom, 12) }, sidebar && styles.sidebar]}>
+    <View style={[styles.bar, { marginBottom: sidebar ? 12 : Math.max(insets.bottom - 12, 8) }, sidebar && styles.sidebar]}>
       {state.routes.map((route, index) => {
         const tab = TABS[route.name];
         if (!tab) return null;
         const active = state.index === index;
         return (
-          <Pressable
+          <Tab
             key={route.key}
-            accessibilityRole="tab"
-            accessibilityLabel={tab.label}
-            accessibilityState={{ selected: active }}
+            label={tab.label}
+            icon={tab.icon}
+            active={active}
+            badge={route.name === 'playlist' ? waiting : 0}
+            sidebar={sidebar}
             onPress={() => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!active && !event.defaultPrevented) {
+                void Haptics.selectionAsync();
                 navigation.navigate(route.name);
               }
             }}
-            style={[styles.tab, sidebar && styles.sidebarTab, active && styles.activeTab]}
-          >
-            {tab.icon(active)}
-            {route.name === 'playlist' && pending > 0 ? <View style={[styles.badge, sidebar && { right: 4, top: 4 }]}><Txt weight="black" size={9} color="#fff">{pending}</Txt></View> : null}
-            <Txt weight="extrabold" size={sidebar ? 14 : 10.5} color={active ? colors.primary : colors.subtle}>
-              {tab.label}
-            </Txt>
-          </Pressable>
+          />
         );
       })}
     </View>
@@ -68,19 +113,34 @@ export function TabBar({ state, navigation, sidebar = false }: BottomTabBarProps
 }
 
 const styles = StyleSheet.create({
-  sidebar: { flexDirection: 'column', gap: 8, marginHorizontal: 10, marginBottom: 16 },
+  sidebar: { flexDirection: 'column', gap: 8, marginHorizontal: 10 },
   sidebarTab: { flex: 0, flexDirection: 'row', justifyContent: 'flex-start', paddingHorizontal: 12, gap: 10, minHeight: 56 },
   bar: {
     flexDirection: 'row',
+    gap: 4,
     backgroundColor: colors.card,
     borderRadius: 18,
     marginHorizontal: 14,
-    marginBottom: 8,
-    paddingTop: 8,
-    paddingHorizontal: 8,
-    shadowColor: colors.ink, shadowOpacity: .12, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 5,
+    padding: 8,
+    shadowColor: colors.ink,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 54, borderRadius: 12, position: 'relative' },
-  activeTab: { backgroundColor: '#DCEFF6' },
-  badge: { position:'absolute', top:2, right:'24%', minWidth:16, height:16, borderRadius:8, alignItems:'center', justifyContent:'center', backgroundColor:colors.child.coral },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 54, borderRadius: 12 },
+  activePill: { borderRadius: 12, backgroundColor: '#DCEFF6' },
+  icon: { borderRadius: 8 },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: '26%',
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.child.coral,
+  },
 });

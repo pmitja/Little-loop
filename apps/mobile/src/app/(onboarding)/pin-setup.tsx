@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PINBoxes, PINKeypad, ScreenContainer, StoryIllustration, Txt } from '@/components';
+import { Appear, Float, PINBoxes, PINKeypad, ScreenContainer, StepHeader, StoryIllustration, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { savePin } from '@/lib/pin';
 import { useLockStore } from '@/stores/lockStore';
@@ -63,33 +63,40 @@ export default function PinSetup() {
 
   return (
     <ScreenContainer scroll style={styles.container}>
-      <StoryIllustration scene="pin-safe" width={132} style={styles.lockStage} />
-      <Txt weight="black" size={12} color={colors.primaryDark} style={styles.stepLabel}>STEP 1 OF 3</Txt>
-      <Txt weight="black" size={26} center style={{ marginBottom: 8 }}>
-        {isConfirm ? 'Confirm your PIN' : 'Create your Parent PIN'}
-      </Txt>
-      <Txt weight="semibold" size={14.5} color={colors.muted} center lineHeight={21.75}>
-        {isConfirm ? 'Enter the same 4 digits again.' : 'This keeps settings protected from children.'}
-      </Txt>
-      <View style={styles.dots}>
+      <StepHeader step={1} total={3} onBack={router.canGoBack() ? () => router.back() : undefined} />
+      <Appear index={0} style={styles.art}>
+        <Float distance={5} sway={1.5} duration={2400}>
+          <StoryIllustration scene="pin-safe" width={190} />
+        </Float>
+      </Appear>
+      <Appear index={1} key={step} style={styles.copy}>
+        <Txt weight="black" size={28} center>
+          {isConfirm ? 'Type it once more' : 'Make a grown-up PIN'}
+        </Txt>
+        <Txt weight="bold" size={15} color={colors.muted} center lineHeight={21.75} style={styles.body}>
+          {isConfirm ? 'Enter the same 4 digits again.' : 'You’ll need it to leave Child Mode and to change settings.'}
+        </Txt>
+      </Appear>
+      <Appear index={2} style={styles.dots}>
         <PINBoxes length={PIN_LENGTH} filled={errorFlash ? PIN_LENGTH : pin.length} error={errorFlash} checking={saving} />
-      </View>
-      <PINKeypad
-        onDigit={onDigit}
-        onDelete={() => setPin((p) => p.slice(0, -1))}
-        disabled={saving}
-      />
+      </Appear>
       <View style={{ flex: 1 }} />
-      <Txt weight="bold" size={14} color={colors.muted} center>
-        You’ll need this PIN to leave Child Mode.
-      </Txt>
+      <Appear index={3} style={styles.keypad}>
+        <PINKeypad
+          onDigit={onDigit}
+          onDelete={() => setPin((p) => p.slice(0, -1))}
+          disabled={saving}
+        />
+      </Appear>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, alignItems: 'center', paddingTop: 22, paddingHorizontal: 28 },
-  lockStage: { borderRadius: 24, marginBottom: 14 },
-  stepLabel: { marginBottom: 10, letterSpacing: 0.8 },
-  dots: { marginTop: 34, marginBottom: 38 },
+  container: { flexGrow: 1, alignItems: 'center', paddingTop: 16, paddingHorizontal: 24, gap: 18 },
+  art: { marginTop: 6 },
+  copy: { alignItems: 'center', gap: 6 },
+  body: { maxWidth: 300 },
+  dots: { marginTop: 4 },
+  keypad: { width: '100%', alignItems: 'center' },
 });

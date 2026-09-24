@@ -20,11 +20,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { formatDuration } from '@littleloop/shared';
-import { HeartButton, LikeToast, Txt } from '@/components';
+import { Appear, HeartButton, LikeToast, PressableScale, Txt } from '@/components';
 import { TimerBadge } from '@/components/TimerBadge';
 import { colors, shadows } from '@/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppStore, useBedtimeReached } from '@/stores/appStore';
+import { useAppStore, useWatchBlock } from '@/stores/appStore';
 import { useLikedVideoIds } from '@/stores/requestStore';
 import { toggleLikeAndSync } from '@/features/family/requestSync';
 import { useLivePlaylistVideos, usePlaylistStore } from '@/stores/playlistStore';
@@ -120,7 +120,7 @@ export default function ChildPlayer() {
   const videos = useLivePlaylistVideos(profile?.id ?? null);
   const watched = useSecondsWatchedToday(profile?.id ?? null);
   const remaining = remainingSeconds(profile?.dailyLimitMinutes, watched);
-  const pastBedtime = useBedtimeReached(profile?.id ?? null);
+  const watchBlock = useWatchBlock(profile?.id ?? null);
 
   const initialIndex = Math.min(Math.max(Number(params.index ?? 0) || 0, 0), Math.max(videos.length - 1, 0));
   const [index, setIndex] = useState(initialIndex);
@@ -368,13 +368,13 @@ export default function ChildPlayer() {
     [persistCurrentProgress],
   );
 
-  // T = 0 or bedtime → pause, close the session, hand over to the break screen.
-  // Bedtime cuts in mid-video regardless of how many minutes are left.
+  // T = 0, bedtime or school hours → pause, close the session, hand over to the
+  // break screen. The clock cuts in mid-video regardless of minutes left.
   useEffect(() => {
-    if (pastBedtime) {
+    if (watchBlock) {
       command('pause');
-      useTimerStore.getState().endSession('bedtime');
-      router.replace({ pathname: '/(child)/times-up', params: { reason: 'bedtime' } });
+      useTimerStore.getState().endSession(watchBlock);
+      router.replace({ pathname: '/(child)/times-up', params: { reason: watchBlock } });
       return;
     }
     if (remaining !== null && remaining <= 0) {
@@ -382,7 +382,7 @@ export default function ChildPlayer() {
       useTimerStore.getState().endSession('time_limit');
       router.replace('/(child)/times-up');
     }
-  }, [pastBedtime, remaining, command, router]);
+  }, [watchBlock, remaining, command, router]);
 
   // Backgrounding pauses playback (PLAN §10).
   useEffect(() => {
@@ -480,9 +480,11 @@ export default function ChildPlayer() {
           <SeekIcon direction="back" />
         </RoundButton>
       ) : null}
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={playing ? 'Pause video' : 'Play video'}
+        haptic="medium"
+        pressedScale={0.9}
         onPress={() => {
           revealControls();
           command(playing ? 'pause' : 'play');
@@ -500,7 +502,7 @@ export default function ChildPlayer() {
         ]}
       >
         <PlayPauseIcon playing={playing} />
-      </Pressable>
+      </PressableScale>
       {!lightSurface ? (
         <RoundButton
           accessibilityLabel="Go forward 10 seconds"
@@ -598,8 +600,8 @@ export default function ChildPlayer() {
   ) : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: fullscreen ? '#000' : colors.child.cream }}>
-      <StatusBar style={fullscreen ? 'light' : 'dark'} hidden={fullscreen} />
+    <View style={{ flex: 1, backgroundColor: fullscreen ? '#000' : colors.playerBg }}>
+      <StatusBar style="light" hidden={fullscreen} />
       <ScrollView
         scrollEnabled={!fullscreen}
         showsVerticalScrollIndicator={false}
@@ -614,8 +616,19 @@ export default function ChildPlayer() {
         ]}
       >
         <View style={[styles.headerRow, fullscreen && styles.hidden]}>
-          {backPill(() => router.back(), true)}
-          <TimerBadge remainingSeconds={remaining} variant="compact" />
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Back to my videos"
+            onPress={() => router.back()}
+            haptic="light"
+            pressedScale={0.9}
+            style={styles.backRound}
+          >
+            <Svg width={20} height={24} viewBox="0 0 10 16">
+              <Path d="M8 2 L2 8 L8 14" stroke="#FFFFFF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </Svg>
+          </PressableScale>
+          <TimerBadge remainingSeconds={remaining} variant="dark" />
         </View>
         <View style={{ flexGrow: 1 }}>
           <View style={fullscreen ? { flex: 1 } : undefined}>
@@ -677,33 +690,28 @@ export default function ChildPlayer() {
             </View>
           </View>
           <View style={[{ flexGrow: 1 }, fullscreen && styles.hidden]}>
-      <Txt weight="extrabold" size={19} color={colors.parent.night} style={{ marginTop: 18 }} numberOfLines={2}>
-        {current.video.title}
-      </Txt>
-      <View style={{ marginTop: 12 }}>{progressBar(true)}</View>
+      <Appear key={current.id} style={styles.titleRow}>
+        <Txt weight="black" size={24} lineHeight={29} color="#FFFFFF" style={{ flex: 1 }} numberOfLines={2}>
+          {current.video.title}
+        </Txt>
+        <HeartButton liked={liked} onToggle={onToggleLike} variant="chip" size={60} />
+      </Appear>
+      <View style={{ marginTop: 10 }}>{progressBar()}</View>
 
-      <View style={{ marginTop: 20 }}>{transportControls(20, 72, 52, true)}</View>
-
-      <View style={styles.likeRow}>
-        <HeartButton
-          liked={liked}
-          onToggle={onToggleLike}
-          variant="pill"
-          label="I like this!"
-          likedLabel="You liked this 💛"
-        />
-      </View>
+      <View style={{ marginTop: 14 }}>{transportControls(26, 112, 80, true)}</View>
 
       <View style={isTablet ? undefined : { flex: 1 }} />
 
       {next ? (
         <>
-          <Txt weight="extrabold" size={12} color={colors.parent.muted} style={styles.upNextLabel}>
+          <Txt weight="extrabold" size={11} color="rgba(255,255,255,.55)" style={styles.upNextLabel}>
             {`Up next in ${profile?.nickname ?? 'the'}’s playlist`.toUpperCase()}
           </Txt>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={`Play next video, ${next.video.title}`}
+            haptic="light"
+            pressedScale={0.97}
             onPress={() => {
               if (nextIndex !== null) goTo(nextIndex);
             }}
@@ -717,16 +725,14 @@ export default function ChildPlayer() {
               />
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Txt weight="extrabold" size={13.5} color={colors.parent.night} numberOfLines={1}>
+              <Txt weight="black" size={17} color="#FFFFFF" numberOfLines={1}>
                 {next.video.title}
               </Txt>
-              <Txt weight="bold" size={11.5} color={colors.greenDark} style={{ marginTop: 2 }}>
-                {next.video.durationSeconds
-                  ? `✓ parent-approved · ${formatDuration(next.video.durationSeconds)}`
-                  : '✓ parent-approved'}
+              <Txt weight="extrabold" size={12} color={colors.child.grass} style={{ marginTop: 3 }}>
+                ✓ Picked by your grown-up
               </Txt>
             </View>
-          </Pressable>
+          </PressableScale>
         </>
       ) : null}
           </View>
@@ -735,7 +741,7 @@ export default function ChildPlayer() {
       {warningOverlay}
       {likeToast && !fullscreen ? (
         <View pointerEvents="none" style={styles.likeToastWrap}>
-          <LikeToast text="Told your grown-up 💛" />
+          <LikeToast text="Told your grown-up ♥" avatar={profile?.avatar} />
         </View>
       ) : null}
     </View>
@@ -758,26 +764,28 @@ function RoundButton({
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
+      haptic="light"
+      pressedScale={0.88}
+      style={[
         {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: 'rgba(255,255,255,.1)',
+          backgroundColor: 'rgba(255,255,255,.12)',
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: disabled ? 0.35 : pressed ? 0.7 : 1,
+          opacity: disabled ? 0.35 : 1,
         },
         style,
       ]}
     >
       {children}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -819,9 +827,9 @@ const styles = StyleSheet.create({
   trackTouch: { flex: 1, height: 44, justifyContent: 'center' },
   track: {
     width: '100%',
-    height: 7,
+    height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,.14)',
+    backgroundColor: 'rgba(255,255,255,.16)',
   },
   trackLight: { backgroundColor: '#DED8CE' },
   fill: { height: '100%', borderRadius: 4, backgroundColor: colors.child.sun },
@@ -837,26 +845,33 @@ const styles = StyleSheet.create({
     borderColor: colors.child.sun,
   },
   controlsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  playerSideButton: { backgroundColor: colors.parent.night },
-  pauseBar: { width: 7, height: 26, borderRadius: 3, backgroundColor: '#FFFFFF' },
+  playerSideButton: { backgroundColor: 'rgba(255,255,255,.12)' },
+  backRound: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 22 },
+  pauseBar: { width: 12, height: 38, borderRadius: 4, backgroundColor: '#FFFFFF' },
   seekIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   likeRow: { marginTop: 18, alignItems: 'center' },
   likeToastWrap: { position: 'absolute', left: 0, right: 0, bottom: 120, alignItems: 'center' },
-  upNextLabel: { letterSpacing: 0.84, marginBottom: 10 },
+  upNextLabel: { letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
   upNextCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.parent.hairline,
-    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,.08)',
+    borderRadius: 20,
     padding: 10,
   },
   upNextThumb: {
-    width: 78,
-    height: 50,
-    borderRadius: 11,
+    width: 96,
+    height: 62,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: colors.coralTint,
   },

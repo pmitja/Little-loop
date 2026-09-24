@@ -4,7 +4,12 @@ import * as Crypto from 'expo-crypto';
 import { storage } from '@/lib/storage';
 import { markHydrated } from '@/stores/appStore';
 
-export type SessionEndReason = 'parent_exit' | 'time_limit' | 'bedtime' | 'app_closed';
+export type SessionEndReason = 'parent_exit' | 'time_limit' | 'bedtime' | 'school_time' | 'app_closed';
+
+/** The server only tracks why a session ended in broad strokes: a clock cut-off is a time limit. */
+export function serverEndReason(reason: SessionEndReason): Exclude<SessionEndReason, 'bedtime' | 'school_time'> {
+  return reason === 'bedtime' || reason === 'school_time' ? 'time_limit' : reason;
+}
 
 export interface WatchSession {
   id: string;

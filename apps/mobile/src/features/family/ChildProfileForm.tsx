@@ -11,7 +11,8 @@ import {
   type AvatarId,
   type ChildProfile,
 } from '@littleloop/shared';
-import { Button, Card, ChildAvatar, DailyLimitPopup, SectionLabel, Txt } from '@/components';
+import { Button, Card, ChildAvatar, DailyLimitPopup, PopIn, PressableScale, SectionLabel, Txt } from '@/components';
+import { KID_TINTS } from '@/theme/kid';
 import { colors, fonts, radii, typography } from '@/theme/tokens';
 import { api, ApiError, apiConfigured } from '@/lib/api';
 import { updateChildProfile as saveChildProfile } from '@/features/family/updateChildProfile';
@@ -36,6 +37,8 @@ interface ChildProfileFormProps {
   showLimitRow?: boolean;
   /** Rendered between the fields and the submit button (e.g. the Premium note on s22). */
   footer?: ReactNode;
+  /** Rendered under the submit button (e.g. the remove-profile link on Edit profile). */
+  after?: ReactNode;
   submitLabel?: string;
 }
 
@@ -46,6 +49,7 @@ export function ChildProfileForm({
   onLimitReached,
   showLimitRow = true,
   footer,
+  after,
   submitLabel,
 }: ChildProfileFormProps) {
   const addChildProfile = useAppStore((s) => s.addChildProfile);
@@ -162,24 +166,36 @@ export function ChildProfileForm({
         })}
       </View>
 
-      <SectionLabel style={{ marginTop: 20, marginBottom: 10 }}>Choose an avatar</SectionLabel>
+      <SectionLabel style={{ marginTop: 22, marginBottom: 12 }}>
+        {nickname.trim() ? `Pick ${nickname.trim()}’s buddy` : 'Pick a buddy'}
+      </SectionLabel>
       <View style={styles.avatarGrid}>
         {AVATAR_IDS.map((id) => {
           const active = id === avatar;
           return (
-            <Pressable
+            <PressableScale
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={`${AVATAR_LABELS[id]} avatar`}
+              accessibilityLabel={`${AVATAR_LABELS[id]} buddy`}
               accessibilityState={{ selected: active }}
               onPress={() => setAvatar(id)}
-              style={[styles.avatarCell, active ? styles.chipActive : styles.chipIdle]}
+              haptic="select"
+              pressedScale={0.92}
+              style={[styles.avatarCell, active ? [styles.avatarActive, { backgroundColor: KID_TINTS[id] }] : styles.avatarIdle]}
             >
-              <ChildAvatar avatar={id} size={48} />
-              <Txt weight="extrabold" size={12} color={active ? colors.primaryDark : colors.muted}>
-                {AVATAR_LABELS[id]}
-              </Txt>
-            </Pressable>
+              {active ? (
+                <PopIn key={`pick-${id}`}>
+                  <ChildAvatar avatar={id} size={78} />
+                </PopIn>
+              ) : (
+                <ChildAvatar avatar={id} size={72} />
+              )}
+              {active ? (
+                <PopIn style={styles.avatarCheck}>
+                  <Txt weight="black" size={14} color="#FFFFFF">✓</Txt>
+                </PopIn>
+              ) : null}
+            </PressableScale>
           );
         })}
       </View>
@@ -224,6 +240,7 @@ export function ChildProfileForm({
         onPress={submit}
         loading={submitting}
       />
+      {after}
     </>
   );
 }
@@ -232,14 +249,15 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.card,
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: colors.child.skyDeep,
     borderRadius: radii.input,
+    minHeight: 62,
     paddingVertical: 15,
     paddingHorizontal: 18,
     fontFamily: fonts.extrabold,
-    fontSize: 16 * typography.scale,
+    fontSize: 20 * typography.scale,
     color: colors.ink,
-    shadowColor: colors.primary,
+    shadowColor: colors.child.skyDeep,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -254,18 +272,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
   },
-  chipActive: { backgroundColor: colors.primaryTint, borderColor: colors.primary },
+  chipActive: { backgroundColor: colors.primaryTint, borderColor: colors.child.skyDeep },
   chipIdle: { backgroundColor: colors.card, borderColor: colors.border },
   avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   avatarCell: {
     width: '30%',
     flexGrow: 1,
+    aspectRatio: 1,
     alignItems: 'center',
-    gap: 6,
-    borderRadius: 20,
-    borderWidth: 2,
-    paddingTop: 12,
-    paddingBottom: 9,
+    justifyContent: 'center',
+    borderRadius: 26,
+    borderWidth: 3,
+  },
+  avatarIdle: { backgroundColor: colors.card, borderColor: 'transparent' },
+  avatarActive: { borderColor: colors.child.skyDeep },
+  avatarCheck: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: colors.parent.paper,
+    backgroundColor: colors.child.skyDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   limitRow: {
     marginTop: 20,

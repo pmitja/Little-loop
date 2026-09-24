@@ -222,7 +222,7 @@ function AppStack() {
         <Stack.Protected guard={parentZone}>
           {/* These are the only signed-in bridge routes shared by parent and
               child mode: profile switching and the PIN-protected parent exit. */}
-          <Stack.Screen name="whos-watching" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="whos-watching" options={{ gestureEnabled: false, animation: 'fade' }} />
           <Stack.Screen
             name="pin-unlock"
             options={{ presentation: 'modal', gestureEnabled: false }}
@@ -233,10 +233,19 @@ function AppStack() {
           <Stack.Screen name="(parent)" />
           <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="gallery" />
-          <Stack.Screen name="share-video" options={{ presentation: 'modal' }} />
+          <Stack.Screen
+            name="share-video"
+            options={{ presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={signedInChildModeActive || kidDevice}>
-          <Stack.Screen name="(child)" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(child)" options={{ gestureEnabled: false, animation: 'fade' }} />
+        </Stack.Protected>
+        <Stack.Protected guard={kidDevice}>
+          <Stack.Screen
+            name="kid-sign-out"
+            options={{ presentation: 'modal', gestureEnabled: false }}
+          />
         </Stack.Protected>
       </Stack>
     </>

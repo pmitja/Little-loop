@@ -1,17 +1,27 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChildAvatar, LockGlyph, Txt } from '@/components';
-import { colors, controls } from '@/theme/tokens';
-import { useAppStore, useBedtimeReached } from '@/stores/appStore';
+import { AppIcon, Appear, Breathe, ChildAvatar, Float, LockGlyph, PopIn, PressableScale, SchoolTimeArt, Twinkle, Txt } from '@/components';
+import { colors, controls, shadows } from '@/theme/tokens';
+import { useAppStore, useChildRules, useWatchBlock } from '@/stores/appStore';
+import { schoolEndLabel } from '@/lib/schoolTime';
 import { useKidDeviceStore } from '@/stores/kidDeviceStore';
 import { remainingSeconds, useSecondsWatchedToday, useTimerStore } from '@/stores/timerStore';
 
 function isToday(iso: string) { const d = new Date(iso), n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate(); }
 
+const GRADIENTS = {
+  done: ['#FFD9C2', '#FFEDE0', colors.child.cream],
+  bedtime: colors.nightGrad,
+  school: ['#BFE6F5', '#E4F4FA', colors.child.cream],
+} as const;
+
 /**
+ * The break screen: daily limit reached, bedtime, or school hours.
+ *
  * The child has no way forward from here — but the parent must. The only exit is
  * PIN-gated, so the promise of "grown-ups can add more time" is real rather than a
  * label: without it the phone is stuck on this screen until the app is killed.
@@ -27,45 +37,89 @@ export default function TimesUp() {
   // On a kid device the grown-up changes limits from their own phone. When a
   // sync brings more time (or a new day), go straight back to the videos.
   const kidDevice = useKidDeviceStore(s => s.paired);
-  const pastBedtime = useBedtimeReached(p?.id ?? null);
+  const watchBlock = useWatchBlock(p?.id ?? null);
+  const rules = useChildRules(p?.id ?? null);
   const remaining = remainingSeconds(p?.dailyLimitMinutes, seconds);
-  const canWatchAgain = !pastBedtime && (remaining === null || remaining > 0);
+  const canWatchAgain = !watchBlock && (remaining === null || remaining > 0);
+  // School hours end on their own, on any device: the child is back to their
+  // videos when the bell rings, without a grown-up having to unlock anything.
+  const autoReturn = kidDevice || reason === 'school_time';
+  // If the bell rang but today's minutes are already spent, this becomes the
+  // ordinary "all done" screen rather than promising videos that won't come.
+  const school = watchBlock === 'school_time' || (reason === 'school_time' && canWatchAgain);
   useEffect(() => {
-    if (!kidDevice || !canWatchAgain || !p) return;
+    if (!autoReturn || !canWatchAgain || !p) return;
     // The last session closed at the limit; count the new watch time in a new one.
     const timer = useTimerStore.getState();
     if (!timer.activeSessionId) timer.startSession(p.id);
     router.replace('/(child)');
-  }, [kidDevice, canWatchAgain, p, router]);
-  return <LinearGradient colors={['#FFB88A','#FF8A6B',colors.child.plum]} locations={[0,.45,1]} style={{ flex: 1 }}>
-    <ScrollView contentContainerStyle={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-    <View style={styles.glowOuter}><View style={styles.glowInner}><ChildAvatar avatar="star" size={104} /></View></View>
-    <Txt weight="black" size={28} color="#fff" center style={styles.title}>{bedtime ? `It's bedtime, ${p?.nickname ?? 'friend'}!` : `All done for today, ${p?.nickname ?? 'friend'}!`}</Txt>
-    <Txt weight="bold" size={14.5} color="rgba(255,255,255,.92)" center style={styles.body}>The videos will be waiting for you tomorrow. Sweet dreams!</Txt>
-    <View style={styles.stats}>
-      <View style={styles.stat}><Txt weight="black" size={20} color="#fff">{Math.max(1, Math.floor(seconds / 60))} min</Txt><Txt weight="bold" size={10.5} color="rgba(255,255,255,.85)">watched today</Txt></View>
-      <View style={styles.stat}><Txt weight="black" size={20} color="#fff">{Math.max(1, videosToday)}</Txt><Txt weight="bold" size={10.5} color="rgba(255,255,255,.85)">{videosToday === 1 ? 'video enjoyed' : 'videos enjoyed'}</Txt></View>
-    </View>
-    {kidDevice ? null : <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Grown-ups — enter PIN to add more time"
-      onPress={() => router.push('/pin-unlock')}
-      style={({ pressed }) => [styles.parentOnly, pressed && styles.pressed]}
-    >
-      <LockGlyph color="#fff" scale={0.66} />
-      <Txt weight="extrabold" size={13} color="#fff">Grown-ups can add more time</Txt>
-    </Pressable>}
+  }, [autoReturn, canWatchAgain, p, router]);
+  const name = p?.nickname ?? 'friend';
+  const mode: 'school' | 'bedtime' | 'done' = school ? 'school' : bedtime ? 'bedtime' : 'done';
+  const night = mode === 'bedtime';
+  const ink = night ? '#FFFFFF' : colors.parent.night;
+  const title = mode === 'school' ? `It's school time, ${name}!` : mode === 'bedtime' ? `It's bedtime, ${name}!` : `All done for today, ${name}!`;
+  const body = mode === 'school'
+    ? 'Have a great day learning. Your videos will be here after school.'
+    : 'The videos will be waiting for you tomorrow. Sweet dreams!';
+  const grownupsLabel = kidDevice || mode !== 'done' ? 'Grown-ups' : 'Grown-ups can add more time';
+  return <LinearGradient colors={GRADIENTS[mode]} locations={[0, .55, 1]} style={{ flex: 1 }}>
+    <StatusBar style={night ? 'light' : 'dark'} />
+    {night ? <>
+      <Twinkle size={6} delay={0} style={{ top: insets.top + 70, left: 60 }} />
+      <Twinkle size={4} delay={600} style={{ top: insets.top + 120, right: 70 }} />
+      <Twinkle size={3} delay={1100} style={{ top: insets.top + 190, left: 110 }} />
+      <Twinkle size={5} delay={300} style={{ top: insets.top + 46, right: 130 }} />
+      <Twinkle size={4} delay={1500} style={{ top: insets.top + 260, right: 40 }} />
+    </> : null}
+    <ScrollView contentContainerStyle={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 96 }]}>
+      <Appear index={0}>
+        {mode === 'school' ? <View style={styles.halo}><View style={[styles.disc, styles.discSchool]}><SchoolTimeArt width={150} /></View></View>
+          : mode === 'bedtime' ? <View style={styles.nightOuter}>
+            <View style={styles.nightInner}><Float distance={5} sway={2} duration={2600}><ChildAvatar avatar={p?.avatar ?? 'fox'} size={118} /></Float></View>
+            <Breathe from={0.96} to={1.04} duration={2400} style={styles.moon}><View style={styles.moonFace}><View style={styles.moonBite} /></View></Breathe>
+          </View>
+          : <View style={styles.halo}><View style={styles.disc}><PopIn wiggleEvery={3200}><ChildAvatar avatar="star" size={130} /></PopIn></View></View>}
+      </Appear>
+      <Appear index={1}><Txt weight="black" size={30} lineHeight={35} color={ink} center style={styles.title}>{title}</Txt></Appear>
+      <Appear index={2}><Txt weight="bold" size={15.5} lineHeight={23} color={night ? 'rgba(255,255,255,.9)' : '#4A5670'} center style={styles.body}>{body}</Txt></Appear>
+      {night ? null : <Appear index={3} style={styles.backCard}>
+        <AppIcon name="time" size={30} style={{ borderRadius: 9 }} />
+        <View>
+          <Txt weight="bold" size={12} color={colors.parent.muted}>{mode === 'school' ? 'Videos are back at' : 'Videos are back'}</Txt>
+          <Txt weight="black" size={20} color={mode === 'school' ? colors.child.skyDeep : colors.child.coral}>{mode === 'school' ? schoolEndLabel(rules) : 'Tomorrow'}</Txt>
+        </View>
+      </Appear>}
+      {mode === 'done' ? <Appear index={4}><Txt weight="bold" size={13} color={colors.parent.muted} center>
+        {Math.max(1, Math.floor(seconds / 60))} min · {Math.max(1, videosToday)} {videosToday === 1 ? 'video' : 'videos'} today
+      </Txt></Appear> : null}
     </ScrollView>
+    <Appear index={5} style={[styles.footer, { bottom: insets.bottom + 28 }]}>
+      <PressableScale
+        accessibilityRole="button"
+        accessibilityLabel={kidDevice ? 'Grown-ups' : `${grownupsLabel} — enter PIN`}
+        onPress={() => router.push(kidDevice ? '/kid-sign-out' : '/pin-unlock')}
+        style={[styles.parentOnly, { backgroundColor: night ? 'rgba(255,255,255,.14)' : 'rgba(42,59,92,.08)' }]}
+      >
+        <LockGlyph color={ink} scale={0.66} />
+        <Txt weight="extrabold" size={13} color={ink}>{grownupsLabel}</Txt>
+      </PressableScale>
+    </Appear>
   </LinearGradient>;
 }
 const styles = StyleSheet.create({
-  root:{flexGrow:1,alignItems:'center',justifyContent:'center',paddingHorizontal:32,gap:16},
-  glowOuter:{padding:16,borderRadius:999,backgroundColor:'rgba(255,248,236,.1)'},
-  glowInner:{padding:16,borderRadius:999,backgroundColor:'rgba(255,248,236,.22)'},
-  title:{maxWidth:260},
-  body:{lineHeight:22,maxWidth:240},
-  stats:{flexDirection:'row',gap:10},
-  stat:{backgroundColor:'rgba(255,255,255,.18)',borderRadius:14,paddingVertical:9,paddingHorizontal:16,alignItems:'center',gap:1},
-  parentOnly:{marginTop:10,minHeight:controls.minTouchParent,paddingVertical:12,paddingHorizontal:18,borderRadius:99,backgroundColor:'rgba(255,255,255,.22)',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8},
-  pressed:{opacity:0.7},
+  root:{flexGrow:1,alignItems:'center',justifyContent:'center',paddingHorizontal:32,gap:18},
+  halo:{padding:20,borderRadius:999,backgroundColor:'rgba(255,255,255,.4)'},
+  disc:{width:190,height:190,borderRadius:95,backgroundColor:'#FFFFFF',alignItems:'center',justifyContent:'center',shadowColor:colors.child.coral,shadowOffset:{width:0,height:8},shadowOpacity:.14,shadowRadius:24,elevation:4},
+  discSchool:{shadowColor:colors.child.skyDeep,overflow:'hidden'},
+  nightOuter:{width:200,height:200,borderRadius:100,backgroundColor:'rgba(255,243,217,.08)',alignItems:'center',justifyContent:'center'},
+  nightInner:{width:150,height:150,borderRadius:75,backgroundColor:'rgba(255,243,217,.14)',alignItems:'center',justifyContent:'center'},
+  moon:{position:'absolute',top:0,right:4},
+  moonFace:{width:52,height:52,borderRadius:26,backgroundColor:'#FFE7A8',overflow:'hidden'},
+  moonBite:{position:'absolute',top:-8,left:-14,width:52,height:52,borderRadius:26,backgroundColor:'#2C3C63'},
+  title:{maxWidth:300},
+  body:{maxWidth:280},
+  backCard:{flexDirection:'row',alignItems:'center',gap:10,backgroundColor:'#FFFFFF',borderRadius:20,paddingVertical:12,paddingHorizontal:20,...shadows.card},
+  footer:{position:'absolute',left:0,right:0,alignItems:'center'},
+  parentOnly:{minHeight:controls.minTouchParent,paddingHorizontal:18,borderRadius:22,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8},
 });

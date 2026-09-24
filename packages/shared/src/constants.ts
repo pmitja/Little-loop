@@ -3,6 +3,8 @@ export const FREE_LIMITS = {
   playlists: 1,
   videosPerPlaylist: 15,
   avatars: 6,
+  /** Paired kid devices (a child's own phone/tablet). More is Premium. */
+  kidDevices: 1,
 } as const;
 
 export const AVATAR_IDS = ['bear', 'fox', 'bunny', 'dino', 'star', 'rocket'] as const;

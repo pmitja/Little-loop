@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { DAILY_LIMIT_MINUTES, formatDailyLimit } from '@littleloop/shared';
-import { Card, ChildAvatar, LockGlyph, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { Appear, Breathe, Card, ChildAvatar, Float, LockGlyph, ParentHeader, PressableScale, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { KID_TINTS } from '@/theme/kid';
 import { colors, shadows } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
@@ -47,8 +48,16 @@ export default function ChildModeGate() {
       <ParentHeader title="Child Mode" onBack={() => router.back()} />
 
       <View style={styles.center}>
+        <Appear index={0}>
         <Card radius={28} padding={0} large style={styles.gateCard}>
-          {profile ? <ChildAvatar avatar={profile.avatar} size={72} /> : null}
+          {profile ? (
+            <View style={styles.avatarStage}>
+              <Breathe from={0.92} to={1.06} duration={1800} style={[styles.avatarGlow, { backgroundColor: KID_TINTS[profile.avatar] }]} />
+              <Float distance={5} sway={3} duration={2000}>
+                <ChildAvatar avatar={profile.avatar} size={96} />
+              </Float>
+            </View>
+          ) : null}
           <Txt weight="black" size={23} style={{ marginTop: 10 }}>
             {profile?.nickname ?? 'No profile'}
           </Txt>
@@ -64,10 +73,12 @@ export default function ChildModeGate() {
               </Txt>
             </View>
           </View>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel={videos.length ? `Hand over to ${profile?.nickname ?? 'child'}` : 'Add an approved video'}
             onPress={videos.length ? start : () => router.push('/(parent)/add-video')}
+            haptic="medium"
+            pressedScale={0.96}
             style={[shadows.coralButton, { alignSelf: 'stretch' }]}
           >
             <LinearGradient
@@ -83,8 +94,9 @@ export default function ChildModeGate() {
                 {videos.length ? `Hand over to ${profile?.nickname ?? 'child'}` : 'Add an approved video'}
               </Txt>
             </LinearGradient>
-          </Pressable>
+          </PressableScale>
         </Card>
+        </Appear>
 
         {/* The only route to "Who's watching?" now that the Today header chip is
             gone — a second child is otherwise unreachable from the parent zone. */}
@@ -116,6 +128,8 @@ const styles = StyleSheet.create({
   container: { paddingTop: 16 },
   center: { paddingTop: 34, paddingBottom: 24 },
   gateCard: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 22 },
+  avatarStage: { width: 130, height: 130, alignItems: 'center', justifyContent: 'center' },
+  avatarGlow: { position: 'absolute', width: 124, height: 124, borderRadius: 62 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 12, marginBottom: 20 },
   pill: { borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 },
   startButton: {

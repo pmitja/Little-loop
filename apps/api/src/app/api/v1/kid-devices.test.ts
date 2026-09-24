@@ -1,6 +1,7 @@
 import {
   childDevices,
   childProfiles,
+  parentSettings,
   playlists,
   playlistVideos,
   subscriptionStatus,
@@ -9,6 +10,7 @@ import {
   watchSessions,
   type Db,
 } from '@littleloop/db';
+import { createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, seedUser } from '@/test/db';
@@ -39,6 +41,7 @@ import { GET as pollPairing } from './kid/pairing-sessions/[id]/route';
 import { GET as kidState } from './kid/state/route';
 import { POST as kidFinishSession } from './kid/watch-sessions/route';
 import { POST as kidRaiseRequest } from './kid/requests/route';
+import { POST as kidSignOut } from './kid/sign-out/route';
 import { GET as listDevices, POST as claimDevice } from './child-devices/route';
 import { DELETE as unpairDevice, PATCH as patchDevice } from './child-devices/[id]/route';
 import { GET as listRequests } from './requests/route';
@@ -283,34 +286,36 @@ describe('kid device access', () => {
   });
 });
 
-describe('free plan: kid devices for one child', () => {
-  it('allows several devices for one child, blocks a second child, allows it with Premium', async () => {
+describe('free plan: one kid device', () => {
+  it('allows the first device, blocks a second, allows it with Premium', async () => {
     const family = await actAs('kid_free_plan');
-    const { child: first } = await seedChild(family.familyId, 'First');
-    const { child: second } = await seedChild(family.familyId, 'Second');
+    const { child } = await seedChild(family.familyId, 'First');
 
-    expect((await pair(first.id)).res.status).toBe(201);
-    expect((await pair(first.id)).res.status).toBe(201);
+    const first = await pair(child.id);
+    expect(first.res.status).toBe(201);
 
-    const blocked = await pair(second.id);
+    const blocked = await pair(child.id);
     expect(blocked.res.status).toBe(402);
     expect((await blocked.res.json()).error.code).toBe('PREMIUM_REQUIRED');
 
     await ctx.db.insert(subscriptionStatus).values({ userId: ctx.user.id, isPremium: true });
-    const premium = await pair(second.id);
-    expect(premium.res.status).toBe(201);
+    const second = await pair(child.id);
+    expect(second.res.status).toBe(201);
 
-    // Downgrade: the first child's devices keep working, the second child's stop.
+    // Downgrade: the first device keeps working, the extra one stops.
     await ctx.db.delete(subscriptionStatus).where(eq(subscriptionStatus.userId, ctx.user.id));
-    const secondState = await kidState(req('GET', undefined, premium.token), {});
-    expect(secondState.status).toBe(402);
-    const firstDevice = await ctx.db.query.childDevices.findFirst({
-      where: eq(childDevices.childProfileId, first.id),
-    });
-    expect(firstDevice?.revokedAt).toBeNull();
+    expect((await kidState(req('GET', undefined, first.token), {})).status).toBe(200);
+    expect((await kidState(req('GET', undefined, second.token), {})).status).toBe(402);
   });
 
-  it('moving the only device to another child is allowed on free', async () => {
+  it('re-pairing the same install is not a second device', async () => {
+    const family = await actAs('kid_free_repair');
+    const { child } = await seedChild(family.familyId, 'Solo');
+    expect((await pair(child.id, 'solo-install')).res.status).toBe(201);
+    expect((await pair(child.id, 'solo-install')).res.status).toBe(201);
+  });
+
+  it('moving the device to another child is allowed on free', async () => {
     const family = await actAs('kid_free_move');
     const { child: a } = await seedChild(family.familyId, 'A');
     const { child: b } = await seedChild(family.familyId, 'B');
@@ -321,5 +326,97 @@ describe('free plan: kid devices for one child', () => {
     expect(moved.status).toBe(200);
     const state = await kidState(req('GET', undefined, token), {});
     expect((await state.json()).childProfile.id).toBe(b.id);
+  });
+});
+
+/** Same record the app writes: v2$<iterations>$<salt>$<chained sha256>. */
+function pinRecord(pin: string, salt = 'a1b2c3d4e5f60718', iterations = 1000): string {
+  let digest = `${salt}:${pin}`;
+  for (let i = 0; i < iterations; i++) {
+    digest = createHash('sha256').update(digest).digest('hex');
+  }
+  return `v2$${iterations}$${salt}$${digest}`;
+}
+
+describe('kid device sign-out with the parent PIN', () => {
+  it('signs out with the right PIN, rejects a wrong one', async () => {
+    const family = await actAs('kid_signout');
+    const { child } = await seedChild(family.familyId, 'Lou');
+    const { token } = await pair(child.id);
+    await ctx.db
+      .insert(parentSettings)
+      .values({ userId: ctx.user.id, pinSet: true, pinRecoveryHash: pinRecord('2468') });
+
+    const wrong = await kidSignOut(req('POST', { pin: '1111' }, token), {});
+    expect(wrong.status).toBe(403);
+    expect((await kidState(req('GET', undefined, token), {})).status).toBe(200);
+
+    const right = await kidSignOut(req('POST', { pin: '2468' }, token), {});
+    expect(right.status).toBe(200);
+    expect((await kidState(req('GET', undefined, token), {})).status).toBe(401);
+    expect((await (await listDevices(req('GET'), {})).json()).devices).toHaveLength(0);
+  });
+
+  it('says so when no parent PIN is synced yet (old bare-hash record)', async () => {
+    const family = await actAs('kid_signout_legacy');
+    const { child } = await seedChild(family.familyId, 'Old');
+    const { token } = await pair(child.id);
+    await ctx.db
+      .insert(parentSettings)
+      .values({ userId: ctx.user.id, pinSet: true, pinRecoveryHash: 'f'.repeat(64) });
+
+    const res = await kidSignOut(req('POST', { pin: '1234' }, token), {});
+    expect(res.status).toBe(409);
+    expect((await res.json()).error.code).toBe('PIN_NOT_AVAILABLE');
+  });
+
+  it('stops guessing after 5 tries', async () => {
+    const family = await actAs('kid_signout_limit');
+    const { child } = await seedChild(family.familyId, 'Guess');
+    const { token } = await pair(child.id);
+    await ctx.db
+      .insert(parentSettings)
+      .values({ userId: ctx.user.id, pinSet: true, pinRecoveryHash: pinRecord('9999') });
+
+    for (let i = 0; i < 5; i++) {
+      expect((await kidSignOut(req('POST', { pin: '0000' }, token), {})).status).toBe(403);
+    }
+    // Even the right PIN is refused until the window passes.
+    expect((await kidSignOut(req('POST', { pin: '9999' }, token), {})).status).toBe(429);
+  });
+
+  it('reserves only five attempts for concurrent requests and resets an expired window', async () => {
+    const family = await actAs('kid_signout_concurrent');
+    const { child } = await seedChild(family.familyId, 'Concurrent');
+    const { token } = await pair(child.id);
+    await ctx.db.insert(parentSettings).values({
+      userId: ctx.user.id, pinSet: true, pinRecoveryHash: pinRecord('9999'),
+    });
+    const responses = await Promise.all(Array.from({ length: 10 }, () =>
+      kidSignOut(req('POST', { pin: '0000' }, token), {}),
+    ));
+    expect(responses.filter((r) => r.status === 403)).toHaveLength(5);
+    expect(responses.filter((r) => r.status === 429)).toHaveLength(5);
+    const device = await ctx.db.query.childDevices.findFirst({
+      where: eq(childDevices.childProfileId, child.id),
+    });
+    expect(device?.pinAttempts).toBe(5);
+
+    await ctx.db.update(childDevices).set({ pinWindowEndsAt: new Date(0) })
+      .where(eq(childDevices.id, device!.id));
+    expect((await kidSignOut(req('POST', { pin: '9999' }, token), {})).status).toBe(200);
+  });
+
+  it('honors attempts already persisted by another instance', async () => {
+    const family = await actAs('kid_signout_persisted');
+    const { child } = await seedChild(family.familyId, 'Persisted');
+    const { token } = await pair(child.id);
+    await ctx.db.insert(parentSettings).values({
+      userId: ctx.user.id, pinSet: true, pinRecoveryHash: pinRecord('9999'),
+    });
+    await ctx.db.update(childDevices).set({
+      pinAttempts: 5, pinWindowEndsAt: new Date(Date.now() + 300_000),
+    }).where(eq(childDevices.childProfileId, child.id));
+    expect((await kidSignOut(req('POST', { pin: '9999' }, token), {})).status).toBe(429);
   });
 });

@@ -8,6 +8,7 @@ import { useLockedModalStore } from '@/features/child/lockedModalStore';
 import { useKidDeviceStore } from '@/stores/kidDeviceStore';
 import { useLivePlaylistVideos } from '@/stores/playlistStore';
 import { KidWaitingScreen } from '@/features/kid/KidWaitingScreen';
+import { colors } from '@/theme/tokens';
 
 export default function ChildLayout() {
   const router = useRouter();
@@ -60,9 +61,9 @@ export default function ChildLayout() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="request" />
-        <Stack.Screen name="player" options={{ contentStyle: { backgroundColor: '#111B31' } }} />
-        <Stack.Screen name="times-up" options={{ contentStyle: { backgroundColor: '#1C2B4E' } }} />
+        <Stack.Screen name="request" options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="player" options={{ animation: 'fade_from_bottom', contentStyle: { backgroundColor: colors.playerBg } }} />
+        <Stack.Screen name="times-up" options={{ animation: 'fade', contentStyle: { backgroundColor: '#FFEDE0' } }} />
       </Stack>
       <LockedModal
         visible={lockedVisible && !kidDevice}

@@ -1,6 +1,6 @@
 import { expoClient } from '@better-auth/expo/client';
 import { createAuthClient } from 'better-auth/react';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@/lib/secureStore';
 
 /**
  * better-auth client for the mobile app. Social sign-in opens the provider in a

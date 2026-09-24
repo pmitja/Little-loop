@@ -63,7 +63,7 @@ export function ScreenContainer({
 
   if (mode === 'child' || mode === 'plum') {
     return (
-      <LinearGradient colors={mode === 'plum' ? [colors.child.plum, '#5A3F96'] : [colors.child.sky, colors.child.cream]} style={styles.flex}>
+      <LinearGradient colors={mode === 'plum' ? ['#8E71D6', colors.child.plum, '#56409A'] : [colors.child.sky, colors.child.cream]} style={styles.flex}>
         {body}
       </LinearGradient>
     );

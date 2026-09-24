@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { AVATAR_IDS, AGE_RANGES, DAILY_LIMIT_MINUTES } from '../constants';
 
+/** Wall-clock time as the app shows it: '7:30 PM'. */
+const clockTime = z.string().regex(/^\d{1,2}:\d{2} (AM|PM)$/);
+
 export const createChildProfileSchema = z.object({
   nickname: z.string().trim().min(1).max(30),
   ageRange: z.enum(AGE_RANGES),
@@ -14,7 +17,10 @@ export const createChildProfileSchema = z.object({
     .optional(),
   weekendBonus: z.boolean().optional(),
   bedtimeEnabled: z.boolean().optional(),
-  bedtime: z.string().regex(/^\d{1,2}:\d{2} (AM|PM)$/).optional(),
+  bedtime: clockTime.optional(),
+  schoolTimeEnabled: z.boolean().optional(),
+  schoolStart: clockTime.optional(),
+  schoolEnd: clockTime.optional(),
   warningEnabled: z.boolean().optional(),
   kidProofExit: z.boolean().optional(),
 });

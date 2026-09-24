@@ -1,6 +1,6 @@
 import { api, apiConfigured } from '@/lib/api';
 import { getInstallId } from '@/lib/userSync';
-import { useTimerStore, type WatchSession } from '@/stores/timerStore';
+import { serverEndReason, useTimerStore, type WatchSession } from '@/stores/timerStore';
 import { isKidDevice } from '@/stores/kidDeviceStore';
 import { reportKidSession } from '@/features/kid/kidSync';
 
@@ -37,7 +37,7 @@ export async function syncCompletedWatchSessions(sessions: WatchSession[]): Prom
           body: JSON.stringify({
             totalSeconds: session.seconds,
             providerVideoIds: session.videoIds,
-            endReason: session.endReason === 'bedtime' ? 'time_limit' : session.endReason,
+            endReason: session.endReason ? serverEndReason(session.endReason) : session.endReason,
           }),
         });
         synced.add(session.id);

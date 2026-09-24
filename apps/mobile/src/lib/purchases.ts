@@ -32,6 +32,8 @@ export interface Plan {
   currencyCode: string;
   /** e.g. "$2.92 / mo" — only on yearly. */
   subline: string;
+  /** What the plan costs per month, store-formatted: "$4.99" monthly, "$2.92" yearly. */
+  perMonthString: string;
   /** RevenueCat package identifier when live; mock plans carry their id. */
   rcPackageId: string;
 }
@@ -44,6 +46,7 @@ const MOCK_PLANS: Plan[] = [
     price: 4.99,
     currencyCode: 'USD',
     subline: 'per month',
+    perMonthString: '$4.99',
     rcPackageId: '$rc_monthly',
   },
   {
@@ -53,6 +56,7 @@ const MOCK_PLANS: Plan[] = [
     price: 34.99,
     currencyCode: 'USD',
     subline: '$2.92 / mo',
+    perMonthString: '$2.92',
     rcPackageId: '$rc_annual',
   },
 ];
@@ -141,6 +145,9 @@ export async function getPlans(): Promise<Plan[]> {
       subline: isYearly
         ? `${pkg.product.pricePerMonthString ?? ''} / mo`.trim()
         : 'per month',
+      perMonthString: isYearly
+        ? (pkg.product.pricePerMonthString ?? pkg.product.priceString)
+        : pkg.product.priceString,
       rcPackageId: pkg.identifier,
     });
   }

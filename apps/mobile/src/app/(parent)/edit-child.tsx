@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
+import { Appear, ParentHeader, ScreenContainer, showAppAlert, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { useAppStore } from '@/stores/appStore';
 import { ChildProfileForm } from '@/features/family/ChildProfileForm';
@@ -48,38 +48,41 @@ export default function EditChild() {
 
   return (
     <ScreenContainer scroll style={styles.container}>
-      <ParentHeader
-        title="Edit profile"
-        onBack={() => router.back()}
-        right={isOwner ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Remove ${profile.nickname}’s profile`}
-            onPress={confirmDelete}
-            hitSlop={8}
-            style={({ pressed }) => [styles.delete, pressed && styles.pressed]}
-          >
-            <Txt weight="extrabold" size={14} color={colors.red}>
-              Delete
-            </Txt>
-          </Pressable>
-        ) : undefined}
-      />
-      <View style={{ height: 16 }} />
-      <ChildProfileForm profile={profile} onCreated={() => router.back()} />
+      <Appear index={0}>
+        <ParentHeader title="Edit profile" onBack={() => router.back()} />
+      </Appear>
+      <Appear index={1} style={styles.intro}>
+        <Txt weight="black" size={28} lineHeight={33}>Name and buddy</Txt>
+        <Txt weight="bold" size={15} color={colors.parent.muted}>
+          {profile.nickname} sees their buddy on every kid screen.
+        </Txt>
+      </Appear>
+      <Appear index={2}>
+        <ChildProfileForm
+          profile={profile}
+          onCreated={() => router.back()}
+          after={isOwner ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${profile.nickname}’s profile`}
+              onPress={confirmDelete}
+              hitSlop={8}
+              style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
+            >
+              <Txt weight="extrabold" size={14} color={colors.red} center>
+                Remove {profile.nickname}’s profile
+              </Txt>
+            </Pressable>
+          ) : undefined}
+        />
+      </Appear>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: 16 },
-  delete: {
-    minHeight: 36,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    backgroundColor: '#FDEAE9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { paddingTop: 16, gap: 22 },
+  intro: { gap: 6 },
+  remove: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 16, marginTop: 4 },
   pressed: { opacity: 0.6 },
 });

@@ -96,6 +96,14 @@ export const shadows = {
     shadowRadius: 20,
     elevation: 8,
   },
+  // navy primary CTA — a soft lift rather than a coloured glow
+  navyButton: {
+    shadowColor: colors.parent.night,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 6,
+  },
   // 0 10 24 rgba(255,138,122,.35) — coral CTA
   coralButton: {
     shadowColor: colors.coral,

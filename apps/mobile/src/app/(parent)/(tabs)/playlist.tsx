@@ -1,7 +1,8 @@
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import Animated, { FadeIn, FadeOut, FadeOutLeft, LinearTransition } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,10 +14,13 @@ import { FREE_LIMITS, formatDuration, type PlaylistVideo } from '@littleloop/sha
 import {
   AddVideoIllustration,
   AppIcon,
+  Appear,
+  ChildAvatar,
   EmptyState,
   ParentHeader,
+  PressableScale,
+  Segmented,
   showAppAlert,
-  StatusBadge,
   Txt,
 } from '@/components';
 import { colors, controls, shadows } from '@/theme/tokens';
@@ -24,7 +28,12 @@ import { useAppStore } from '@/stores/appStore';
 import { usePlaylistVideos } from '@/stores/playlistStore';
 import { usePendingRequests } from '@/stores/requestStore';
 import { usePremium } from '@/stores/entitlementStore';
-import { removeSharedVideo, reorderSharedVideos, syncFamilyPlaylists } from '@/features/family/playlistSync';
+import {
+  commitApprovedVideo,
+  removeSharedVideo,
+  reorderSharedVideos,
+  syncFamilyPlaylists,
+} from '@/features/family/playlistSync';
 import { resolveSharedRequest, syncFamilyRequests } from '@/features/family/requestSync';
 import {
   approveChannel,
@@ -38,6 +47,9 @@ import {
 } from '@/features/channels/channelsApi';
 import { useChannelSuggestionStore } from '@/features/channels/channelSuggestionStore';
 import type { WatchRequest } from '@/stores/requestStore';
+
+type Segment = 'videos' | 'channels';
+const waitingLayout = LinearTransition.springify().damping(20).stiffness(180);
 
 /** Three stacked bars — the standard "grab me" affordance (Spotify, SiriusXM). */
 function DragHandle() {
@@ -64,6 +76,11 @@ export default function Playlist() {
   const [pending, setPending] = useState<PendingVideo[]>([]);
   const [channels, setChannels] = useState<ApprovedChannel[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ segment?: Segment }>();
+  const [segment, setSegment] = useState<Segment>(params.segment === 'channels' ? 'channels' : 'videos');
+  useEffect(() => {
+    if (params.segment === 'channels' || params.segment === 'videos') setSegment(params.segment);
+  }, [params.segment]);
 
   const refreshPending = useCallback(async () => {
     if (!profile?.id) return;
@@ -164,7 +181,33 @@ export default function Playlist() {
   };
 
   const name = profile?.nickname ?? 'Your child';
-  const reviewCount = videos.filter((v) => v.status === 'review').length;
+  const liveVideos = useMemo(() => videos.filter((v) => (v.status ?? 'live') === 'live'), [videos]);
+  const reviewVideos = useMemo(() => videos.filter((v) => v.status === 'review'), [videos]);
+  const channelRequests = visibleRequests.filter((req) => req.kind === 'channel');
+  const moreRequests = visibleRequests.filter((req) => req.kind !== 'channel');
+  const waitingCount = reviewVideos.length + pending.length;
+
+  // Approve straight from the list: the same commit the Review screen makes,
+  // without the detour for a video the parent already knows.
+  const onApproveReview = async (item: PlaylistVideo) => {
+    if (!profile) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      const result = await commitApprovedVideo(profile.id, item.video, item.id);
+      if (result === 'limit') {
+        router.push({ pathname: '/paywall', params: { trigger: 'playlist-cap', child: name } });
+      }
+    } catch {
+      showAppAlert('Couldn’t approve video', 'Check your connection and try again.');
+    }
+  };
+
+  const onDeclineReview = (item: PlaylistVideo) => {
+    if (!profile) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void removeSharedVideo(profile.id, item).catch(() => {});
+  };
+
 
   const goPaste = () => {
     if (!premium && videos.length >= FREE_LIMITS.videosPerPlaylist) {
@@ -179,7 +222,7 @@ export default function Playlist() {
   const onDragEnd = ({ data }: { data: PlaylistVideo[] }) => {
     if (!profile) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    void reorderSharedVideos(profile.id, data).catch(() => {
+    void reorderSharedVideos(profile.id, [...data, ...reviewVideos]).catch(() => {
       showAppAlert('Couldn’t save order', 'Refresh and try reordering again.');
     });
   };
@@ -206,50 +249,32 @@ export default function Playlist() {
   };
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<PlaylistVideo>) => (
-    <ScaleDecorator activeScale={1.03}>
-      <Pressable
-        accessibilityRole={item.status === 'review' ? 'button' : undefined}
-        accessibilityLabel={item.status === 'review' ? `Review ${item.video.title}` : undefined}
-        disabled={editing}
-        onPress={() =>
-          item.status === 'review'
-            ? router.push({
-                pathname: '/(parent)/review-video',
-                params: { video: JSON.stringify(item.video), entryId: item.id },
-              })
-            : undefined
-        }
-        style={[styles.row, isActive && styles.rowActive]}
-      >
-        <Image source={{ uri: item.video.thumbnailUrl }} style={styles.thumb} />
+    <ScaleDecorator activeScale={1.04}>
+      <View style={[styles.row, isActive && styles.rowActive]}>
+        <Image source={{ uri: item.video.thumbnailUrl }} style={styles.thumb} transition={150} />
         <View style={styles.copy}>
-          <Txt weight="bold" size={14} numberOfLines={1}>
+          <Txt weight="extrabold" size={14.5} numberOfLines={1}>
             {item.video.title}
           </Txt>
-          <Txt size={12} color={colors.parent.muted}>
-            {item.video.durationSeconds ? formatDuration(item.video.durationSeconds) : 'Video'} ·
+          <Txt weight="bold" size={12} color={colors.parent.muted} numberOfLines={1}>
+            {item.video.durationSeconds ? `${formatDuration(item.video.durationSeconds)} · ` : ''}
             added{' '}
-            {new Date(item.addedAt).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-            })}
+            {new Date(item.addedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </Txt>
         </View>
-        <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${item.video.title}`}
-            accessibilityHint={`Removes this video from ${name}’s playlist after confirmation`}
-            onPress={(event) => {
-              event.stopPropagation();
-              confirmRemove(item);
-            }}
-            hitSlop={4}
-            style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}
-          >
-            <AppIcon name="delete" size={25} />
-          </Pressable>
-          {editing ? (
+        {editing ? (
+          <>
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.video.title}`}
+              accessibilityHint={`Removes this video from ${name}’s playlist after confirmation`}
+              onPress={() => confirmRemove(item)}
+              hitSlop={4}
+              pressedScale={0.88}
+              style={styles.deleteButton}
+            >
+              <AppIcon name="delete" size={24} />
+            </PressableScale>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Reorder ${item.video.title}`}
@@ -259,171 +284,287 @@ export default function Playlist() {
             >
               <DragHandle />
             </Pressable>
-          ) : (
-            <StatusBadge state={(item.status ?? 'live').toUpperCase() as 'LIVE' | 'REVIEW'} />
-          )}
-        </View>
-      </Pressable>
+          </>
+        ) : null}
+      </View>
     </ScaleDecorator>
   );
+
+  const waitingCards = (
+    <>
+      {reviewVideos.map((item) => (
+        <Animated.View key={item.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.waitCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Watch ${item.video.title} before approving`}
+            onPress={() =>
+              router.push({
+                pathname: '/(parent)/review-video',
+                params: { video: JSON.stringify(item.video), entryId: item.id },
+              })
+            }
+            style={styles.waitTop}
+          >
+            <View>
+              <Image source={{ uri: item.video.thumbnailUrl }} style={styles.waitThumb} transition={150} />
+              <View style={styles.reviewTag}>
+                <Txt weight="black" size={9} color={colors.amberText}>REVIEW</Txt>
+              </View>
+            </View>
+            <View style={styles.copy}>
+              <Txt weight="extrabold" size={15} numberOfLines={1}>{item.video.title}</Txt>
+              <Txt weight="bold" size={12} color={colors.parent.muted} numberOfLines={1}>
+                {item.video.channelTitle}
+                {item.video.durationSeconds ? ` · ${formatDuration(item.video.durationSeconds)}` : ''}
+              </Txt>
+            </View>
+          </Pressable>
+          <View style={styles.decide}>
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Approve ${item.video.title}`} onPress={() => void onApproveReview(item)} style={[styles.decideBtn, styles.approveBtn]}>
+              <Txt weight="black" size={14} color={colors.greenDark}>✓ Approve</Txt>
+            </PressableScale>
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Decline ${item.video.title}`} onPress={() => onDeclineReview(item)} style={[styles.decideBtn, styles.declineBtn]}>
+              <Txt weight="extrabold" size={14} color={colors.parent.muted}>Not for {name}</Txt>
+            </PressableScale>
+          </View>
+        </Animated.View>
+      ))}
+      {pending.map((item) => (
+        <Animated.View key={item.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.waitCard}>
+          <View style={styles.waitTop}>
+            <View>
+              <Image source={{ uri: item.video.thumbnailUrl }} style={styles.waitThumb} transition={150} />
+              <View style={styles.reviewTag}>
+                <Txt weight="black" size={9} color={colors.amberText}>NEW</Txt>
+              </View>
+            </View>
+            <View style={styles.copy}>
+              <Txt weight="extrabold" size={15} numberOfLines={2}>{item.video.title}</Txt>
+              <Txt weight="bold" size={12} color={colors.parent.muted} numberOfLines={1}>{item.channelTitle}</Txt>
+            </View>
+          </View>
+          <View style={styles.decide}>
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Approve ${item.video.title}`} onPress={() => void onApprovePending(item)} style={[styles.decideBtn, styles.approveBtn]}>
+              <Txt weight="black" size={14} color={colors.greenDark}>✓ Approve</Txt>
+            </PressableScale>
+            <PressableScale accessibilityRole="button" accessibilityLabel={`Reject ${item.video.title}`} onPress={() => void onRejectPending(item)} style={[styles.decideBtn, styles.declineBtn]}>
+              <Txt weight="extrabold" size={14} color={colors.parent.muted}>Not for {name}</Txt>
+            </PressableScale>
+          </View>
+        </Animated.View>
+      ))}
+      {moreRequests.map((req) => (
+        <Animated.View key={req.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.askCard}>
+          {profile ? <ChildAvatar avatar={profile.avatar} size={40} /> : null}
+          <View style={styles.copy}>
+            <Txt weight="extrabold" size={15}>{name} asked for more videos</Txt>
+            <Txt weight="bold" size={12} color={colors.parent.muted}>
+              {new Date(req.createdAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+            </Txt>
+          </View>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Mark request as seen"
+            onPress={() => {
+              if (profile) resolveSharedRequest(profile.id, req.id);
+            }}
+            style={styles.softPill}
+          >
+            <Txt weight="black" size={13.5} color={colors.child.skyDeep}>Got it</Txt>
+          </PressableScale>
+        </Animated.View>
+      ))}
+    </>
+  );
+
+  const channelsBody = (
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(120)} style={styles.segmentBody}>
+      <Txt weight="bold" size={14} lineHeight={21} color={colors.parent.muted}>
+        New uploads from these channels come to you first. {name} only sees the ones you approve.
+      </Txt>
+      {channels.length > 0 ? (
+        <View style={styles.group}>
+          {channels.map((channel, i) => (
+            <Appear key={channel.id} index={i}>
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${channel.channelTitle}`}
+                onPress={() => router.push({ pathname: '/(parent)/channel', params: { id: channel.id, title: channel.channelTitle } })}
+                pressedScale={0.98}
+                style={[styles.groupRow, i < channels.length - 1 && styles.groupDivider]}
+              >
+                <View style={styles.channelArt}>
+                  <AppIcon name="channels" size={30} />
+                </View>
+                <View style={styles.copy}>
+                  <Txt weight="extrabold" size={15} numberOfLines={1}>{channel.channelTitle}</Txt>
+                  {(() => {
+                    const waiting = pending.filter((p) => p.channelTitle.trim().toLowerCase() === channel.channelTitle.trim().toLowerCase()).length;
+                    return waiting > 0 ? (
+                      <Txt weight="extrabold" size={12} color={colors.amberText}>{waiting} new to review</Txt>
+                    ) : (
+                      <Txt weight="bold" size={12} color={colors.parent.muted}>All caught up</Txt>
+                    );
+                  })()}
+                </View>
+                <Txt weight="black" size={22} color={colors.subtle}>›</Txt>
+              </PressableScale>
+            </Appear>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyCard}>
+          <AppIcon name="channels" size={56} />
+          <Txt weight="black" size={16} center>No channels yet</Txt>
+          <Txt weight="bold" size={13.5} color={colors.parent.muted} center lineHeight={19}>
+            When {name} taps the ♥ on a video, you can approve that creator’s whole channel here.
+          </Txt>
+        </View>
+      )}
+      {channelRequests.length > 0 ? (
+        <>
+          <Txt weight="black" size={16} style={styles.sectionTitle}>{name} asked for</Txt>
+          {channelRequests.map((req) => (
+            <Animated.View key={req.id} layout={waitingLayout} exiting={FadeOutLeft.duration(220)} style={styles.askCard}>
+              {profile ? <ChildAvatar avatar={profile.avatar} size={40} /> : null}
+              <View style={styles.copy}>
+                <Txt weight="extrabold" size={15} numberOfLines={2}>More from {req.channelTitle}</Txt>
+                <Txt weight="bold" size={12} color={colors.parent.muted}>
+                  {new Date(req.createdAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                </Txt>
+              </View>
+              {req.sampleVideoId ? (
+                <PressableScale
+                  accessibilityRole="button"
+                  accessibilityLabel={`Approve ${req.channelTitle} channel`}
+                  disabled={approvingId === req.id}
+                  onPress={() => void onApproveChannel(req)}
+                  style={[styles.softPill, styles.solidPill]}
+                >
+                  {approvingId === req.id ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Txt weight="black" size={13.5} color="#FFFFFF">Approve</Txt>
+                  )}
+                </PressableScale>
+              ) : null}
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss request"
+                onPress={() => {
+                  if (profile) resolveSharedRequest(profile.id, req.id);
+                }}
+                hitSlop={6}
+                style={styles.dismiss}
+              >
+                <Txt weight="black" size={14} color={colors.parent.muted}>✕</Txt>
+              </PressableScale>
+            </Animated.View>
+          ))}
+        </>
+      ) : null}
+    </Animated.View>
+  );
+
+  const subtitle =
+    segment === 'channels'
+      ? `${channels.length} ${channels.length === 1 ? 'channel' : 'channels'} approved`
+      : `${liveVideos.length} live${waitingCount ? ` · ${waitingCount} waiting` : ''}${premium ? '' : ` · ${videos.length} of ${FREE_LIMITS.videosPerPlaylist}`}`;
 
   return (
     <ScreenContainer padded={false}>
       <DraggableFlatList
-        data={videos}
+        data={segment === 'videos' ? liveVideos : []}
         keyExtractor={(item) => item.id}
         onDragEnd={onDragEnd}
         renderItem={renderItem}
         activationDistance={12}
         containerStyle={styles.listContainer}
-        contentContainerStyle={[styles.content, { paddingTop: 12, paddingBottom: Math.max(insets.bottom, 24) }]}
+        contentContainerStyle={[styles.content, { paddingTop: 16, paddingBottom: Math.max(insets.bottom, 24) }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <ParentHeader
-              title={`Videos for ${name}`}
-              subtitle={premium ? undefined : `${videos.length} of ${FREE_LIMITS.videosPerPlaylist}`}
-              right={
-                videos.length > 1 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={editing ? 'Finish editing playlist' : 'Edit playlist'}
-                    onPress={() => setEditing((v) => !v)}
-                    hitSlop={8}
-                    style={[styles.editButton, editing && styles.editButtonActive]}
-                  >
-                    <Txt
-                      weight="extrabold"
-                      size={14}
-                      color={editing ? '#FFFFFF' : colors.child.skyDeep}
+            <Appear index={0}>
+              <ParentHeader
+                title={`${name}’s playlist`}
+                subtitle={subtitle}
+                right={
+                  segment === 'videos' && liveVideos.length > 0 ? (
+                    <PressableScale
+                      accessibilityRole="button"
+                      accessibilityLabel={editing ? 'Finish editing playlist' : 'Edit playlist'}
+                      onPress={() => setEditing((v) => !v)}
+                      hitSlop={8}
+                      style={[styles.editButton, editing && styles.editButtonActive]}
                     >
-                      {editing ? 'Done' : 'Edit'}
-                    </Txt>
-                  </Pressable>
-                ) : null
-              }
-            />
-            {editing ? (
+                      <Txt weight="extrabold" size={14} color={editing ? '#FFFFFF' : colors.child.skyDeep}>
+                        {editing ? 'Done' : 'Edit'}
+                      </Txt>
+                    </PressableScale>
+                  ) : null
+                }
+              />
+            </Appear>
+            <Appear index={1}>
+              <Segmented
+                options={[
+                  { value: 'videos', label: 'Videos' },
+                  { value: 'channels', label: 'Channels' },
+                ]}
+                value={segment}
+                onChange={(next) => {
+                  setEditing(false);
+                  setSegment(next);
+                }}
+              />
+            </Appear>
+            {segment === 'channels' ? channelsBody : editing ? (
               <View style={styles.hint}>
                 <Txt weight="bold" size={12.5} color={colors.parent.muted}>
                   Drag the handle to set the order {name} watches in.
                 </Txt>
               </View>
-            ) : videos.length > 0 ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="Add video" onPress={goPaste} style={styles.addButton}>
-                <Txt weight="black" size={20} color={colors.child.skyDeep}>
-                  ＋
-                </Txt>
-                <Txt weight="extrabold" size={15} color={colors.child.skyDeep}>
-                  Add video
-                </Txt>
-              </Pressable>
-            ) : null}
-            {visibleRequests.length > 0 && !editing
-              ? visibleRequests.map((req) => (
-                  <View key={req.id} style={styles.requestCard}>
-                    <Txt weight="bold" size={13} color={colors.child.skyDeep} style={{ flex: 1 }}>
-                      🙋 {req.kind === 'channel' && req.channelTitle
-                        ? `${name} wants more from ${req.channelTitle}`
-                        : `${name} asked for more videos`}
-                    </Txt>
-                    {req.kind === 'channel' && req.sampleVideoId ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Approve ${req.channelTitle} channel`}
-                        disabled={approvingId === req.id}
-                        onPress={() => void onApproveChannel(req)}
-                        hitSlop={6}
-                        style={({ pressed }) => [
-                          styles.requestApprove,
-                          approvingId === req.id && styles.requestApproveBusy,
-                          pressed && { opacity: 0.7 },
-                        ]}
-                      >
-                        {approvingId === req.id ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
-                        ) : (
-                          <Txt weight="extrabold" size={12} color="#FFFFFF">
-                            Approve channel
-                          </Txt>
-                        )}
-                      </Pressable>
-                    ) : null}
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Dismiss request"
-                      onPress={() => {
-                        if (profile) resolveSharedRequest(profile.id, req.id);
-                      }}
-                      hitSlop={8}
-                      style={({ pressed }) => [styles.requestDismiss, pressed && { opacity: 0.6 }]}
-                    >
-                      <Txt weight="black" size={15} color={colors.child.skyDeep}>
-                        ✓
-                      </Txt>
-                    </Pressable>
-                  </View>
-                ))
-              : null}
-            {pending.length > 0 && !editing ? (
-              <View style={styles.pendingBlock}>
-                <Txt weight="bold" size={13} color={colors.amberText} style={styles.pendingLabel}>
-                  {pending.length} new {pending.length === 1 ? 'video' : 'videos'} from approved channels
-                </Txt>
-                {pending.map((item) => (
-                  <View key={item.id} style={styles.pendingRow}>
-                    <Image source={{ uri: item.video.thumbnailUrl }} style={styles.pendingThumb} />
-                    <View style={styles.copy}>
-                      <Txt weight="bold" size={13} numberOfLines={2}>
-                        {item.video.title}
-                      </Txt>
-                      <Txt size={11.5} color={colors.parent.muted} numberOfLines={1}>
-                        {item.channelTitle}
-                      </Txt>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Reject ${item.video.title}`}
-                      onPress={() => void onRejectPending(item)}
-                      hitSlop={4}
-                      style={({ pressed }) => [styles.pendingReject, pressed && { opacity: 0.6 }]}
-                    >
-                      <Txt weight="black" size={15} color={colors.coral}>
-                        ✕
-                      </Txt>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Approve ${item.video.title}`}
-                      onPress={() => void onApprovePending(item)}
-                      hitSlop={4}
-                      style={({ pressed }) => [styles.pendingApprove, pressed && { opacity: 0.7 }]}
-                    >
-                      <Txt weight="black" size={15} color="#FFFFFF">
-                        ✓
-                      </Txt>
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-            {reviewCount > 0 && !editing ? (
-              <View style={styles.reviewNote}>
-                <Txt weight="bold" size={13} color={colors.amberText}>
-                  {reviewCount} {reviewCount === 1 ? 'video needs' : 'videos need'} your approval
-                </Txt>
-              </View>
-            ) : null}
+            ) : (
+              <Animated.View entering={FadeIn.duration(200)} style={styles.segmentBody}>
+                {videos.length > 0 ? (
+                  <Appear index={2}>
+                    <PressableScale accessibilityRole="button" accessibilityLabel="Add a video" onPress={goPaste} pressedScale={0.98} style={styles.pasteBar}>
+                      <AppIcon name="add-video" size={42} style={styles.pasteIcon} />
+                      <View style={styles.copy}>
+                        <Txt weight="black" size={16}>Paste a YouTube link</Txt>
+                        <Txt weight="bold" size={12} color={colors.child.skyDeep}>or share from the YouTube app</Txt>
+                      </View>
+                      <View style={styles.pasteCta}>
+                        <Txt weight="black" size={14} color="#FFFFFF">Paste</Txt>
+                      </View>
+                    </PressableScale>
+                  </Appear>
+                ) : null}
+                {waitingCount + moreRequests.length > 0 ? (
+                  <>
+                    <Txt weight="black" size={16} style={styles.sectionTitle}>Waiting for you</Txt>
+                    {waitingCards}
+                  </>
+                ) : null}
+                {liveVideos.length > 0 ? (
+                  <Txt weight="black" size={16} style={styles.sectionTitle}>Live for {name}</Txt>
+                ) : null}
+              </Animated.View>
+            )}
           </View>
         }
         ListEmptyComponent={
-          <EmptyState
-            illustration={<AddVideoIllustration />}
-            title="No videos yet"
-            body={`Add one trusted video for ${name}. You’ll review it before it appears in Child Mode.`}
-            ctaLabel="Add first video"
-            onCta={goPaste}
-          />
+          segment === 'videos' && videos.length === 0 ? (
+            <Appear index={2}>
+              <EmptyState
+                illustration={<AddVideoIllustration />}
+                title="No videos yet"
+                body={`Add one trusted video for ${name}. You’ll review it before it appears in Child Mode.`}
+                ctaLabel="Add first video"
+                onCta={goPaste}
+              />
+            </Appear>
+          ) : null
         }
       />
     </ScreenContainer>
@@ -431,116 +572,114 @@ export default function Playlist() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.parent.paper },
   listContainer: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 24 },
-  headerBlock: { gap: 14, paddingBottom: 14 },
+  headerBlock: { gap: 16, paddingBottom: 10 },
+  segmentBody: { gap: 12 },
+  sectionTitle: { marginTop: 6 },
   editButton: {
     minHeight: 36,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: '#EAF6FA',
+    backgroundColor: colors.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editButtonActive: { backgroundColor: colors.child.skyDeep },
-  hint: {
-    backgroundColor: '#EAF6FA',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  addButton: {
-    height: 52,
-    borderRadius: 16,
+  hint: { backgroundColor: colors.primaryTint, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
+  pasteBar: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.child.skyDeep,
     backgroundColor: colors.primaryTint,
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  pasteIcon: { borderRadius: 12 },
+  pasteCta: {
+    height: controls.minTouchParent,
     paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  reviewNote: { borderRadius: 14, backgroundColor: colors.amberTint, paddingHorizontal: 14, paddingVertical: 10 },
-  requestCard: {
-    borderRadius: 14,
-    backgroundColor: colors.primaryTint,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  requestApprove: {
-    borderRadius: 99,
-    backgroundColor: colors.child.skyDeep,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    minWidth: 116,
-    minHeight: 30,
+    borderRadius: 22,
+    backgroundColor: colors.parent.night,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  requestApproveBusy: { opacity: 0.85 },
-  requestDismiss: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  waitCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 12, gap: 12, ...shadows.card },
+  waitTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  waitThumb: { width: 84, height: 56, borderRadius: 12, backgroundColor: colors.primaryTint },
+  reviewTag: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: colors.state.review.bg,
+  },
+  decide: { flexDirection: 'row', gap: 8 },
+  decideBtn: { flex: 1, height: controls.minTouchParent, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  approveBtn: { backgroundColor: colors.greenTint, borderWidth: 1.5, borderColor: '#CDEED4' },
+  declineBtn: { backgroundColor: colors.parent.paper },
+  askCard: {
     backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pendingBlock: { borderRadius: 14, backgroundColor: colors.amberTint, padding: 12, gap: 10 },
-  pendingLabel: { marginBottom: 2 },
-  pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  pendingThumb: { width: 58, height: 42, borderRadius: 8, backgroundColor: '#EAF6FA' },
-  pendingReject: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.coralTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pendingApprove: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.child.grass,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  row: {
-    minHeight: 72,
-    marginBottom: 9,
-    padding: 8,
-    backgroundColor: colors.parent.card,
-    borderWidth: 1,
-    borderColor: colors.parent.hairline,
-    borderRadius: 16,
+    borderRadius: 20,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 12,
+    ...shadows.card,
+  },
+  softPill: {
+    minHeight: controls.minTouchParent,
+    minWidth: 76,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  solidPill: { backgroundColor: colors.parent.night },
+  dismiss: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  group: { backgroundColor: '#FFFFFF', borderRadius: 20, paddingHorizontal: 14, ...shadows.card },
+  groupRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  groupDivider: { borderBottomWidth: 1, borderBottomColor: '#F0EBE1' },
+  channelArt: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCard: { padding: 24, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 8, ...shadows.card },
+  row: {
+    minHeight: 68,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.parent.card,
+    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    ...shadows.card,
   },
   rowActive: { ...shadows.cardLg },
-  thumb: { width: 66, height: 48, borderRadius: 10, backgroundColor: '#EAF6FA' },
-  copy: { flex: 1, minWidth: 0, gap: 3 },
-  actions: {
-    alignSelf: 'stretch',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 2,
-  },
+  thumb: { width: 68, height: 46, borderRadius: 10, backgroundColor: colors.primaryTint },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
   deleteButton: {
-    width: controls.minTouchParent,
-    height: controls.minTouchParent,
-    marginTop: -5,
-    marginRight: -5,
-    borderRadius: controls.minTouchParent / 2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.coralTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButtonPressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
   handleTouch: {
     width: controls.minTouchParent,
     height: controls.minTouchParent,
@@ -548,5 +687,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   handle: { width: 18, gap: 3 },
-  handleBar: { height: 2, borderRadius: 1, backgroundColor: '#C3BDB3' },
+  handleBar: { height: 2.5, borderRadius: 2, backgroundColor: '#C9C2B7' },
 });

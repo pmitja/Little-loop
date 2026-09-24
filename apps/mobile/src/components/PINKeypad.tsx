@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -12,6 +12,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { colors, fonts } from '@/theme/tokens';
 import { Txt } from './Txt';
+import { PopIn, PressableScale } from './Motion';
 
 interface PINBoxesProps {
   length?: number;
@@ -74,9 +75,11 @@ export function PINBoxes({ length = 4, filled, error, checking }: PINBoxesProps)
               error && { borderColor: colors.red },
             ]}
           >
-            <Txt weight="black" size={18}>
-              {isFilled ? '●' : ''}
-            </Txt>
+            {isFilled ? (
+              <PopIn>
+                <View style={[styles.pinDot, error && { backgroundColor: colors.red }]} />
+              </PopIn>
+            ) : null}
           </View>
         );
       })}
@@ -100,22 +103,18 @@ export function PINKeypad({ onDigit, onDelete, disabled }: PINKeypadProps) {
         if (key === '') return <View key={i} style={styles.key} />;
         const isDelete = key === 'del';
         return (
-          <Pressable
+          <PressableScale
             key={i}
             accessibilityRole="button"
             accessibilityLabel={isDelete ? 'Delete last digit' : `Digit ${key}`}
             disabled={disabled}
+            haptic="light"
+            pressedScale={0.9}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               if (isDelete) onDelete();
               else onDigit(key);
             }}
-            style={({ pressed }) => [
-              styles.key,
-              styles.digitKey,
-              disabled ? { opacity: 0.45 } : null,
-              pressed ? { transform: [{ scale: 0.96 }], backgroundColor: '#F6F1E7' } : null,
-            ]}
+            style={[styles.key, isDelete ? null : styles.digitKey, disabled ? { opacity: 0.45 } : null]}
           >
             <Txt
               weight="extrabold"
@@ -125,7 +124,7 @@ export function PINKeypad({ onDigit, onDelete, disabled }: PINKeypadProps) {
             >
               {isDelete ? '⌫' : key}
             </Txt>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -135,11 +134,11 @@ export function PINKeypad({ onDigit, onDelete, disabled }: PINKeypadProps) {
 const KEY_H = 58;
 
 const styles = StyleSheet.create({
-  boxRow: { flexDirection: 'row', gap: 8 },
+  boxRow: { flexDirection: 'row', gap: 10 },
   box: {
-    width: 40,
-    height: 48,
-    borderRadius: 10,
+    width: 52,
+    height: 60,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: colors.child.skyDeep,
     backgroundColor: '#fff',
@@ -147,6 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boxFilled: { backgroundColor: '#EAF6FA' },
+  pinDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.parent.night },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -13,7 +13,9 @@ import {
   showAppAlert,
   Txt,
 } from '@/components';
+import { FREE_LIMITS } from '@littleloop/shared';
 import { ApiError } from '@/lib/api';
+import { usePremium } from '@/stores/entitlementStore';
 import { useAppStore } from '@/stores/appStore';
 import {
   CHILD_DEVICES_QUERY_KEY,
@@ -31,6 +33,7 @@ export default function KidDevices() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const profiles = useAppStore((s) => s.childProfiles);
+  const premium = usePremium();
   const [renaming, setRenaming] = useState<ChildDevice | null>(null);
   const devices = useQuery({ queryKey: CHILD_DEVICES_QUERY_KEY, queryFn: fetchChildDevices });
   const refresh = () => queryClient.invalidateQueries({ queryKey: CHILD_DEVICES_QUERY_KEY });
@@ -141,9 +144,20 @@ export default function KidDevices() {
 
       <Button
         title="Add a kid device"
-        onPress={() => router.push('/(parent)/pair-kid-device')}
+        onPress={() =>
+          // Free plan: one kid device. Checked here so the parent doesn't set up
+          // the child's device first; the server enforces it either way.
+          !premium && (devices.data?.length ?? 0) >= FREE_LIMITS.kidDevices
+            ? router.push({ pathname: '/paywall', params: { trigger: 'kid-devices' } })
+            : router.push('/(parent)/pair-kid-device')
+        }
         disabled={profiles.length === 0}
       />
+      {!premium ? (
+        <Txt size={12.5} color={colors.muted} center>
+          Free plan: 1 kid device. Premium: more devices.
+        </Txt>
+      ) : null}
       <Txt size={12.5} color={colors.muted} lineHeight={18} center>
         On your child’s device, install LittleLoop and tap “Setting up your child’s phone or
         tablet?” It will show a code to scan or type here.

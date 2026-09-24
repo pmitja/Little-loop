@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { FREE_LIMITS } from '@littleloop/shared';
-import { AppDialogHost, AppIcon, showAppAlert, Txt, ScreenContainer, type AppIconName } from '@/components';
-import { colors, scaleUi } from '@/theme/tokens';
+import {
+  AppDialogHost,
+  AppIcon,
+  Appear,
+  Breathe,
+  PopIn,
+  PressableScale,
+  showAppAlert,
+  Txt,
+  type AppIconName,
+} from '@/components';
+import { colors } from '@/theme/tokens';
 import {
   getPlans,
   purchasePlan,
@@ -15,62 +29,68 @@ import {
 import { usePremium } from '@/stores/entitlementStore';
 import { useAppStore } from '@/stores/appStore';
 
+const GREEN = '#3FA652';
+const GREEN_DARK = '#287A4C';
+const GREEN_TINT = '#C9EFD0';
+const MINT = '#F1FAF3';
+
+type Trigger = 'playlist-cap' | 'profile-cap' | 'channels' | 'kid-devices' | 'settings';
+
 /**
- * Every row here must name something the free plan actually withholds — the four
- * `usePremium()` gates in the app: the playlist cap, channel approval, a second
- * child profile and caregiver sharing. PIN-locked child mode, daily limits,
- * bedtime and the activity view are free, so they belong in `FREE_NOTE`, not here.
+ * Every row names something the free plan actually withholds — the `usePremium()`
+ * gates in the app. PIN-locked child mode, daily limits, bedtime, school hours
+ * and activity stay free, so they are not rows here.
  */
-const BENEFITS: { icon: AppIconName; title: string; detail: string }[] = [
-  {
-    icon: 'videos',
-    title: 'Add all their favourites',
-    detail: `Go past the ${FREE_LIMITS.videosPerPlaylist}-video limit and approve as many as you like.`,
-  },
-  {
-    icon: 'channels',
-    title: 'Approve whole channels',
-    detail: 'New uploads from creators you trust arrive automatically — always reviewed by you first.',
-  },
-  {
-    icon: 'profile',
-    title: 'A profile for every child',
-    detail: 'Give each child their own playlist, daily limit and bedtime.',
-  },
-  {
-    icon: 'parent-hq',
-    title: 'Care together',
-    detail: 'Invite another grown-up to help manage playlists and limits.',
-  },
+const ROWS: { icon: AppIconName; title: string; detail: string; free: string | null }[] = [
+  { icon: 'videos', title: 'Unlimited videos', detail: 'In every playlist', free: `${FREE_LIMITS.videosPerPlaylist} videos` },
+  { icon: 'channels', title: 'Whole channels', detail: 'New uploads still come to you first', free: null },
+  { icon: 'profile', title: 'More child profiles', detail: 'One for each kid', free: `${FREE_LIMITS.childProfiles} profile` },
+  { icon: 'parent-hq', title: 'Caregiver sharing', detail: 'Invite another grown-up', free: null },
+  { icon: 'kid-device', title: 'More kid devices', detail: 'A child’s own phone or tablet', free: `${FREE_LIMITS.kidDevices} device` },
 ];
 
-const FREE_NOTE =
-  'PIN-locked child mode, daily limits, bedtime and activity stay free — always.';
+/** The small line above the title says why the paywall opened. */
+function eyebrow(trigger: Trigger, child: string): string {
+  switch (trigger) {
+    case 'playlist-cap':
+      return `${child}’s playlist is full`;
+    case 'profile-cap':
+      return 'Room for another child';
+    case 'channels':
+      return 'Approve whole channels';
+    case 'kid-devices':
+      return 'More kid devices';
+    default:
+      return 'LittleLoop Premium';
+  }
+}
 
-function BenefitRow({ icon, title, detail }: (typeof BENEFITS)[number]) {
+function Tick() {
   return (
-    <View style={styles.benefitRow}>
-      <View style={styles.benefitIcon}>
-        <AppIcon name={icon} size={27} />
-      </View>
-      <View style={styles.benefitCopy}>
-        <Txt weight="black" size={13.5} color="#FFFFFF">{title}</Txt>
-        <Txt weight="semibold" size={11.5} color="rgba(255,255,255,.72)" lineHeight={16}>
-          {detail}
-        </Txt>
-      </View>
+    <View style={styles.tick}>
+      <Txt weight="black" size={13} color="#FFFFFF">✓</Txt>
     </View>
   );
 }
 
-/** s19 — paywall: fully custom plan cards over the RevenueCat offering (PLAN §12). */
+function Cross() {
+  return (
+    <View style={styles.cross}>
+      <Txt weight="black" size={11} color="#A59DA9">✕</Txt>
+    </View>
+  );
+}
+
+/** 19c (compare Free vs Premium) with 19d (choose a plan) as a sheet over it. */
 export default function Paywall() {
   const router = useRouter();
-  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: 'playlist-cap' | 'profile-cap' | 'channels' | 'settings'; child?: string }>();
+  const insets = useSafeAreaInsets();
+  const { trigger = 'settings', child = 'Your child' } = useLocalSearchParams<{ trigger?: Trigger; child?: string }>();
   const premium = usePremium();
   const canManageBilling = useAppStore((state) => state.familyRole !== 'caregiver');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selected, setSelected] = useState<Plan['id']>('yearly');
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -106,8 +126,11 @@ export default function Paywall() {
     }
   }, [premium, dismiss]);
 
+  const monthly = plans.find((p) => p.id === 'monthly');
+  const yearly = plans.find((p) => p.id === 'yearly');
   const selectedPlan = plans.find((p) => p.id === selected);
   const savings = yearlySavingsPercent(plans);
+  const cheapestPerMonth = yearly?.perMonthString ?? monthly?.perMonthString ?? null;
 
   const buy = async () => {
     if (!selectedPlan || busy) return;
@@ -138,243 +161,319 @@ export default function Paywall() {
     );
   };
 
-  const ctaTitle = premium ? 'Premium active' : 'Subscribe now';
-
-  const context = trigger === 'playlist-cap' ? { pre: `${child}’s playlist is full — `, hl: `${FREE_LIMITS.videosPerPlaylist} of ${FREE_LIMITS.videosPerPlaylist} videos`, post: ' on the free plan.' } : trigger === 'profile-cap' ? { pre: 'You’ve used ', hl: 'every free child profile', post: '.' } : trigger === 'channels' ? { pre: '', hl: 'Approving whole channels', post: ' is part of Premium — new uploads arrive automatically, always reviewed by you.' } : null;
   if (!canManageBilling) {
     return (
-      <ScreenContainer mode="plum" style={styles.container}>
-        <View style={styles.closeRow}>
-          <Pressable
-            onPress={dismiss}
-            hitSlop={8}
-            style={styles.closeCircle}
-            accessibilityRole="button"
-            accessibilityLabel="Close Premium"
-          >
-            <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
-          </Pressable>
-        </View>
-        <View style={[styles.hero, { flex: 1, justifyContent: 'center', gap: 14 }]}>
-          <Txt size={48}>👨‍👩‍👧</Txt>
-          <Txt weight="black" size={24} color="#FFFFFF" center>Ask the main caregiver</Txt>
-          <Txt weight="bold" size={14} color="rgba(255,255,255,.78)" center lineHeight={21}>
-            Only the main caregiver can start or manage LittleLoop Premium for this family.
-          </Txt>
-          <Pressable onPress={dismiss} style={styles.cta} accessibilityRole="button">
-            <Txt weight="black" size={16} color="#4A3A20">Got it</Txt>
-          </Pressable>
-        </View>
-      </ScreenContainer>
+      <LinearGradient colors={[MINT, MINT, '#A8E2B1']} style={[styles.flex, styles.center, { paddingHorizontal: 32 }]}>
+        <StatusBar style="dark" />
+        <PopIn><AppIcon name="parent-hq" size={72} style={{ borderRadius: 20 }} /></PopIn>
+        <Txt weight="black" size={26} center style={{ marginTop: 18 }}>Ask the main caregiver</Txt>
+        <Txt weight="bold" size={15} lineHeight={22} color="#4A5670" center style={{ marginTop: 8 }}>
+          Only the main caregiver can start or manage LittleLoop Premium for this family.
+        </Txt>
+        <PressableScale accessibilityRole="button" onPress={dismiss} style={[styles.cta, { alignSelf: 'stretch', marginTop: 28 }]}>
+          <Txt weight="black" size={17} color="#FFFFFF">Got it</Txt>
+        </PressableScale>
+      </LinearGradient>
     );
   }
+
+  const ctaLabel = premium
+    ? 'Premium active'
+    : selectedPlan
+      ? `Continue · ${selectedPlan.priceString}/${selectedPlan.id === 'yearly' ? 'year' : 'month'}`
+      : 'Continue';
+
   return (
-    <>
-      <ScreenContainer mode="plum" scroll style={styles.container}>
-        <View style={styles.closeRow}>
-          <Pressable
-            onPress={dismiss}
-            hitSlop={8}
-            style={styles.closeCircle}
-            accessibilityRole="button"
-            accessibilityLabel="Close Premium"
-          >
-            <Txt weight="extrabold" size={14} color="#FFFFFF">✕</Txt>
-          </Pressable>
-        </View>
-
-        <View style={styles.hero}>
-          <AppIcon name="premium" size={48} />
-          <Txt weight="black" size={24} color="#FFFFFF" center>Less setup. More peace of mind.</Txt>
-          <Txt weight="bold" size={12.5} color="rgba(255,255,255,.76)" center lineHeight={18}>
-            Keep their little world simple while you stay in control.
+    <View style={styles.flex}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        colors={[MINT, MINT, '#A8E2B1', '#5CC46C']}
+        locations={[0, 0.58, 0.82, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Appear index={0} style={styles.header}>
+          <Txt weight="black" size={12} color={GREEN_DARK} center style={styles.eyebrow}>
+            {eyebrow(trigger, child).toUpperCase()}
           </Txt>
-        </View>
+          <Txt weight="black" size={34} lineHeight={39} center>Go Premium</Txt>
+          <Txt weight="bold" size={15} lineHeight={21} color="#4A5670" center style={styles.subtitle}>
+            Room for every kid, every device and every favourite.
+          </Txt>
+        </Appear>
 
-        {context ? (
-          <View style={styles.contextBanner}>
-            <Txt weight="bold" size={12.5} color="#FFFFFF" center lineHeight={18}>
-              {context.pre}
-              <Txt weight="black" size={12.5} color={colors.child.sun}>{context.hl}</Txt>
-              {context.post}
-            </Txt>
+        <Appear index={1} style={styles.compareHead}>
+          <Txt weight="bold" size={13} color={colors.parent.muted} style={{ flex: 1 }}>Compare plans</Txt>
+          <Txt weight="extrabold" size={13} center style={styles.freeCol}>Free</Txt>
+          <View style={styles.premiumChip}>
+            <Txt weight="black" size={13} color={GREEN_DARK} center>Premium</Txt>
           </View>
-        ) : null}
+        </Appear>
 
-        <View style={styles.benefits}>
-          {BENEFITS.map((benefit) => (
-            <BenefitRow key={benefit.title} {...benefit} />
-          ))}
-          <View style={styles.moreRow}>
-            <Txt weight="black" size={11.5} color={colors.child.sun} center>
-              {FREE_NOTE}
+        {ROWS.map((row, i) => (
+          <Appear key={row.title} index={i + 2} style={styles.row}>
+            <AppIcon name={row.icon} size={34} style={{ borderRadius: 10 }} />
+            <View style={styles.rowCopy}>
+              <Txt weight="extrabold" size={15}>{row.title}</Txt>
+              <Txt weight="bold" size={12} lineHeight={16} color={colors.parent.muted}>{row.detail}</Txt>
+            </View>
+            <View style={styles.freeCol}>
+              {row.free ? (
+                <Txt weight="extrabold" size={12} color={colors.parent.muted} center>{row.free}</Txt>
+              ) : (
+                <Cross />
+              )}
+            </View>
+            <View style={styles.premiumCol}>
+              <PopIn delay={350 + i * 80}><Tick /></PopIn>
+            </View>
+          </Appear>
+        ))}
+
+        <View style={{ flex: 1, minHeight: 24 }} />
+
+        <Appear index={8}>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Go Premium now, choose a plan"
+            onPress={() => setSheetOpen(true)}
+            haptic="medium"
+            pressedScale={0.97}
+            style={styles.goCard}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt weight="black" size={22} color={GREEN_DARK}>Go Premium now</Txt>
+              <Txt weight="bold" size={14} color="#4A5670">
+                {cheapestPerMonth ? `From ${cheapestPerMonth} a month` : 'Choose a plan'}
+              </Txt>
+            </View>
+            {savings !== null ? (
+              <Breathe from={0.97} to={1.05} duration={1400}>
+                <View style={styles.saveChip}>
+                  <Txt weight="black" size={12} color={GREEN_DARK}>Save {savings}%</Txt>
+                </View>
+              </Breathe>
+            ) : null}
+          </PressableScale>
+        </Appear>
+
+        <Appear index={9} style={{ alignItems: 'center' }}>
+          <PressableScale accessibilityRole="button" onPress={dismiss} pressedScale={0.95} style={styles.freeBtn}>
+            <Txt weight="extrabold" size={14} color="#FFFFFF">Continue with Free</Txt>
+          </PressableScale>
+        </Appear>
+      </ScrollView>
+
+      {sheetOpen ? (
+        <>
+          <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(180)} style={StyleSheet.absoluteFill}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close plans"
+              onPress={() => !busy && setSheetOpen(false)}
+              style={styles.dim}
+            />
+          </Animated.View>
+          <Animated.View
+            entering={SlideInDown.springify().damping(22).stiffness(200)}
+            exiting={SlideOutDown.duration(220)}
+            style={[styles.sheet, { paddingBottom: insets.bottom + 18 }]}
+          >
+            <View style={styles.grabber} />
+            <View style={styles.sheetTitle}>
+              <View style={styles.starDisc}>
+                <AppIcon name="premium" size={34} style={{ borderRadius: 10 }} />
+              </View>
+              <Txt weight="black" size={28}>Premium</Txt>
+            </View>
+            <Txt weight="bold" size={16} color="#4A5670" center>
+              {savings !== null ? `Save ${savings}% with the yearly plan` : 'Pick the plan that suits you'}
             </Txt>
-          </View>
-        </View>
 
-        <View style={styles.planRow}>
-          {(['monthly', 'yearly'] as const).map((id) => {
-            const plan = plans.find((p) => p.id === id);
-            const isSelected = selected === id;
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setSelected(id)}
-                style={[styles.planCard, isSelected ? styles.planCardSelected : null]}
-                accessibilityRole="radio"
-                accessibilityLabel={`${id === 'yearly' ? 'Yearly' : 'Monthly'} plan, ${plan?.priceString ?? 'price unavailable'}`}
-                accessibilityState={{ selected: isSelected }}
-              >
-                {id === 'yearly' && savings !== null ? (
-                  <View style={styles.saveBadge}>
-                    <Txt weight="black" size={9.5} color="#4A3A20">SAVE {savings}%</Txt>
-                  </View>
-                ) : null}
-                <Txt weight="black" size={10.5} color={colors.parent.muted}>
-                  {id === 'yearly' ? 'YEARLY' : 'MONTHLY'}
-                </Txt>
-                <Txt weight="black" size={20} color={colors.parent.night}>
-                  {plan?.priceString ?? '—'}
-                </Txt>
-                <Txt weight="bold" size={11} color={colors.parent.muted}>
-                  {id === 'yearly'
-                    ? `per year${plan?.subline ? ` · ${plan.subline}` : ''}`
-                    : (plan?.subline ?? 'per month')}
-                </Txt>
+            <View style={styles.plans}>
+              {(['monthly', 'yearly'] as const).map((id) => {
+                const plan = id === 'yearly' ? yearly : monthly;
+                const on = selected === id;
+                return (
+                  <PressableScale
+                    key={id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`${id === 'yearly' ? '1 year' : '1 month'}, ${plan?.priceString ?? 'price unavailable'}`}
+                    onPress={() => setSelected(id)}
+                    haptic="select"
+                    pressedScale={0.96}
+                    style={[styles.plan, on ? styles.planOn : styles.planOff]}
+                  >
+                    {id === 'yearly' && savings !== null ? (
+                      <View style={styles.planBadge}>
+                        <Txt weight="black" size={13} color="#FFFFFF">Save {savings}%</Txt>
+                      </View>
+                    ) : null}
+                    <View style={styles.planTop}>
+                      <Txt weight="bold" size={14} color={colors.parent.muted}>{id === 'yearly' ? '1 year' : '1 month'}</Txt>
+                      <Txt weight="black" size={28}>{plan?.priceString ?? '—'}</Txt>
+                    </View>
+                    <View style={[styles.planStrip, on && id === 'yearly' ? { backgroundColor: GREEN_TINT } : null]}>
+                      <Txt weight="extrabold" size={14} color={on ? GREEN_DARK : colors.parent.muted} center>
+                        {plan ? `${plan.perMonthString} /mo` : ''}
+                      </Txt>
+                    </View>
+                  </PressableScale>
+                );
+              })}
+            </View>
+
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={ctaLabel}
+              accessibilityState={{ disabled: premium || !selectedPlan || busy }}
+              onPress={() => void buy()}
+              disabled={premium || !selectedPlan || busy}
+              haptic="medium"
+              pressedScale={0.97}
+              style={[styles.cta, (premium || !selectedPlan) && { opacity: 0.6 }]}
+            >
+              {busy ? <ActivityIndicator color="#FFFFFF" /> : <Txt weight="black" size={17} color="#FFFFFF">{ctaLabel}</Txt>}
+            </PressableScale>
+
+            {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
+                what renews, how often, and at what price, and must link to the EULA
+                and privacy policy from the screen itself — not only from Settings. */}
+            <Txt weight="bold" size={11.5} lineHeight={16.5} color={colors.parent.muted} center>
+              {purchasesLive
+                ? 'Renews automatically at the same price each period unless cancelled at least 24 hours before it ends. Payment is charged to your store account; manage or cancel anytime in your store settings.'
+                : 'Store not configured — purchases are simulated in this build.'}
+            </Txt>
+            <View style={styles.links}>
+              <Pressable onPress={() => void restore()} hitSlop={8} disabled={busy} accessibilityRole="button">
+                <Txt weight="extrabold" size={12} color={colors.parent.night}>Restore purchase</Txt>
               </Pressable>
-            );
-          })}
-        </View>
-
-        <Pressable
-          onPress={buy}
-          disabled={premium || !selectedPlan || busy}
-          style={({ pressed }) => [styles.cta, (premium || !selectedPlan) && { opacity: 0.6 }, pressed && { opacity: 0.85 }]}
-          accessibilityRole="button"
-          accessibilityLabel={ctaTitle}
-          accessibilityState={{ disabled: premium || !selectedPlan || busy }}
-        >
-          {busy ? (
-            <ActivityIndicator color="#4A3A20" />
-          ) : (
-            <Txt weight="black" size={16} color="#4A3A20">
-              {ctaTitle}
-            </Txt>
-          )}
-        </Pressable>
-
-        <View style={styles.linkRow}>
-          <Pressable onPress={dismiss} hitSlop={8} disabled={busy} accessibilityRole="button">
-            <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Not now</Txt>
-          </Pressable>
-          <Pressable onPress={restore} hitSlop={8} disabled={busy} accessibilityRole="button">
-            <Txt weight="extrabold" size={13.5} color="rgba(255,255,255,.8)">Restore purchase</Txt>
-          </Pressable>
-        </View>
-
-        {/* Apple 3.1.2 / Play subscription rules: the purchase screen must state
-            what renews, how often, and at what price, and must link to the EULA
-            and privacy policy from the screen itself — not only from Settings. */}
-        <Txt weight="semibold" size={11} color="rgba(255,255,255,.6)" center lineHeight={16.5} style={styles.legalCopy}>
-          {purchasesLive
-            ? `LittleLoop Premium is an auto-renewing subscription. Payment is charged to your store account at confirmation of purchase. It renews at the same price each period unless cancelled at least 24 hours before the period ends; manage or cancel it in your store account settings. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`
-            : `Store not configured — purchases are simulated in this build. Free plan: 1 child profile, 1 playlist, up to ${FREE_LIMITS.videosPerPlaylist} approved videos.`}
-        </Txt>
-
-        <View style={styles.legalRow}>
-          <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8} accessibilityRole="link">
-            <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Terms of Use</Txt>
-          </Pressable>
-          <Txt weight="bold" size={11} color="rgba(255,255,255,.45)">·</Txt>
-          <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8} accessibilityRole="link">
-            <Txt weight="bold" size={11} color="rgba(255,255,255,.75)" style={styles.legalLink}>Privacy Policy</Txt>
-          </Pressable>
-        </View>
-      </ScreenContainer>
+              <Txt size={12} color={colors.dotInactive}>·</Txt>
+              <Pressable onPress={() => router.push({ pathname: '/(parent)/legal', params: { doc: 'terms' } })} hitSlop={8} accessibilityRole="link">
+                <Txt weight="extrabold" size={12} color={colors.parent.night}>Terms</Txt>
+              </Pressable>
+              <Txt size={12} color={colors.dotInactive}>·</Txt>
+              <Pressable onPress={() => router.push('/(parent)/legal')} hitSlop={8} accessibilityRole="link">
+                <Txt weight="extrabold" size={12} color={colors.parent.night}>Privacy Policy</Txt>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </>
+      ) : null}
       {/* This screen is presented as a modal, so dialogs must draw inside it;
           a root-level <Modal> would be presented behind it and swallow taps. */}
       <AppDialogHost nested />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: 12, paddingBottom: 14 },
-  closeRow: { flexDirection: 'row', justifyContent: 'flex-end' },
-  closeCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,.16)',
+  flex: { flex: 1 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  content: { flexGrow: 1, paddingHorizontal: 22, gap: 4 },
+  header: { alignItems: 'center', gap: 6, marginBottom: 18 },
+  eyebrow: { letterSpacing: 1.7 },
+  subtitle: { maxWidth: 290 },
+  compareHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  freeCol: { width: 64, alignItems: 'center' },
+  premiumCol: { width: 72, alignItems: 'center' },
+  premiumChip: { width: 72, paddingVertical: 5, borderRadius: 10, backgroundColor: GREEN_TINT },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  rowCopy: { flex: 1, minWidth: 0 },
+  tick: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  cross: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#C9C2B7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: { alignItems: 'center', gap: 5, marginBottom: 14, paddingHorizontal: 8 },
-  contextBanner: {
-    backgroundColor: 'rgba(255,255,255,.14)',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
+  goCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,.72)',
   },
-  benefits: {
-    backgroundColor: 'rgba(255,255,255,.1)',
+  saveChip: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10, backgroundColor: GREEN_TINT },
+  freeBtn: {
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
     borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 8,
-    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,.28)',
   },
-  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  benefitIcon: {
-    width: scaleUi(38),
-    height: scaleUi(38),
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  benefitCopy: { flex: 1, gap: 1 },
-  moreRow: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,.18)',
-    paddingTop: 8,
-    paddingHorizontal: 4,
-  },
-  planRow: { flexDirection: 'row', gap: 10 },
-  planCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2.5,
-    borderColor: 'transparent',
-    borderRadius: 16,
-    paddingVertical: 13,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    gap: 1,
-  },
-  planCardSelected: {
-    borderColor: colors.child.sun,
-  },
-  saveBadge: {
+  dim: { flex: 1, backgroundColor: 'rgba(30,59,42,.42)' },
+  sheet: {
     position: 'absolute',
-    top: -9,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxWidth: 620,
     alignSelf: 'center',
-    backgroundColor: colors.child.sun,
-    borderRadius: 9,
-    paddingVertical: 2,
-    paddingHorizontal: 8,
+    backgroundColor: MINT,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    gap: 16,
+    alignItems: 'stretch',
+  },
+  grabber: { width: 40, height: 5, borderRadius: 3, backgroundColor: '#C9D6CD', alignSelf: 'center' },
+  sheetTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8 },
+  starDisc: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFE8D6', alignItems: 'center', justifyContent: 'center' },
+  plans: { flexDirection: 'row', gap: 14, marginTop: 14 },
+  plan: {
+    flex: 1,
+    borderRadius: 24,
+    borderWidth: 3,
+    shadowColor: colors.ink,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  planOn: { backgroundColor: '#FFFFFF', borderColor: GREEN },
+  planOff: { backgroundColor: '#F7FCF8', borderColor: 'transparent' },
+  planBadge: {
+    position: 'absolute',
+    top: -16,
+    alignSelf: 'center',
+    zIndex: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: GREEN,
+  },
+  planTop: { height: 120, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  planStrip: {
+    paddingVertical: 12,
+    backgroundColor: '#E2F5E6',
+    borderBottomLeftRadius: 21,
+    borderBottomRightRadius: 21,
   },
   cta: {
-    marginTop: 14,
-    minHeight: 52,
-    borderRadius: 14,
-    backgroundColor: colors.child.sun,
+    minHeight: 58,
+    borderRadius: 29,
+    backgroundColor: GREEN,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: GREEN,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 22,
+    elevation: 6,
   },
-  linkRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginTop: 14 },
-  legalCopy: { marginTop: 18 },
-  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 4 },
-  legalLink: { textDecorationLine: 'underline' },
+  links: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 2 },
 });

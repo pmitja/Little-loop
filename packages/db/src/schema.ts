@@ -157,6 +157,10 @@ export const childProfiles = pgTable(
     weekendBonus: boolean('weekend_bonus').notNull().default(true),
     bedtimeEnabled: boolean('bedtime_enabled').notNull().default(true),
     bedtime: text('bedtime').notNull().default('7:30 PM'),
+    // Weekday window (Mon–Fri) when videos are off: school hours.
+    schoolTimeEnabled: boolean('school_time_enabled').notNull().default(false),
+    schoolStart: text('school_start').notNull().default('8:00 AM'),
+    schoolEnd: text('school_end').notNull().default('3:00 PM'),
     warningEnabled: boolean('warning_enabled').notNull().default(true),
     kidProofExit: boolean('kid_proof_exit').notNull().default(true),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -345,6 +349,8 @@ export const childDevices = pgTable(
     platform: text('platform', { enum: ['ios', 'android'] }).notNull(),
     installId: text('install_id').notNull(),
     tokenHash: text('token_hash').notNull().unique(),
+    pinAttempts: integer('pin_attempts').notNull().default(0),
+    pinWindowEndsAt: timestamp('pin_window_ends_at', { withTimezone: true }),
     pairedByUserId: uuid('paired_by_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),

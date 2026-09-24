@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ChildProfile, FamilyRole } from '@littleloop/shared';
 import { isPastBedtime } from '@/lib/bedtime';
+import { isSchoolTime } from '@/lib/schoolTime';
 import { storage } from '@/lib/storage';
 
 interface AppState {
@@ -33,6 +34,9 @@ export interface ChildRules {
   weekendBonus: boolean;
   bedtimeEnabled: boolean;
   bedtime: string;
+  schoolTimeEnabled: boolean;
+  schoolStart: string;
+  schoolEnd: string;
   warningEnabled: boolean;
   kidProofExit: boolean;
 }
@@ -41,25 +45,38 @@ export const DEFAULT_CHILD_RULES: ChildRules = {
   weekendBonus: true,
   bedtimeEnabled: true,
   bedtime: '7:30 PM',
+  schoolTimeEnabled: false,
+  schoolStart: '8:00 AM',
+  schoolEnd: '3:00 PM',
   warningEnabled: true,
   kidProofExit: true,
 };
 
+/** Why the clock (not the daily limit) is keeping videos off right now. */
+export type WatchBlock = 'bedtime' | 'school_time';
+
+export function watchBlockAt(rules: ChildRules, now: Date = new Date()): WatchBlock | null {
+  if (isPastBedtime(rules, now)) return 'bedtime';
+  if (isSchoolTime(rules, now)) return 'school_time';
+  return null;
+}
+
 /**
- * Live bedtime gate. Unlike the daily limit — which only moves while a video
- * ticks — bedtime passes on its own, so it needs a clock, not a render.
+ * Live wall-clock gate: bedtime and school hours. Unlike the daily limit —
+ * which only moves while a video ticks — these pass on their own, so they
+ * need a clock, not a render.
  */
-export function useBedtimeReached(childProfileId: string | null): boolean {
+export function useWatchBlock(childProfileId: string | null): WatchBlock | null {
   const rules = useAppStore((s) =>
     childProfileId ? (s.childRules[childProfileId] ?? DEFAULT_CHILD_RULES) : DEFAULT_CHILD_RULES,
   );
-  const [reached, setReached] = useState(() => isPastBedtime(rules));
+  const [block, setBlock] = useState(() => watchBlockAt(rules));
 
   useEffect(() => {
-    const check = () => setReached(isPastBedtime(rules));
+    const check = () => setBlock(watchBlockAt(rules));
     check();
     const id = setInterval(check, 15_000);
-    // A device asleep past bedtime doesn't fire timers: re-check on foreground.
+    // A device asleep through a boundary doesn't fire timers: re-check on foreground.
     const sub = RNAppState.addEventListener('change', (state) => {
       if (state === 'active') check();
     });
@@ -69,7 +86,14 @@ export function useBedtimeReached(childProfileId: string | null): boolean {
     };
   }, [rules]);
 
-  return childProfileId ? reached : false;
+  return childProfileId ? block : null;
+}
+
+/** The child's current rules, falling back to the defaults. */
+export function useChildRules(childProfileId: string | null): ChildRules {
+  return useAppStore((s) =>
+    childProfileId ? (s.childRules[childProfileId] ?? DEFAULT_CHILD_RULES) : DEFAULT_CHILD_RULES,
+  );
 }
 
 /**
@@ -123,6 +147,9 @@ export const useAppStore = create<AppState>()(
                 weekendBonus: profile.weekendBonus ?? s.childRules[profile.id]?.weekendBonus ?? DEFAULT_CHILD_RULES.weekendBonus,
                 bedtimeEnabled: profile.bedtimeEnabled ?? s.childRules[profile.id]?.bedtimeEnabled ?? DEFAULT_CHILD_RULES.bedtimeEnabled,
                 bedtime: profile.bedtime ?? s.childRules[profile.id]?.bedtime ?? DEFAULT_CHILD_RULES.bedtime,
+                schoolTimeEnabled: profile.schoolTimeEnabled ?? s.childRules[profile.id]?.schoolTimeEnabled ?? DEFAULT_CHILD_RULES.schoolTimeEnabled,
+                schoolStart: profile.schoolStart ?? s.childRules[profile.id]?.schoolStart ?? DEFAULT_CHILD_RULES.schoolStart,
+                schoolEnd: profile.schoolEnd ?? s.childRules[profile.id]?.schoolEnd ?? DEFAULT_CHILD_RULES.schoolEnd,
                 warningEnabled: profile.warningEnabled ?? s.childRules[profile.id]?.warningEnabled ?? DEFAULT_CHILD_RULES.warningEnabled,
                 kidProofExit: profile.kidProofExit ?? s.childRules[profile.id]?.kidProofExit ?? DEFAULT_CHILD_RULES.kidProofExit,
               },

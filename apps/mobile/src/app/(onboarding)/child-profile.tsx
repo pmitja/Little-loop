@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScreenContainer, Txt } from '@/components';
+import { Appear, ScreenContainer, StepHeader, Txt } from '@/components';
 import { colors } from '@/theme/tokens';
 import { ChildProfileForm } from '@/features/family/ChildProfileForm';
 import { syncChildProfiles } from '@/features/family/syncChildProfiles';
@@ -69,15 +69,18 @@ export default function ChildProfileScreen() {
 
   return (
     <ScreenContainer scroll style={styles.container}>
-      {!forced ? <Txt weight="black" size={12} color={colors.primaryDark} style={styles.stepLabel}>STEP 2 OF 3</Txt> : null}
-      <Txt weight="black" size={27}>
-        {forced ? 'Add a child to continue' : 'Add your child'}
-      </Txt>
-      <Txt weight="semibold" size={14} color={colors.muted} style={{ marginTop: 6, marginBottom: 22 }}>
-        {forced
-          ? 'LittleLoop needs at least one child profile. Only a nickname is needed.'
-          : 'Only a nickname is needed — no personal data.'}
-      </Txt>
+      {!forced ? <View style={styles.stepLabel}><StepHeader step={2} total={3} /></View> : null}
+      <Appear index={0}>
+        <Txt weight="black" size={30} lineHeight={35}>
+          {forced ? 'Add a child to continue' : 'Who is this for?'}
+        </Txt>
+        <Txt weight="bold" size={15} color={colors.muted} style={{ marginTop: 6, marginBottom: 22 }}>
+          {forced
+            ? 'LittleLoop needs at least one child profile. Only a nickname is needed.'
+            : 'Only a nickname. You can add more kids later.'}
+        </Txt>
+      </Appear>
+      <Appear index={1}>
       <ChildProfileForm
         submitLabel="Continue"
         onCreated={finishNewProfile}
@@ -88,6 +91,7 @@ export default function ChildProfileScreen() {
           if (profiles && profiles.length > 0) finishExistingProfile();
         }}
       />
+      </Appear>
       {/* Without a child there is no route to Settings, and account deletion must stay
           reachable in-app (Apple 5.1.1(v)) — so it lives here too. */}
       {forced ? (
@@ -102,8 +106,8 @@ export default function ChildProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingTop: 36 },
+  container: { paddingTop: 16 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stepLabel: { marginBottom: 10, letterSpacing: 0.8 },
+  stepLabel: { marginBottom: 24 },
   deleteLink: { alignSelf: 'center', marginTop: 26, padding: 8 },
 });
