@@ -27,6 +27,7 @@ import { previewVideo, VideoPreviewError, VIDEO_ERROR_MESSAGES } from '@/lib/vid
 import { recordHappyMoment } from '@/lib/review';
 import { useAppStore } from '@/stores/appStore';
 import { usePremium } from '@/stores/entitlementStore';
+import { usePlaylistStore } from '@/stores/playlistStore';
 import { commitApprovedVideo } from '@/features/family/playlistSync';
 import { approveChannel, channelApprovalErrorMessage } from '@/features/channels/channelsApi';
 import { useChannelSuggestionStore } from '@/features/channels/channelSuggestionStore';
@@ -185,7 +186,11 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
     let added = 0;
     try {
       for (const kid of kids) {
-        const result = await commitApprovedVideo(kid.id, video);
+        // Ticked: it goes live now. Unticked: it waits under "Waiting for you"
+        // (a device-local review entry) until the parent approves it later.
+        const result = checked
+          ? await commitApprovedVideo(kid.id, video)
+          : usePlaylistStore.getState().addVideo(kid.id, video, 'review');
         if (result === 'limit') full.push(kid.nickname);
         else if (result === 'duplicate') already.push(kid.nickname);
         else added += 1;
@@ -229,7 +234,8 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
     }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     close();
-    recordHappyMoment();
+    // Rating ask only after a video actually went live, not one parked for review.
+    if (checked) recordHappyMoment();
   };
 
   return (
@@ -381,9 +387,16 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
             ) : null}
 
             <Button
-              title={chosen.length > 1 ? `Add to ${chosen.length} playlists` : 'Add to playlist'}
+              title={
+                !checked
+                  ? 'Save to review later'
+                  : chosen.length > 1
+                    ? `Add to ${chosen.length} playlists`
+                    : 'Add to playlist'
+              }
+              variant={checked || !video ? 'primary' : 'outline'}
               loading={saving}
-              disabled={!video || !checked || chosen.length === 0}
+              disabled={!video || chosen.length === 0}
               onPress={() => void add()}
             />
           </Animated.View>
