@@ -19,6 +19,8 @@ import { updateChildProfile as saveChildProfile } from '@/features/family/update
 import { syncFamilyPlaylists } from '@/features/family/playlistSync';
 import { useAppStore } from '@/stores/appStore';
 
+const GRID_GAP = 12;
+
 const AVATAR_LABELS: Record<AvatarId, string> = {
   bear: 'Bear',
   fox: 'Fox',
@@ -66,6 +68,11 @@ export function ChildProfileForm({
   );
   const [limitOptionsOpen, setLimitOptionsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Cells are sized from the measured grid so they stay square at any width
+  // (a % width + flexGrow let them stretch into wide rectangles on iPad).
+  const [gridWidth, setGridWidth] = useState(0);
+  const cell = gridWidth > 0 ? Math.floor((gridWidth - GRID_GAP * 2) / 3) : 0;
+  const art = cell > 0 ? Math.round(cell * 0.74) : 72;
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -175,7 +182,7 @@ export function ChildProfileForm({
       <SectionLabel style={{ marginTop: 22, marginBottom: 12 }}>
         {nickname.trim() ? `Pick ${nickname.trim()}’s buddy` : 'Pick a buddy'}
       </SectionLabel>
-      <View style={styles.avatarGrid}>
+      <View style={styles.avatarGrid} onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}>
         {AVATAR_IDS.map((id) => {
           const active = id === avatar;
           return (
@@ -187,14 +194,14 @@ export function ChildProfileForm({
               onPress={() => setAvatar(id)}
               haptic="select"
               pressedScale={0.92}
-              style={[styles.avatarCell, active ? [styles.avatarActive, { backgroundColor: KID_TINTS[id] }] : styles.avatarIdle]}
+              style={[styles.avatarCell, cell > 0 && { width: cell, height: cell, flexGrow: 0 }, active ? [styles.avatarActive, { backgroundColor: KID_TINTS[id] }] : styles.avatarIdle]}
             >
               {active ? (
                 <PopIn key={`pick-${id}`}>
-                  <ChildAvatar avatar={id} size={78} />
+                  <ChildAvatar avatar={id} size={art} />
                 </PopIn>
               ) : (
-                <ChildAvatar avatar={id} size={72} />
+                <ChildAvatar avatar={id} size={art} />
               )}
               {active ? (
                 <PopIn style={styles.avatarCheck}>
@@ -314,7 +321,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: colors.primaryTint, borderColor: colors.child.skyDeep },
   chipIdle: { backgroundColor: colors.card, borderColor: colors.border },
-  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
   avatarCell: {
     width: '30%',
     flexGrow: 1,
