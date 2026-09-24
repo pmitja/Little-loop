@@ -180,7 +180,7 @@ export default function Today() {
             </Appear>
           ) : (
             <Appear index={3}>
-              <PasteVideoBar onPress={addVideo} />
+              <PasteVideoBar onPress={addVideo} title={liveCount === 0 ? `Add ${name}’s first video` : undefined} />
             </Appear>
           )}
         </View>

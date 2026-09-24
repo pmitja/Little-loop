@@ -5,12 +5,13 @@ import { PressableScale } from './Motion';
 import { Txt } from './Txt';
 
 /** The one "add a video" entry point, shared by Today and the Playlist. */
-export function PasteVideoBar({ onPress }: { onPress: () => void }) {
+/** `title` swaps the headline, e.g. for a child's very first video. */
+export function PasteVideoBar({ onPress, title = 'Paste a YouTube link' }: { onPress: () => void; title?: string }) {
   return (
     <PressableScale accessibilityRole="button" accessibilityLabel="Add a video" onPress={onPress} pressedScale={0.98} style={styles.bar}>
       <AppIcon name="add-video" size={42} style={styles.icon} />
       <View style={styles.copy}>
-        <Txt weight="black" size={16}>Paste a YouTube link</Txt>
+        <Txt weight="black" size={16}>{title}</Txt>
         <Txt weight="bold" size={12} color={colors.child.skyDeep}>or share from the YouTube app</Txt>
       </View>
       <View style={styles.cta}>
