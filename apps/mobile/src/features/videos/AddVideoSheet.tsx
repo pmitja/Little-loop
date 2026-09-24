@@ -76,6 +76,13 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   const [video, setVideo] = useState<VideoMeta | null>(null);
   const [chosen, setChosen] = useState<string[]>(activeId ? [activeId] : []);
   const [wholeChannel, setWholeChannel] = useState(false);
+  // The parent confirms they've looked at the video before it can reach a child.
+  const [checked, setChecked] = useState(false);
+  const checkedFor =
+    profiles
+      .filter((kid) => chosen.includes(kid.id))
+      .map((kid) => kid.nickname)
+      .join(' and ') || 'your child';
   const [saving, setSaving] = useState(false);
   const request = useRef(0);
 
@@ -85,6 +92,7 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
   useEffect(() => {
     const ticket = ++request.current;
     setVideo(null);
+    setChecked(false);
     setLoading(false);
     if (!linkId) return;
     const timer = setTimeout(async () => {
@@ -337,6 +345,24 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
                   </>
                 ) : null}
 
+                <PressableScale
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked }}
+                  onPress={() => setChecked((on) => !on)}
+                  haptic={checked ? 'light' : 'medium'}
+                  pressedScale={0.97}
+                  style={[styles.checkRow, checked && styles.checkRowOn]}
+                >
+                  <View style={[styles.checkBox, { backgroundColor: checked ? colors.green : '#D6DEE9' }]}>
+                    <Svg width={11} height={9} viewBox="0 0 11 9">
+                      <Path d="M1.5 4.5 L4 7 L9.5 1.5" stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </Svg>
+                  </View>
+                  <Txt weight="extrabold" size={14.5} lineHeight={20} color={checked ? colors.greenDark : colors.parent.muted} style={{ flex: 1 }}>
+                    I’ve checked it. It’s OK for {checkedFor}.
+                  </Txt>
+                </PressableScale>
+
                 <View style={styles.channelRow}>
                   <AppIcon name="channels" size={32} style={{ borderRadius: 10 }} />
                   <View style={styles.copy}>
@@ -357,7 +383,7 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
             <Button
               title={chosen.length > 1 ? `Add to ${chosen.length} playlists` : 'Add to playlist'}
               loading={saving}
-              disabled={!video || chosen.length === 0}
+              disabled={!video || !checked || chosen.length === 0}
               onPress={() => void add()}
             />
           </Animated.View>
@@ -470,6 +496,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.parent.paper,
   },
   kidOn: { backgroundColor: colors.parent.night, paddingRight: 14 },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  checkRowOn: { backgroundColor: colors.greenTint, borderColor: colors.green },
+  checkBox: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   channelRow: {
     flexDirection: 'row',
     alignItems: 'center',
