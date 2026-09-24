@@ -82,6 +82,7 @@ export default function Today() {
 
   // iPad: the week sits beside the "needs you" card only when there is one;
   // with nothing to act on it takes the full width instead of half.
+  const sideBySide = dashboardColumns && waiting > 0;
   // Same gate as the Playlist's Paste bar: a full free playlist opens the paywall.
   const addVideo = () =>
     !premium && videos.length >= FREE_LIMITS.videosPerPlaylist
@@ -142,16 +143,18 @@ export default function Today() {
         />
       </Appear>
 
-      {/* iPad: the time card spans the page; what needs you and the week sit below it. */}
-      {dashboardColumns ? hero : null}
+      {hero}
+      {/* Adding a video is always one tap away, right under the minutes. */}
+      <Appear index={3}>
+        <PasteVideoBar onPress={addVideo} title={liveCount === 0 ? `Add ${name}’s first video` : undefined} />
+      </Appear>
       <View
         onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}
-        style={[styles.dashboard, dashboardColumns && styles.columns]}
+        style={[styles.dashboard, sideBySide && styles.columns]}
       >
-        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
-          {dashboardColumns ? null : hero}
-          {waiting > 0 ? (
-            <Appear index={3}>
+        {waiting > 0 ? (
+          <View style={[styles.column, sideBySide && { flex: 1 }]}>
+            <Appear index={4}>
               <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel={`${waiting} waiting for you. Review.`}
@@ -178,15 +181,11 @@ export default function Today() {
                 </View>
               </PressableScale>
             </Appear>
-          ) : (
-            <Appear index={3}>
-              <PasteVideoBar onPress={addVideo} title={liveCount === 0 ? `Add ${name}’s first video` : undefined} />
-            </Appear>
-          )}
-        </View>
+          </View>
+        ) : null}
 
-        <View style={[styles.column, dashboardColumns && { flex: 1 }]}>
-          <Appear index={4}>
+        <View style={[styles.column, sideBySide && { flex: 1 }]}>
+          <Appear index={5}>
             <PressableScale
               accessibilityRole="button"
               accessibilityLabel="See all activity"
@@ -203,7 +202,7 @@ export default function Today() {
           </Appear>
 
           {watchedToday.length > 0 ? (
-            <Appear index={5} style={styles.watched}>
+            <Appear index={6} style={styles.watched}>
               <Txt weight="black" size={16}>Watched today</Txt>
               {watchedToday.slice(0, 4).map((v) => (
                 <View key={v.id} style={styles.watchedRow}>
