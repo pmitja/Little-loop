@@ -161,13 +161,18 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
       clearTimeout(settled);
     };
   }, []);
-  const containerHeight = frame?.height ?? windowHeight;
-  const keyboardOverlap =
-    keyboardTop !== null && frame ? Math.max(0, frame.y + frame.height - keyboardTop) : 0;
-  // A container that starts below the status bar needs no top inset of its own.
-  const topClearance = frame && frame.y > insets.top ? 12 : insets.top + 12;
-  // Never taller than the space left: the middle scrolls, the button stays put.
-  const maxSheetHeight = containerHeight - keyboardOverlap - topClearance - (isTablet ? 68 : 0);
+  // From the share flow the container can reach past the bottom of the screen,
+  // so work from the part of it that is actually visible: from the screen top
+  // (or the container's own top) down to the screen bottom or the keyboard.
+  const containerTop = frame?.y ?? 0;
+  const containerBottom = frame ? frame.y + frame.height : windowHeight;
+  const keyboardUp = keyboardTop !== null && keyboardTop < containerBottom;
+  const visibleBottom = Math.min(containerBottom, windowHeight, keyboardUp ? keyboardTop : windowHeight);
+  // Lifts the sheet off whatever hides the container's bottom edge.
+  const bottomLift = Math.max(0, containerBottom - visibleBottom);
+  const visibleTop = Math.max(containerTop, insets.top) + 12;
+  // Never taller than the visible space: the middle scrolls, the button stays put.
+  const maxSheetHeight = visibleBottom - visibleTop - (isTablet ? 68 : 0);
   // Opened from Today, Playlist or onboarding: close back to wherever that was.
   const leave = () => {
     if (onClosed) onClosed();
@@ -290,13 +295,13 @@ export function AddVideoSheet({ initialLink = '', initialError = null, onClosed,
       <Animated.View entering={FadeIn.duration(220)} style={[StyleSheet.absoluteFill, shadeStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.backdrop} />
       </Animated.View>
-      <View style={[styles.avoider, isTablet && styles.avoiderCentered, { paddingBottom: keyboardOverlap + (isTablet ? 40 : 0) }]} pointerEvents="box-none">
+      <View style={[styles.avoider, isTablet && styles.avoiderCentered, { paddingBottom: bottomLift + (isTablet ? 40 : 0) }]} pointerEvents="box-none">
           <Animated.View
             entering={isTablet ? ZoomIn.springify().damping(20).stiffness(220) : SlideInDown.springify().damping(22).stiffness(200)}
             style={[
               styles.sheet,
               // Resting on the keyboard there is no home indicator to clear.
-              isTablet ? styles.card : { paddingBottom: keyboardOverlap > 0 ? 16 : Math.max(insets.bottom, 16) + 16 },
+              isTablet ? styles.card : { paddingBottom: keyboardUp ? 16 : Math.max(insets.bottom, 16) + 16 },
               { maxHeight: maxSheetHeight },
               dragStyle,
             ]}
