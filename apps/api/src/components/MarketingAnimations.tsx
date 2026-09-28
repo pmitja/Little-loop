@@ -46,18 +46,61 @@ export function MarketingAnimations() {
     };
     steps[0]?.classList.add('is-current');
 
-    // Small screens show one phone per step; play each as it scrolls into view.
-    const observer = new IntersectionObserver(
+    // Small screens show the steps as a swipeable carousel with its own nav.
+    const track = document.querySelector<HTMLElement>('.story-steps');
+    const dots = [...document.querySelectorAll<HTMLButtonElement>('[data-go]')];
+    const arrows = [...document.querySelectorAll<HTMLButtonElement>('[data-dir]')];
+    const isCarousel = () => !!track && track.scrollWidth > track.clientWidth + 1;
+    let slide = 0;
+    let trackSeen = false;
+    const playSlide = (i: number) => {
+      if (!reduceMotion && trackSeen && isCarousel()) replay(steps[i]?.querySelector('.step-device') ?? null);
+    };
+    const setSlide = (i: number) => {
+      if (i === slide) return;
+      slide = i;
+      dots.forEach((dot, d) => {
+        if (d === i) dot.setAttribute('aria-current', 'step');
+        else dot.removeAttribute('aria-current');
+      });
+      arrows.forEach((arrow) => {
+        arrow.disabled = Number(arrow.dataset.dir) < 0 ? i === 0 : i === steps.length - 1;
+      });
+      playSlide(i);
+    };
+    const goTo = (i: number) => {
+      const target = steps[Math.max(0, Math.min(steps.length - 1, i))];
+      if (!track || !target) return;
+      track.scrollTo({ left: target.offsetLeft - steps[0].offsetLeft, behavior: reduceMotion ? 'auto' : 'smooth' });
+    };
+    const onDot = (event: Event) => goTo(Number((event.currentTarget as HTMLElement).dataset.go));
+    const onArrow = (event: Event) => goTo(slide + Number((event.currentTarget as HTMLElement).dataset.dir));
+    dots.forEach((dot) => dot.addEventListener('click', onDot));
+    arrows.forEach((arrow) => arrow.addEventListener('click', onArrow));
+    if (arrows[0]) arrows[0].disabled = true;
+
+    const slideObserver = new IntersectionObserver(
       (entries) => {
+        if (!isCarousel()) return;
         for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          replay(entry.target);
-          observer.unobserve(entry.target);
+          if (entry.isIntersecting) setSlide(steps.indexOf(entry.target as HTMLElement));
         }
       },
-      { threshold: 0.35 },
+      { root: track, threshold: 0.6 },
     );
-    if (!reduceMotion) document.querySelectorAll('.step-device').forEach((el) => observer.observe(el));
+    steps.forEach((step) => slideObserver.observe(step));
+
+    // Play the first visible card once the carousel scrolls into view.
+    const trackObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        trackSeen = true;
+        playSlide(slide);
+        trackObserver.disconnect();
+      },
+      { threshold: 0.3 },
+    );
+    if (track) trackObserver.observe(track);
 
     void Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
       ([{ gsap }, { ScrollTrigger }]) => {
@@ -206,7 +249,10 @@ export function MarketingAnimations() {
 
     return () => {
       cancelled = true;
-      observer.disconnect();
+      slideObserver.disconnect();
+      trackObserver.disconnect();
+      dots.forEach((dot) => dot.removeEventListener('click', onDot));
+      arrows.forEach((arrow) => arrow.removeEventListener('click', onArrow));
       root.classList.remove('motion');
       dispose();
     };

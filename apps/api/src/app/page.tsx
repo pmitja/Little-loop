@@ -29,6 +29,10 @@ const Arrow = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" /></svg>
 );
 
+const Chevron = ({ dir }: { dir: 'left' | 'right' }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d={dir === 'left' ? 'M15 5 8 12l7 7' : 'm9 5 7 7-7 7'} /></svg>
+);
+
 const Lock = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
@@ -211,6 +215,24 @@ export default function MarketingPage() {
         <div className="story-intro" data-reveal>
           <div className="section-kicker">How it works</div>
           <h2>Five <span className="nowrap">screen-time</span> headaches. Five quiet fixes.</h2>
+        </div>
+
+        <div className="story-nav">
+          <div className="story-nav-dots">
+            {STEPS.map((step, i) => (
+              <button
+                key={i}
+                type="button"
+                data-go={i}
+                aria-label={`Step ${i + 1}: ${step.problem}`}
+                aria-current={i === 0 ? 'step' : undefined}
+              />
+            ))}
+          </div>
+          <div className="story-nav-arrows">
+            <button type="button" data-dir="-1" aria-label="Previous step"><Chevron dir="left" /></button>
+            <button type="button" data-dir="1" aria-label="Next step"><Chevron dir="right" /></button>
+          </div>
         </div>
 
         <div className="story-body">
