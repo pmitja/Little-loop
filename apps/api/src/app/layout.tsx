@@ -1,6 +1,15 @@
 import type { Metadata } from 'next';
+import { Nunito } from 'next/font/google';
 import { SiteHeader } from '@/components/SiteHeader';
 import './globals.css';
+
+// The app's typeface (Nunito stands in for SF Pro Rounded there too).
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800', '900'],
+  variable: '--font-nunito',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.littleloopapp.com'),
@@ -37,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={nunito.variable}>
       <body>
         <a className="skip-link" href="#page-content">Skip to content</a>
         <SiteHeader />

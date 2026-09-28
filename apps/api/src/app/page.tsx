@@ -1,7 +1,21 @@
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { MarketingAnimations } from '@/components/MarketingAnimations';
+import {
+  KidHomeScreen,
+  LimitsSheet,
+  PasteScreen,
+  Phone,
+  PinScreen,
+  PlayerScreen,
+  RequestNotification,
+  RequestScreen,
+  SafetyPill,
+  TimesUpScreen,
+} from '@/components/home/AppScreens';
 import { APP_STORE_URL } from '@/content/site';
+import './home.css';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://www.littleloopapp.com' },
@@ -13,12 +27,6 @@ const Check = () => (
 
 const Arrow = () => (
   <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" /></svg>
-);
-
-const Share = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M12 16V3m0 0L7.5 7.5M12 3l4.5 4.5M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
-  </svg>
 );
 
 const Lock = () => (
@@ -37,8 +45,12 @@ const Clock = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
 );
 
-const Play = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5V7Z" /></svg>
+const Tablet = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3" /><path d="M11 18.5h2" /></svg>
+);
+
+const Bars = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" /></svg>
 );
 
 const Apple = () => (
@@ -59,11 +71,7 @@ const GooglePlay = () => (
 function StoreButtons({ centered = false }: { centered?: boolean }) {
   return (
     <div className={`store-buttons${centered ? ' store-buttons-centered' : ''}`}>
-      <a
-        className="store-badge"
-        href={APP_STORE_URL}
-        aria-label="Download LittleLoop on the App Store"
-      >
+      <a className="store-badge" href={APP_STORE_URL} aria-label="Download LittleLoop on the App Store">
         <Apple />
         <span><small>Download on the</small><strong>App Store</strong></span>
       </a>
@@ -78,26 +86,75 @@ function StoreButtons({ centered = false }: { centered?: boolean }) {
 
 const Brand = () => (
   <span className="brand" aria-label="LittleLoop home">
-    <Image
-      className="brand-logo"
-      src="/marketing/little-loop-logo.png"
-      alt=""
-      width={310}
-      height={90}
-      priority
-    />
+    <Image className="brand-logo" src="/marketing/little-loop-logo.png" alt="" width={310} height={90} />
   </span>
 );
 
-function MiniVideo({ color, title, channel }: { color: string; title: string; channel: string }) {
-  return (
-    <div className="mini-video">
-      <span className="mini-thumb" style={{ background: color }}><Play /></span>
-      <span><strong>{title}</strong><small>{channel}</small></span>
-      <span className="approved"><Check /> Approved</span>
-    </div>
-  );
-}
+type Step = {
+  id?: string;
+  problem: string;
+  title: ReactNode;
+  body: string;
+  label: string;
+  screen: ReactNode;
+  overlay?: ReactNode;
+};
+
+// Headlines and body copy were ranked with Jev (marketing/script-studio) for
+// clarity, pull and brand fit. The problem lines match the App Store screenshots.
+const STEPS: Step[] = [
+  {
+    problem: 'One video turns into twenty',
+    title: <>Every &ldquo;up next&rdquo; is one you already checked.</>,
+    body: 'Every video in the queue is one you added. Nothing sneaks in, and nothing plays on its own.',
+    label: 'LittleLoop player: the up-next list shows only videos picked by a grown-up.',
+    screen: <PlayerScreen />,
+  },
+  {
+    problem: 'An evening of setup and settings',
+    title: <>No settings maze. Paste a link and it&apos;s added.</>,
+    body: 'Copy a video link and paste it in, or tap Share in YouTube. You see the preview, tap add, and it’s in their playlist.',
+    label: 'Parent playlist screen: a pasted YouTube link shows a preview and an add button.',
+    screen: <PasteScreen />,
+  },
+  {
+    problem: '“Just one more!” arguments',
+    title: <>&ldquo;One more&rdquo; becomes a request, not a fight.</>,
+    body: 'Kids tap a heart when they want more. The request lands on your phone, and you choose Approve or Not now.',
+    label: 'Child taps a heart for more ducks; the parent gets a notification to approve.',
+    screen: <RequestScreen />,
+    overlay: <RequestNotification />,
+  },
+  {
+    problem: 'Screen time ends in tears',
+    title: <>When time&apos;s up, the app is the bad guy. Not you.</>,
+    body: 'Set a daily limit, a bedtime and school hours. When time runs out, LittleLoop says a friendly goodbye so you don’t have to.',
+    label: 'All done for today screen, with daily time, bedtime and school hour settings.',
+    screen: <TimesUpScreen />,
+    overlay: <LimitsSheet />,
+  },
+  {
+    id: 'safety',
+    problem: 'Little fingers find the settings',
+    title: <>Only your PIN gets them out of kid mode.</>,
+    body: 'Leaving child mode takes your PIN or Face ID. Inside, there’s no search, no comments and no links out, and every button is sized for small hands.',
+    label: 'Grown-ups only PIN screen for leaving child mode.',
+    screen: <PinScreen />,
+    overlay: <SafetyPill />,
+  },
+];
+
+const PERKS = [
+  'No search bar',
+  'No suggestions',
+  'No autoplay',
+  'No comments',
+  'Daily time limits',
+  'Bedtime',
+  'School hours',
+  'PIN-locked exit',
+  'Shared with caregivers',
+];
 
 export default function MarketingPage() {
   return (
@@ -105,211 +162,158 @@ export default function MarketingPage() {
       <MarketingAnimations />
 
       <section className="hero" id="top">
-        <div className="hero-glow hero-glow-one" />
-        <div className="hero-glow hero-glow-two" />
-        <div className="hero-copy" id="content">
-          <div className="eyebrow"><span className="status-dot" /> Built for little watchers. Controlled by you.</div>
-          <h1>They tap.<br /><span>You choose</span> what comes next.</h1>
+        <div className="hero-blob hero-blob-one" />
+        <div className="hero-blob hero-blob-two" />
+        <div className="hero-copy">
+          <div className="eyebrow">A video player for kids, run by you</div>
+          <h1>
+            No autoplay.<br /> No rabbit holes.<br /> <span className="hl">Just your playlist.</span>
+          </h1>
           <p className="hero-lede">
-            Choose the YouTube videos. Set a time limit. Let your child watch the list you approved.
+            Paste in the videos you&apos;ve checked. Your child gets a simple player that plays those and
+            nothing else, until their time is up.
           </p>
           <div className="hero-actions">
-            <a className="button" href={APP_STORE_URL}>Download app <Arrow /></a>
-            <a className="text-link" href="#how-it-works"><span className="icon-circle"><Play /></span> See how it works</a>
+            <a className="button" href={APP_STORE_URL}>Download on the App Store <Arrow /></a>
+            <a className="text-link" href="#how-it-works">See how it works</a>
           </div>
-          <StoreButtons />
           <div className="trust-row" aria-label="LittleLoop benefits">
-            <span><Check /> No child search</span>
+            <span><Check /> No search</span>
+            <span><Check /> No suggestions</span>
             <span><Check /> Parent PIN</span>
-            <span><Check /> Your approved videos only</span>
           </div>
         </div>
 
-        <div className="hero-visual" aria-label="Preview of the LittleLoop parent app">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="float-note note-approved"><span><Check /></span><strong>6 videos</strong><small>chosen by you</small></div>
-          <div className="float-note note-time"><span><Clock /></span><strong>25 min left</strong><small>for Mia today</small></div>
-          <div className="phone">
-            <div className="phone-speaker" />
-            <div className="phone-screen">
-              <div className="phone-top"><span>9:41</span><span>LittleLoop</span><span className="tiny-lock"><Lock /></span></div>
-              <div className="profile-row">
-                <span className="avatar"><Image src="/marketing/fox.png" alt="" width={64} height={64} priority /></span>
-                <span><small>READY TO WATCH</small><strong>Mia&apos;s loop</strong><em>6 approved videos</em></span>
+        <div className="hero-visual">
+          <Image className="hero-char hero-star" src="/marketing/star.png" alt="" width={140} height={140} priority />
+          <Image className="hero-char hero-rocket" src="/marketing/rocket.png" alt="" width={130} height={130} priority />
+          <div className="chip chip-picked"><span><Check /></span><strong>Picked by you</strong></div>
+          <div className="chip chip-time"><span><Clock /></span><strong>28 min left today</strong></div>
+          <Phone
+            className="hero-device"
+            label="LittleLoop kid home screen: Hi, Mia! with 28 minutes left and Five Little Ducks ready to keep watching."
+            layers={[<KidHomeScreen key="home" />]}
+          />
+        </div>
+      </section>
+
+      <div className="perk-band" aria-label="What LittleLoop includes">
+        <div className="perk-track">
+          {[0, 1].map((copy) => (
+            <ul key={copy} aria-hidden={copy === 1 ? true : undefined}>
+              {PERKS.map((perk) => <li key={perk}>{perk}</li>)}
+            </ul>
+          ))}
+        </div>
+      </div>
+
+      <section className="story" id="how-it-works" data-step="0">
+        <div className="story-intro" data-reveal>
+          <div className="section-kicker">How it works</div>
+          <h2>Five <span className="nowrap">screen-time</span> headaches. Five quiet fixes.</h2>
+        </div>
+
+        <div className="story-body">
+          <ol className="story-steps">
+            {STEPS.map((step, i) => (
+              <li className="story-step" id={step.id} data-step={i} key={i}>
+                <div className="story-text">
+                  <span className="story-num">{String(i + 1).padStart(2, '0')}</span>
+                  <p className="problem">{step.problem}</p>
+                  <h3>{step.title}</h3>
+                  <p className="story-body-copy">{step.body}</p>
+                </div>
+                <Phone className="step-device" label={step.label} layers={[step.screen]} overlays={[step.overlay]} />
+              </li>
+            ))}
+          </ol>
+
+          <div className="story-stage" aria-hidden="true">
+            <div className="story-sticky">
+              <Phone
+                className="stage-device"
+                label="LittleLoop app screens"
+                layers={STEPS.map((step) => step.screen)}
+                overlays={STEPS.map((step) => step.overlay)}
+              />
+              <div className="story-dots">
+                {STEPS.map((_, i) => <i key={i} data-dot={i} className={i === 0 ? 'is-active' : ''} />)}
               </div>
-              <div className="limit-card">
-                <span className="limit-icon"><Clock /></span>
-                <span><small>TODAY&apos;S TIME</small><strong>25 minutes left</strong></span>
-                <span className="limit-pill">45 min</span>
-              </div>
-              <div className="phone-label"><strong>Approved for Mia</strong><span>See all</span></div>
-              <MiniVideo color="linear-gradient(135deg,#BFE8F1,#67C9DD)" title="Tiny trains & big bridges" channel="Curious Kids" />
-              <MiniVideo color="linear-gradient(135deg,#FFE9A3,#FFC93E)" title="Why do stars twinkle?" channel="Little Explorers" />
-              <MiniVideo color="linear-gradient(135deg,#DDEFCF,#78C982)" title="A very sleepy bear" channel="Storytime" />
-              <div className="child-mode-button"><Play /> Start child mode</div>
             </div>
           </div>
-          <Image className="hero-bear" src="/marketing/bear.png" alt="LittleLoop bear character" width={190} height={190} priority />
         </div>
       </section>
 
-      <section className="pain-section" id="safety">
-        <div className="section-kicker light">THE REAL PROBLEM</div>
-        <div className="pain-heading" data-reveal>
-          <h2>You can&apos;t preview <span>an endless feed.</span></h2>
-          <p>
-            A recommendation isn&apos;t a video you&apos;ve checked. With an open feed, the next tap can lead
-            somewhere you haven&apos;t reviewed.
-          </p>
-        </div>
-        <div className="contrast-grid" data-stagger>
-          <article className="contrast-card contrast-before" data-stagger-item>
-            <div className="contrast-top"><span className="contrast-icon"><Play /></span><span>OPEN VIDEO FEED</span></div>
-            <h3>"What did they click now?"</h3>
-            <div className="feed-stack">
-              <span className="feed-card feed-one" /><span className="feed-card feed-two" /><span className="feed-card feed-three" />
-              <span className="feed-question">?</span>
-            </div>
-            <ul>
-              <li><span>×</span> New suggestions keep appearing</li>
-              <li><span>×</span> Every next tap needs another check</li>
-              <li><span>×</span> "One more" can keep going</li>
-            </ul>
-          </article>
-          <article className="contrast-card contrast-after" data-stagger-item>
-            <div className="contrast-top"><span className="contrast-icon"><Lock /></span><span>THE LITTLELOOP WAY</span></div>
-            <h3>"I chose every video here."</h3>
-            <div className="loop-stack">
-              <span className="loop-video loop-blue"><Check /></span>
-              <span className="loop-video loop-yellow"><Check /></span>
-              <span className="loop-video loop-green"><Check /></span>
-              <span className="loop-end"><Lock /></span>
-            </div>
-            <ul>
-              <li><Check /> Only videos you added</li>
-              <li><Check /> No search, comments or wandering</li>
-              <li><Check /> Stops when their time is up</li>
-            </ul>
-          </article>
-        </div>
-        <p className="safety-note" data-reveal>LittleLoop is a parent-controlled player for approved video links. Videos play through an embedded approved source.</p>
-      </section>
-
-      <section className="steps-section" id="how-it-works">
-        <div className="center-heading" data-reveal>
-          <div className="section-kicker">SO SIMPLE IT BECOMES A HABIT</div>
-          <h2>Find it once. Share it.<br />It&apos;s in their loop.</h2>
-          <p>No copying long links. No rebuilding playlists. Just use the share button you already know.</p>
-        </div>
-        <div className="steps" data-stagger>
-          <article className="step-card" data-stagger-item>
-            <div className="step-number">1</div>
-            <div className="step-visual browser-card">
-              <div className="browser-bar"><i /><i /><i /></div>
-              <div className="video-scene"><Play /></div>
-              <span className="mock-button"><Share /> Share</span>
-            </div>
-            <h3>Find a video you trust</h3>
-            <p>Preview it in the app you already use. When it feels right, tap Share.</p>
-          </article>
-          <article className="step-card featured-step" data-stagger-item>
-            <div className="step-number">2</div>
-            <div className="step-visual share-sheet">
-              <span className="sheet-handle" />
-              <strong>Share to…</strong>
-              <div className="app-row">
-                <span className="other-app" /><span className="other-app" />
-                <span className="littleloop-app"><Image className="share-app-icon" src="/marketing/app-icon.png" alt="" width={54} height={54} /><small>LittleLoop</small></span>
-                <span className="other-app" />
-              </div>
-            </div>
-            <h3>Share it to LittleLoop</h3>
-            <p>LittleLoop opens the video preview, ready for your quick approval.</p>
-          </article>
-          <article className="step-card" data-stagger-item>
-            <div className="step-number">3</div>
-            <div className="step-visual child-picker">
-              <small>ADD TO A LOOP</small>
-              <div><span className="picker-avatar fox"><Image src="/marketing/fox.png" alt="" width={56} height={56} /></span><strong>Mia</strong><Check /></div>
-              <div><span className="picker-avatar dino"><Image src="/marketing/dino.png" alt="" width={56} height={56} /></span><strong>Leo</strong><span className="empty-check" /></div>
-              <span className="mock-button">Add approved video</span>
-            </div>
-            <h3>Choose who can watch</h3>
-            <p>Add it to one child or several. Their loops stay separate and personal.</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="features-section" id="family">
-        <div className="features-heading" data-reveal>
-          <div><div className="section-kicker">ONE FAMILY. ONE CALMER SYSTEM.</div><h2>Control that fits real family life.</h2></div>
+      <section className="family" id="family">
+        <div className="family-heading" data-reveal>
+          <div className="section-kicker">For the whole family</div>
+          <h2>Grandma, the sitter and you, all on the same page.</h2>
           <p>Different kids need different rules. And caring for them is rarely a one-person job.</p>
         </div>
-        <div className="feature-grid" data-stagger>
-          <article className="feature-card family-card" data-stagger-item>
-            <span className="feature-icon coral"><People /></span>
+        <div className="family-grid" data-stagger>
+          <article className="fam-card fam-caregivers" data-stagger-item>
+            <span className="fam-icon coral"><People /></span>
             <h3>Caregivers stay in sync</h3>
-            <p>Invite a partner, grandparent or babysitter. Everyone can add approved videos and see the same family setup.</p>
+            <p>Invite a partner, grandparent or babysitter. Everyone can add approved videos and sees the same family setup.</p>
             <div className="caregiver-visual">
-              <span className="caregiver main"><Image src="/marketing/bear.png" alt="" width={72} height={72} /><i>YOU</i></span>
+              <span className="caregiver main"><Image src="/marketing/bear.png" alt="" width={84} height={84} /><i>YOU</i></span>
               <span className="connection-line"><i /><i /><i /></span>
-              <span className="caregiver"><Image src="/marketing/fox.png" alt="" width={72} height={72} /></span>
-              <span className="caregiver"><Image src="/marketing/bunny.png" alt="" width={72} height={72} /></span>
-              <span className="invite-badge"><Check /> Family updated</span>
+              <span className="caregiver"><Image src="/marketing/fox.png" alt="" width={70} height={70} /></span>
+              <span className="caregiver"><Image src="/marketing/bunny.png" alt="" width={70} height={70} /></span>
             </div>
           </article>
-          <article className="feature-card profiles-card" data-stagger-item>
-            <span className="feature-icon sky"><Clock /></span>
+          <article className="fam-card fam-limits" data-stagger-item>
+            <span className="fam-icon sky"><Clock /></span>
             <h3>A limit for each child</h3>
-            <p>Give Mia 30 minutes and Leo 45. Each profile gets its own videos, timer and watch activity.</p>
+            <p>Give Mia 30 minutes and Leo 45. Each child gets their own playlist, timer and watch history.</p>
             <div className="profile-limits">
-              <div><span className="picker-avatar fox"><Image src="/marketing/fox.png" alt="" width={52} height={52} /></span><span><strong>Mia</strong><small>30 minutes daily</small></span><em>30m</em></div>
-              <div><span className="picker-avatar dino"><Image src="/marketing/dino.png" alt="" width={52} height={52} /></span><span><strong>Leo</strong><small>45 minutes daily</small></span><em>45m</em></div>
-              <div><span className="picker-avatar bunny"><Image src="/marketing/bunny.png" alt="" width={52} height={52} /></span><span><strong>Nora</strong><small>20 minutes daily</small></span><em>20m</em></div>
+              <div><span className="picker-avatar fox"><Image src="/marketing/fox.png" alt="" width={44} height={44} /></span><strong>Mia</strong><em>30 min</em></div>
+              <div><span className="picker-avatar dino"><Image src="/marketing/dino.png" alt="" width={44} height={44} /></span><strong>Leo</strong><em>45 min</em></div>
             </div>
           </article>
-          <article className="feature-card lock-card" data-stagger-item>
-            <span className="feature-icon yellow"><Lock /></span>
-            <h3>A child mode that stays child mode</h3>
-            <p>No search bar. No links out. No settings to change. Leaving the loop takes your parent PIN.</p>
-            <div className="pin-visual"><span>•</span><span>•</span><span>•</span><span>•</span><i><Lock /></i></div>
+          <article className="fam-card fam-device" data-stagger-item>
+            <span className="fam-icon yellow"><Tablet /></span>
+            <h3>Their tablet, run from your phone</h3>
+            <p>Pair your child&apos;s own phone or tablet. It opens in kid mode, and you manage everything from yours.</p>
+            <div className="pair-visual">
+              <span className="pair-tablet">
+                <span className="pair-screen">
+                  <span className="pair-avatar"><Image src="/marketing/fox.png" alt="" width={40} height={40} /></span>
+                  <strong>Mia&apos;s tablet</strong>
+                  <small><Lock /> Kid mode</small>
+                </span>
+              </span>
+              <span className="connection-line"><i /><i /><i /><i /></span>
+              <span className="pair-phone"><span><Check /></span></span>
+            </div>
           </article>
-          <article className="feature-card activity-card" data-stagger-item>
-            <span className="feature-icon green"><Play /></span>
+          <article className="fam-card fam-activity" data-stagger-item>
+            <span className="fam-icon green"><Bars /></span>
             <h3>See what actually played</h3>
             <p>A simple activity view shows what they watched and how much of today&apos;s time they used.</p>
-            <div className="activity-bars"><span style={{ height: '42%' }} /><span style={{ height: '65%' }} /><span style={{ height: '34%' }} /><span style={{ height: '82%' }} /><span style={{ height: '55%' }} /><span className="today" style={{ height: '72%' }} /><i>Today</i></div>
+            <div className="activity-bars"><span style={{ height: '42%' }} /><span style={{ height: '65%' }} /><span style={{ height: '34%' }} /><span style={{ height: '82%' }} /><span style={{ height: '55%' }} /><span className="today" style={{ height: '72%' }} /></div>
+            <div className="activity-days" aria-hidden="true"><i>Mon</i><i>Tue</i><i>Wed</i><i>Thu</i><i>Fri</i><i>Today</i></div>
           </article>
         </div>
-      </section>
-
-      <section className="promise-section" data-reveal>
-        <Image src="/marketing/star.png" alt="LittleLoop star character" width={160} height={160} />
-        <div>
-          <div className="section-kicker">THE LITTLELOOP PROMISE</div>
-          <blockquote>If it&apos;s not in the loop,<br />they can&apos;t tap into it.</blockquote>
-          <p>A list of videos you&apos;ve chosen, ready for your child to watch.</p>
-        </div>
-        <div className="promise-list">
-          <span><Check /> Parent-approved videos</span><span><Check /> Separate child profiles</span><span><Check /> Daily time limits</span><span><Check /> Shared caregiver access</span>
-        </div>
+        <p className="safety-note" data-reveal>
+          <Lock /> LittleLoop plays approved videos through YouTube&apos;s embedded player. It isn&apos;t affiliated with YouTube or Google.
+        </p>
       </section>
 
       <section className="final-cta" id="early-access">
-        <div className="final-cloud cloud-one" /><div className="final-cloud cloud-two" />
-        <Image className="cta-character" src="/marketing/rocket.png" alt="LittleLoop rocket character" width={220} height={220} />
-        <div className="section-kicker">AVAILABLE ON THE APP STORE</div>
-        <h2>Make their first <span>LittleLoop.</span></h2>
-        <p>Add the videos you want them to watch. Set a limit, then hand over the player.</p>
+        <Image className="cta-char cta-bunny" src="/marketing/bunny.png" alt="" width={170} height={170} />
+        <Image className="cta-char cta-dino" src="/marketing/dino.png" alt="" width={150} height={150} />
+        <div className="section-kicker">Available on the App Store</div>
+        <h2>Pick five videos.<br /> Set a timer. Hand it over.</h2>
+        <p>Tonight, they watch only what you picked.</p>
         <StoreButtons centered />
-        <small>Available for iPhone and iPad</small>
+        <small>For iPhone and iPad</small>
       </section>
 
       <footer>
         <a href="#top" className="brand-link"><Brand /></a>
         <p>Small loops. Big peace of mind.</p>
-        <div><a href="/guides">Guides</a><a href="/privacy">Privacy</a><a href="mailto:hello@littleloopapp.com">Contact</a><span>© 2026 LittleLoop</span></div>
+        <div><a href="/guides">Guides</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="mailto:hello@littleloopapp.com">Contact</a><span>© 2026 LittleLoop</span></div>
       </footer>
     </main>
   );
