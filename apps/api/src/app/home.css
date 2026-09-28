@@ -359,12 +359,15 @@ p { margin-top: 0; }
 }
 
 @media (max-width: 1023px) {
-  .story { padding: 90px 0 0; background: #dceef5; }
+  .story { padding: 76px 0 0; background: #dceef5; }
   .story[data-step] { --story-bg: #dceef5; color: var(--ink); }
-  .story-intro { padding: 0 24px 50px; }
+  .story-intro { padding: 0 24px 36px; text-align: left; max-width: 608px; }
   .story-body { display: block; }
   .story-stage { display: none; }
-  .story-step { min-height: 0; flex-direction: column; gap: 44px; padding: 84px 24px 96px; text-align: center; }
+  .story-step { min-height: 0; flex-direction: column; gap: 40px; padding: 72px 24px 80px; }
+  .story-num { display: inline-block; margin-bottom: 14px; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,.6); color: var(--ink); font-size: 12px; letter-spacing: .06em; }
+  .story-step:nth-child(5) .story-num { background: rgba(255,255,255,.12); }
+  .story-text { width: 100%; max-width: 560px; }
   .story-step:first-child { padding-top: 10px; }
   .story-step:nth-child(2) { background: #faefdc; }
   .story-step:nth-child(3) { background: #c9f0e0; }
@@ -372,7 +375,7 @@ p { margin-top: 0; }
   .story-step:nth-child(5) { background: #2a3b5c; color: #fff; }
   .story-step:nth-child(5) .problem { color: #ffa08f; }
   .story-step:nth-child(5) .story-body-copy { color: #d5dcea; }
-  .story-step:nth-child(5) .story-num { color: rgba(255,255,255,.35); }
+  .story-step:nth-child(5) .story-num { color: #fff; }
   .story-text { margin: 0 auto; }
   .motion .story-step:not(.is-current) .story-text { opacity: 1; }
   .story-step .step-device { display: block; }
@@ -411,10 +414,12 @@ p { margin-top: 0; }
   .hero-star { right: 2%; top: 0; }
   .hero-rocket { left: 2%; bottom: 2%; }
   .perk-track li { font-size: 15px; }
-  .story-intro h2, .family-heading h2, .final-cta h2 { font-size: 38px; }
-  .story-step { padding: 64px 18px 76px; gap: 36px; }
-  .story-text h3 { font-size: 32px; }
-  .story-body-copy { font-size: 17px; }
+  .story-intro h2, .family-heading h2, .final-cta h2 { font-size: 36px; }
+  .story { padding-top: 64px; }
+  .story-intro { padding: 0 18px 28px; }
+  .story-step { padding: 56px 20px 64px; gap: 34px; }
+  .story-text h3 { font-size: 30px; line-height: 1.08; margin: 10px 0 14px; }
+  .story-body-copy { font-size: 16.5px; line-height: 1.55; }
   .step-device { zoom: .86; }
   .family { padding: 84px 18px; }
   .fam-card { padding: 24px; border-radius: 24px; }
