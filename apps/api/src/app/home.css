@@ -390,6 +390,7 @@ p { margin-top: 0; }
 .story-nav-dots button { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 99px; background: rgba(42,59,92,.22); cursor: pointer; transition: width .3s ease, background .3s ease; }
 .story-nav-dots button[aria-current] { width: 28px; background: var(--coral); }
 .story-nav-arrows { display: flex; gap: 8px; }
+.story-nav-dots button, .story-nav-arrows button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .story-nav-arrows button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #fff; color: var(--ink); box-shadow: 0 6px 16px rgba(42,59,92,.1); cursor: pointer; transition: opacity .2s ease; }
 .story-nav-arrows button:disabled { opacity: .35; cursor: default; }
 .story-nav-arrows svg { stroke-width: 2.6; }

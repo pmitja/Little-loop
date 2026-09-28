@@ -68,10 +68,23 @@ export function MarketingAnimations() {
       });
       playSlide(i);
     };
+    // Which card sits at the start of the track, from its scroll position.
+    const indexFromScroll = () => {
+      if (!track || steps.length < 2) return 0;
+      const stride = steps[1].offsetLeft - steps[0].offsetLeft;
+      return Math.max(0, Math.min(steps.length - 1, Math.round(track.scrollLeft / stride)));
+    };
+    let snapTimer = 0;
     const goTo = (i: number) => {
-      const target = steps[Math.max(0, Math.min(steps.length - 1, i))];
-      if (!track || !target) return;
-      track.scrollTo({ left: target.offsetLeft - steps[0].offsetLeft, behavior: reduceMotion ? 'auto' : 'smooth' });
+      const index = Math.max(0, Math.min(steps.length - 1, i));
+      if (!track || !steps[index]) return;
+      // iOS Safari ignores or snaps back scripted smooth scrolls while
+      // mandatory snapping is on, so switch it off for the trip.
+      track.style.scrollSnapType = 'none';
+      track.scrollTo({ left: steps[index].offsetLeft - steps[0].offsetLeft, behavior: reduceMotion ? 'auto' : 'smooth' });
+      setSlide(index);
+      window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(() => { track.style.scrollSnapType = ''; }, 700);
     };
     const onDot = (event: Event) => goTo(Number((event.currentTarget as HTMLElement).dataset.go));
     const onArrow = (event: Event) => goTo(slide + Number((event.currentTarget as HTMLElement).dataset.dir));
@@ -79,16 +92,16 @@ export function MarketingAnimations() {
     arrows.forEach((arrow) => arrow.addEventListener('click', onArrow));
     if (arrows[0]) arrows[0].disabled = true;
 
-    const slideObserver = new IntersectionObserver(
-      (entries) => {
-        if (!isCarousel()) return;
-        for (const entry of entries) {
-          if (entry.isIntersecting) setSlide(steps.indexOf(entry.target as HTMLElement));
-        }
-      },
-      { root: track, threshold: 0.6 },
-    );
-    steps.forEach((step) => slideObserver.observe(step));
+    // Swipes update the dots and arrows as the track settles.
+    let scrollFrame = 0;
+    const onTrackScroll = () => {
+      if (track?.style.scrollSnapType === 'none') return;
+      cancelAnimationFrame(scrollFrame);
+      scrollFrame = requestAnimationFrame(() => {
+        if (isCarousel()) setSlide(indexFromScroll());
+      });
+    };
+    track?.addEventListener('scroll', onTrackScroll, { passive: true });
 
     // Play the first visible card once the carousel scrolls into view.
     const trackObserver = new IntersectionObserver(
@@ -249,7 +262,9 @@ export function MarketingAnimations() {
 
     return () => {
       cancelled = true;
-      slideObserver.disconnect();
+      track?.removeEventListener('scroll', onTrackScroll);
+      window.clearTimeout(snapTimer);
+      cancelAnimationFrame(scrollFrame);
       trackObserver.disconnect();
       dots.forEach((dot) => dot.removeEventListener('click', onDot));
       arrows.forEach((arrow) => arrow.removeEventListener('click', onArrow));
